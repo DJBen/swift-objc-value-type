@@ -1,0 +1,123 @@
+import Foundation
+import SwiftSyntax
+import SwiftSyntaxBuilder
+
+extension TypeSyntax {
+    // When these types are wrapped as Optional, they can't be bridged to Objective-C, instead they need to be wrapped as NSNumber.
+    var isNSNumberBridged: Bool {
+        asNSNumberBridged() != nil
+    }
+
+    func asNSNumberBridged() -> IdentifierTypeSyntax? {
+        if let identifierType = self.as(IdentifierTypeSyntax.self) {
+            switch identifierType.name.trimmed.text {
+            case "Int8", "UInt8", "Int16", "UInt16", "Int32", "UInt32", "Int64", "UInt64", "Float", "Double", "Bool", "Int", "UInt":
+                return identifierType
+            default:
+                return nil
+            }
+        }
+        return nil
+    }
+}
+
+extension DeclReferenceExprSyntax {
+    func toNSNumberOptionalMapping(
+        identifierType: IdentifierTypeSyntax
+    ) -> ExprSyntax {
+        switch identifierType.name.trimmed.text {
+        case "Int8", "UInt8", "Int16", "UInt16", "Int32", "UInt32", "Int64", "UInt64", "Float", "Double", "Bool", "Int", "UInt":
+            return FunctionCallExprSyntax(
+                calledExpression: MemberAccessExprSyntax(
+                    base: self,
+                    period: .periodToken(),
+                    declName: DeclReferenceExprSyntax(baseName: "map")
+                ),
+                leftParen: .leftParenToken(),
+                rightParen: .rightParenToken()
+            ) {
+                LabeledExprSyntax(
+                    expression: KeyPathExprSyntax(
+                        components: KeyPathComponentListSyntax {
+                            KeyPathComponentSyntax(
+                                period: .periodToken(),
+                                component: .property(
+                                        KeyPathPropertyComponentSyntax(
+                                        declName: DeclReferenceExprSyntax(
+                                            baseName: .identifier(identifierType.name.trimmed.text.camelCased + "Value")
+                                        )
+                                    )
+                                )
+                            )
+                        }
+                    )
+                )
+            }.cast(ExprSyntax.self)
+        default:
+            return cast(ExprSyntax.self)
+        }
+    }
+}
+
+extension StructDeclSyntax {
+    var inheritedTypes: [String] {
+        inheritanceClause?.inheritedTypes.compactMap {
+            if let identifierType = $0.type.as(IdentifierTypeSyntax.self) {
+                return identifierType.name.trimmed.text
+            } else {
+                return nil
+            }
+        } ?? []
+    }
+
+    var visibilityModifiers: [DeclModifierSyntax] {
+        modifiers.filter {
+            $0.name.keyword == .public ||
+            $0.name.keyword == .private ||
+            $0.name.keyword == .internal ||
+            $0.name.keyword == .open
+        }
+    }
+
+    /// The visibility modifier string appended by a space. If missing, it is going to be an empty string.
+    var visibilityModifierString: String {
+        visibilityModifiers.first.map { $0.trimmed.name.text + " " } ?? ""
+    }
+}
+
+extension ExtensionDeclSyntax {
+    var inheritedTypes: [String] {
+        inheritanceClause?.inheritedTypes.compactMap {
+            if let identifierType = $0.type.as(IdentifierTypeSyntax.self) {
+                return identifierType.name.trimmed.text
+            } else {
+                return nil
+            }
+        } ?? []
+    }
+}
+
+extension TokenSyntax {
+    var keyword: Keyword? {
+        switch tokenKind {
+        case let .keyword(value):
+            return value
+        default:
+            return nil
+        }
+    }
+}
+
+extension String {
+    var lowercasingFirst: String { prefix(1).lowercased() + dropFirst() }
+    var uppercasingFirst: String { prefix(1).uppercased() + dropFirst() }
+
+    var camelCased: String {
+        guard !isEmpty else { return "" }
+        let parts = components(separatedBy: .alphanumerics.inverted)
+        let first = parts.first!.lowercasingFirst
+        let rest = parts.dropFirst().map { $0.uppercasingFirst }
+
+        return ([first] + rest).joined()
+    }
+}
