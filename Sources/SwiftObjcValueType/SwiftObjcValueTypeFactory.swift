@@ -12,46 +12,6 @@ public struct SwiftObjcValueTypeFactory {
         self.builderFactory = builderFactory
     }
 
-    private struct StructDeclDescriptor {
-        let structDecl: StructDeclSyntax
-        var inheritedTypes: [String]
-    }
-
-    private func descriptorMap(
-        codeBlocks: CodeBlockItemListSyntax
-    ) -> [String: StructDeclDescriptor] {
-        var structDescriptorMap = [String: StructDeclDescriptor]()
-        var extensionInheritedTypesMap = [String: [String]]()
-
-        for codeBlockItem in codeBlocks {
-            if let structDecl = codeBlockItem.item.as(StructDeclSyntax.self) {
-                let structName = structDecl.name.trimmed.text
-                var inheritedTypes = Set(structDescriptorMap[structName]?.inheritedTypes ?? [])
-                inheritedTypes.formUnion(structDecl.inheritedTypes)
-                structDescriptorMap[structName] = StructDeclDescriptor(structDecl: structDecl, inheritedTypes: Array(inheritedTypes))
-            } else if let extensionDecl = codeBlockItem.item.as(ExtensionDeclSyntax.self), let extensionId = extensionDecl.extendedType.as(IdentifierTypeSyntax.self) {
-                let extensionName = extensionId.trimmed.name.text
-                var inheritedTypes = Set(extensionInheritedTypesMap[extensionName] ?? [])
-                inheritedTypes.formUnion(extensionDecl.inheritedTypes)
-                extensionInheritedTypesMap[extensionName] = Array(inheritedTypes)
-            }
-        }
-
-        var descriptorMap = structDescriptorMap
-
-        // Iterate through extensionInheritedTypesMap and merge with descriptorMap
-        for (key, values) in extensionInheritedTypesMap {
-            // If the key exists in descriptorMap, merge the values
-            if let existingValues = descriptorMap[key] {
-                descriptorMap[key]?.inheritedTypes = Array(Set(existingValues.inheritedTypes).union(values))
-            } else {
-                // If the key only exists in extensionInheritedTypesMap, ignore it
-            }
-        }
-
-        return descriptorMap
-    }
-
     @CodeBlockItemListBuilder
     public func wrappingClassDecl(
         codeBlocks: CodeBlockItemListSyntax,
@@ -387,4 +347,45 @@ public struct SwiftObjcValueTypeFactory {
         )
         .with(\.leadingTrivia, .newlines(2))
     }
+
+    private struct StructDeclDescriptor {
+        let structDecl: StructDeclSyntax
+        var inheritedTypes: [String]
+    }
+
+    private func descriptorMap(
+        codeBlocks: CodeBlockItemListSyntax
+    ) -> [String: StructDeclDescriptor] {
+        var structDescriptorMap = [String: StructDeclDescriptor]()
+        var extensionInheritedTypesMap = [String: [String]]()
+
+        for codeBlockItem in codeBlocks {
+            if let structDecl = codeBlockItem.item.as(StructDeclSyntax.self) {
+                let structName = structDecl.name.trimmed.text
+                var inheritedTypes = Set(structDescriptorMap[structName]?.inheritedTypes ?? [])
+                inheritedTypes.formUnion(structDecl.inheritedTypes)
+                structDescriptorMap[structName] = StructDeclDescriptor(structDecl: structDecl, inheritedTypes: Array(inheritedTypes))
+            } else if let extensionDecl = codeBlockItem.item.as(ExtensionDeclSyntax.self), let extensionId = extensionDecl.extendedType.as(IdentifierTypeSyntax.self) {
+                let extensionName = extensionId.trimmed.name.text
+                var inheritedTypes = Set(extensionInheritedTypesMap[extensionName] ?? [])
+                inheritedTypes.formUnion(extensionDecl.inheritedTypes)
+                extensionInheritedTypesMap[extensionName] = Array(inheritedTypes)
+            }
+        }
+
+        var descriptorMap = structDescriptorMap
+
+        // Iterate through extensionInheritedTypesMap and merge with descriptorMap
+        for (key, values) in extensionInheritedTypesMap {
+            // If the key exists in descriptorMap, merge the values
+            if let existingValues = descriptorMap[key] {
+                descriptorMap[key]?.inheritedTypes = Array(Set(existingValues.inheritedTypes).union(values))
+            } else {
+                // If the key only exists in extensionInheritedTypesMap, ignore it
+            }
+        }
+
+        return descriptorMap
+    }
+
 }

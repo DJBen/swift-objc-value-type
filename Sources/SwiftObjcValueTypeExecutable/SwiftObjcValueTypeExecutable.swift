@@ -12,12 +12,13 @@ import WinSDK
 
 @main
 class SwiftObjcValueTypeExecutable: ParsableCommand {
-  required init() {}
-
-  static var configuration = CommandConfiguration(
-    abstract: "Generate objc compatible value types for Swift structs and enums",
-    subcommands: [
-        GenerateValueTypeCommand.self,
-    ]
-  )
+    required init() {}
+    
+    static var configuration = CommandConfiguration(
+        commandName: "swift-objc-value-type",
+        abstract: "Generate objc compatible value types for Swift structs and enums",
+        subcommands: [
+            GenerateValueTypeCommand.self,
+        ]
+    )
 }

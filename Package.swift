@@ -62,6 +62,7 @@ let package = Package(
     .executableTarget(
       name: "SwiftObjcValueTypeExecutable",
       dependencies: [
+        "SwiftObjcValueType",
         .product(name: "SwiftDiagnostics", package: "swift-syntax"),
         .product(name: "SwiftOperators", package: "swift-syntax"),
         .product(name: "SwiftParser", package: "swift-syntax"),

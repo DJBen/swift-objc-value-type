@@ -37,9 +37,9 @@ struct FileHandlingArguments: ParsableArguments {
     var verbose: Bool = false
 }
 
-/// A command  that has arguments to parse source code
+/// A command that has arguments to parse source code
 protocol FileHandlingCommand {
-  var arguments: FileHandlingArguments { get }
+    var fileArguments: FileHandlingArguments { get }
 }
 
 protocol TextOutputStreamableSink {
@@ -67,12 +67,12 @@ final class FileStreamSink: TextOutputStreamableSink {
 extension FileHandlingCommand {
     /// The contents of the source files that should be parsed, each in UTF-8 bytes.
     func sourceFiles() -> any IteratorProtocol<File> {
-        if let source = arguments.source {
+        if let source = fileArguments.source {
             return SourceFileContentIterator(fileNames: [source], directories: [])
-        } else if arguments.sourcePaths.isEmpty {
+        } else if fileArguments.sourcePaths.isEmpty {
             return StdinIterator()
         } else {
-            let dedupedSourcePaths = Set(arguments.sourcePaths)
+            let dedupedSourcePaths = Set(fileArguments.sourcePaths)
             return SourceFileContentIterator(sourcePaths: dedupedSourcePaths)
         }
     }
@@ -82,10 +82,10 @@ extension FileHandlingCommand {
     /// This method reads from arguments and checks `outputDir` property. If exists, it will output
     /// to the directory as files. Otherwise it outputs to stdout.
     /// - Parameters:
-    ///   - fileName: The file name. If missing, it assumes "Mock.swift".
+    ///   - fileName: The file name. If missing, it assumes "Wrapper.swift".
     ///   - writeBlock: A closure in which the first argument is a sink object providing an interface to stream content.
     func withFileHandler(_ fileName: String?, writeBlock: (TextOutputStreamableSink) throws -> Void) throws -> Void {
-        guard let outputDir = arguments.outputDir else {
+        guard let outputDir = fileArguments.outputDir else {
             try writeBlock(StdoutSink())
             return
         }
@@ -103,17 +103,17 @@ extension FileHandlingCommand {
             let fileBaseName = url.deletingPathExtension().lastPathComponent
             let fileExtension = url.pathExtension.isEmpty ? "swift" : url.pathExtension
 
-            // Append -Mock to the file name
-            outputFileName = "\(fileBaseName)Mock.\(fileExtension)"
+            // Append -Wrapper to the file name
+            outputFileName = "\(fileBaseName)Wrapper.\(fileExtension)"
         } else {
-            // Default file name with -Mock appended
-            outputFileName = "Mock.swift"
+            // Default file name with -Wrapper appended
+            outputFileName = "Wrapper.swift"
         }
 
         let outputUrl = URL(fileURLWithPath: outputDir).appendingPathComponent(outputFileName)
 
-        if arguments.verbose {
-            print("swift-mock-gen: writing to \(outputUrl)")
+        if fileArguments.verbose {
+            print("swift-objc-value-type: writing to \(outputUrl)")
         }
 
         if !FileManager.default.fileExists(atPath: outputUrl.path) {
