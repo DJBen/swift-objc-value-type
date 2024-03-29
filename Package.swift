@@ -11,7 +11,7 @@ let package = Package(
   ],
   products: [
     .executable(name: "swift-objc-value-type", targets: ["SwiftObjcValueTypeExecutable"]),
-    .library(name: "SwiftObjcValueType", targets: ["SwiftObjcValueType"]),
+    .library(name: "SwiftObjcValueTypeMacroInterface", targets: ["SwiftObjcValueTypeMacroInterface"]),
   ],
   dependencies: [
     .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.2"),
@@ -36,6 +36,13 @@ let package = Package(
     ),
 
     .target(
+      name: "SwiftObjcValueTypeMacroInterface",
+      dependencies: [
+        "SwiftObjcValueTypeMacro",
+      ]
+    ),
+
+    .target(
       name: "TestingSupport",
       dependencies: [
         .product(name: "SwiftSyntax", package: "swift-syntax"),
@@ -54,6 +61,7 @@ let package = Package(
     .testTarget(
         name: "SwiftObjcValueTypeMacroTests",
         dependencies: [
+            "SwiftObjcValueType",
             "SwiftObjcValueTypeMacro",
             .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
         ]

@@ -23,17 +23,13 @@ public enum SwiftObjcValueTypeMacro: PeerMacro {
         providingPeersOf declaration: some DeclSyntaxProtocol,
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
+        if let structDecl = declaration.as(StructDeclSyntax.self) {
+            return try factory.wrappingClassDeclInMacro(
+                structDecl: structDecl,
+                shouldSynthesizeNSCopying: true,
+                shouldSynthesizeObjCBuilder: true
+            )
+        }
         return []
-//        let protocolDecl = try extractor.extractProtocolDecl(from: declaration)
-//        return try factory.decls(
-//            protocolDecl: protocolDecl,
-//            surroundWithPoundIfDebug: true,
-//            excludeProtocols: [],
-//            importDeclsToCopy: [],
-//            customGenericTypes: [:],
-//            customSnippet: nil,
-//            onlyGenerateForPublicProtocols: false,
-//            verbose: false
-//        )
     }
 }

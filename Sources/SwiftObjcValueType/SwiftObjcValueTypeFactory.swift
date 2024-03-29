@@ -18,81 +18,151 @@ public struct SwiftObjcValueTypeFactory {
         shouldSynthesizeNSCopying: Bool = true,
         shouldSynthesizeObjCBuilder: Bool = true
     ) throws -> CodeBlockItemListSyntax {
+        for codeBlockItem in codeBlocks {
+            // Inherit import statements
+            if let importDecl = codeBlockItem.item.as(ImportDeclSyntax.self) {
+                importDecl
+            }
+        }
+
         for (_, descriptor) in descriptorMap(codeBlocks: codeBlocks) {
-            try wrappingClassDecl(
-                structDecl: descriptor.structDecl,
-                shouldSynthesizeEquatable: descriptor.inheritedTypes.contains("Equatable") || descriptor.inheritedTypes.contains("Hashable") ||
-                descriptor.inheritedTypes.contains("Identifiable"),
-                shouldSynthesizeNSCodable: descriptor.inheritedTypes.contains("Codable"),
-                shouldSynthesizeNSCopying: shouldSynthesizeNSCopying,
-                shouldSynthesizeObjCBuilder: shouldSynthesizeObjCBuilder
-            )
+            try CodeBlockItemListSyntax {
+                for decl in try wrappingClassDecl(
+                    structDecl: descriptor.structDecl,
+                    shouldSynthesizeEquatable: descriptor.inheritedTypes.contains("Equatable") || descriptor.inheritedTypes.contains("Hashable") ||
+                    descriptor.inheritedTypes.contains("Identifiable"),
+                    shouldSynthesizeNSCodable: descriptor.inheritedTypes.contains("Codable"),
+                    shouldSynthesizeNSCopying: shouldSynthesizeNSCopying,
+                    shouldSynthesizeObjCBuilder: shouldSynthesizeObjCBuilder
+                ) { decl }
+            }
         }
     }
 
-    @CodeBlockItemListBuilder
+    public func wrappingClassDeclInMacro(
+        structDecl: StructDeclSyntax,
+        shouldSynthesizeNSCopying: Bool,
+        shouldSynthesizeObjCBuilder: Bool
+    ) throws -> [DeclSyntax] {
+        try wrappingClassDecl(
+            structDecl: structDecl,
+            shouldSynthesizeEquatable: structDecl.inheritedTypes.contains("Equatable") || structDecl.inheritedTypes.contains("Hashable") ||
+            structDecl.inheritedTypes.contains("Identifiable"),
+            shouldSynthesizeNSCodable: structDecl.inheritedTypes.contains("Codable"),
+            shouldSynthesizeNSCopying: shouldSynthesizeNSCopying,
+            shouldSynthesizeObjCBuilder: shouldSynthesizeObjCBuilder
+        )
+    }
+
     public func wrappingClassDecl(
         structDecl: StructDeclSyntax,
         shouldSynthesizeEquatable: Bool,
         shouldSynthesizeNSCodable: Bool,
         shouldSynthesizeNSCopying: Bool,
         shouldSynthesizeObjCBuilder: Bool
-    ) throws -> CodeBlockItemListSyntax {
+    ) throws -> [DeclSyntax] {
         let structName = structDecl.name.trimmed.text
 
-        try ClassDeclSyntax(
-            attributes: AttributeListSyntax {
-                .attribute("@objc(\(raw: structName))")
-            }.with(\.trailingTrivia, .newline),
-            modifiers: structDecl.modifiers.trimmed,
-            name: "\(raw: structName)Class",
-            inheritanceClause: InheritanceClauseSyntax {
-                InheritedTypeListSyntax {
-                    InheritedTypeSyntax(type: IdentifierTypeSyntax(name: "NSObject"))
+        var decls = [DeclSyntax]()
 
-                    if shouldSynthesizeNSCopying {
-                        InheritedTypeSyntax(type: IdentifierTypeSyntax(name: "NSCopying"))
+        decls.append(
+            try ClassDeclSyntax(
+                attributes: AttributeListSyntax {
+                    .attribute("@objc(\(raw: structName))")
+                }.with(\.trailingTrivia, .newline),
+                modifiers: structDecl.modifiers.trimmed,
+                name: "\(raw: structName)Class",
+                inheritanceClause: InheritanceClauseSyntax {
+                    InheritedTypeListSyntax {
+                        InheritedTypeSyntax(type: IdentifierTypeSyntax(name: "NSObject"))
+
+                        if shouldSynthesizeNSCopying {
+                            InheritedTypeSyntax(type: IdentifierTypeSyntax(name: "NSCopying"))
+                        }
                     }
-                }
-            },
-            memberBlockBuilder: {
-                for member in structDecl.memberBlock.members {
-                    if let variableTypeDecl = member.decl.as(VariableDeclSyntax.self) {
-                        try objcVariableDecl(
-                            variableTypeDecl: variableTypeDecl
+                },
+                memberBlockBuilder: {
+                    for member in structDecl.memberBlock.members {
+                        if let variableTypeDecl = member.decl.as(VariableDeclSyntax.self) {
+                            try objcVariableDecl(
+                                variableTypeDecl: variableTypeDecl
+                            )
+                            .with(\.leadingTrivia, .newlines(2))
+                        }
+                    }
+
+                    DeclSyntax(
+                        "private let wrapped: \(raw: structName)"
+                    )
+                    .with(\.leadingTrivia, .newlines(2))
+
+                    InitializerDeclSyntax(
+                        attributes: AttributeListSyntax {
+                            .attribute("@objc")
+                        }.with(\.trailingTrivia, .newline),
+                        modifiers: structDecl.modifiers.trimmed,
+                        signature: FunctionSignatureSyntax(
+                            parameterClause: FunctionParameterClauseSyntax(
+                                parametersBuilder: {
+                                    for member in structDecl.memberBlock.members {
+                                        if let variableTypeDecl = member.decl.as(VariableDeclSyntax.self) {
+                                            for binding in variableTypeDecl.bindings {
+                                                if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let typeAnnotation = binding.typeAnnotation {
+                                                    let variableName = identifierPattern.identifier.trimmed.text
+
+                                                    FunctionParameterSyntax(
+                                                        firstName: .identifier(variableName),
+                                                        type: { () -> TypeSyntax in
+                                                            if let optional = typeAnnotation.type.as(OptionalTypeSyntax.self), optional.wrappedType.isNSNumberBridged {
+                                                                return OptionalTypeSyntax(
+                                                                    wrappedType: IdentifierTypeSyntax(name: "NSNumber")
+                                                                ).cast(TypeSyntax.self)
+                                                            } else {
+                                                                return typeAnnotation.type.trimmed
+                                                            }
+                                                        }()
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            )
                         )
-                        .with(\.leadingTrivia, .newlines(2))
-                    }
-                }
+                    ) {
+                        SequenceExprSyntax {
+                            MemberAccessExprSyntax(
+                                base: DeclReferenceExprSyntax(baseName: .keyword(.self)),
+                                declName: DeclReferenceExprSyntax(baseName: .identifier("wrapped"))
+                            )
 
-                DeclSyntax(
-                    "private let wrapped: \(raw: structName)"
-                )
-                .with(\.leadingTrivia, .newlines(2))
+                            AssignmentExprSyntax()
 
-                InitializerDeclSyntax(
-                    attributes: AttributeListSyntax {
-                        .attribute("@objc")
-                    }.with(\.trailingTrivia, .newline),
-                    modifiers: structDecl.modifiers.trimmed,
-                    signature: FunctionSignatureSyntax(
-                        parameterClause: FunctionParameterClauseSyntax(
-                            parametersBuilder: {
+                            FunctionCallExprSyntax(
+                                calledExpression: DeclReferenceExprSyntax(baseName: .identifier(structName)),
+                                leftParen: .leftParenToken(),
+                                rightParen: .rightParenToken()
+                            ) {
                                 for member in structDecl.memberBlock.members {
                                     if let variableTypeDecl = member.decl.as(VariableDeclSyntax.self) {
                                         for binding in variableTypeDecl.bindings {
                                             if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let typeAnnotation = binding.typeAnnotation {
                                                 let variableName = identifierPattern.identifier.trimmed.text
 
-                                                FunctionParameterSyntax(
-                                                    firstName: .identifier(variableName),
-                                                    type: { () -> TypeSyntax in
-                                                        if let optional = typeAnnotation.type.as(OptionalTypeSyntax.self), optional.wrappedType.isNSNumberBridged {
-                                                            return OptionalTypeSyntax(
-                                                                wrappedType: IdentifierTypeSyntax(name: "NSNumber")
-                                                            ).cast(TypeSyntax.self)
+                                                LabeledExprSyntax(
+                                                    label: .identifier(variableName),
+                                                    colon: .colonToken(),
+                                                    expression: { () -> ExprSyntax in
+                                                        if let optional = typeAnnotation.type.as(OptionalTypeSyntax.self), optional.wrappedType.isNSNumberBridged, let identifierType = optional.wrappedType.as(IdentifierTypeSyntax.self) {
+                                                            return DeclReferenceExprSyntax(
+                                                                baseName: .identifier(variableName)
+                                                            )
+                                                            .toNSNumberOptionalMapping(identifierType: identifierType)
                                                         } else {
-                                                            return typeAnnotation.type.trimmed
+                                                            return DeclReferenceExprSyntax(
+                                                                baseName: .identifier(variableName)
+                                                            )
+                                                            .cast(ExprSyntax.self)
                                                         }
                                                     }()
                                                 )
@@ -101,82 +171,46 @@ public struct SwiftObjcValueTypeFactory {
                                     }
                                 }
                             }
-                        )
-                    )
-                ) {
-                    SequenceExprSyntax {
-                        MemberAccessExprSyntax(
-                            base: DeclReferenceExprSyntax(baseName: .keyword(.self)),
-                            declName: DeclReferenceExprSyntax(baseName: .identifier("wrapped"))
-                        )
-
-                        AssignmentExprSyntax()
-
-                        FunctionCallExprSyntax(
-                            calledExpression: DeclReferenceExprSyntax(baseName: .identifier(structName)),
-                            leftParen: .leftParenToken(),
-                            rightParen: .rightParenToken()
-                        ) {
-                            for member in structDecl.memberBlock.members {
-                                if let variableTypeDecl = member.decl.as(VariableDeclSyntax.self) {
-                                    for binding in variableTypeDecl.bindings {
-                                        if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let typeAnnotation = binding.typeAnnotation {
-                                            let variableName = identifierPattern.identifier.trimmed.text
-
-                                            LabeledExprSyntax(
-                                                label: .identifier(variableName),
-                                                colon: .colonToken(),
-                                                expression: { () -> ExprSyntax in
-                                                    if let optional = typeAnnotation.type.as(OptionalTypeSyntax.self), optional.wrappedType.isNSNumberBridged, let identifierType = optional.wrappedType.as(IdentifierTypeSyntax.self) {
-                                                        return DeclReferenceExprSyntax(
-                                                            baseName: .identifier(variableName)
-                                                        )
-                                                        .toNSNumberOptionalMapping(identifierType: identifierType)
-                                                    } else {
-                                                        return DeclReferenceExprSyntax(
-                                                            baseName: .identifier(variableName)
-                                                        )
-                                                        .cast(ExprSyntax.self)
-                                                    }
-                                                }()
-                                            )
-                                        }
-                                    }
-                                }
-                            }
                         }
                     }
-                }
-                .with(\.leadingTrivia, .newlines(2))
-
-                if shouldSynthesizeEquatable {
-                    try objcIsEqualFunc(
-                        structDecl: structDecl
-                    )
                     .with(\.leadingTrivia, .newlines(2))
-                }
 
-                if shouldSynthesizeNSCopying {
-                    try nsCopyingConformances(
-                        structDecl: structDecl
-                    )
-                    .with(\.leadingTrivia, .newlines(2))
-                }
+                    if shouldSynthesizeEquatable {
+                        try objcIsEqualFunc(
+                            structDecl: structDecl
+                        )
+                        .with(\.leadingTrivia, .newlines(2))
+                    }
 
-                if shouldSynthesizeNSCodable {
-                    try nsCodingConformances(
-                        structDecl: structDecl
-                    )
-                    .with(\.leadingTrivia, .newlines(2))
+                    if shouldSynthesizeNSCopying {
+                        try nsCopyingConformances(
+                            structDecl: structDecl
+                        )
+                        .with(\.leadingTrivia, .newlines(2))
+                    }
+
+                    if shouldSynthesizeNSCodable {
+                        try nsCodingConformances(
+                            structDecl: structDecl
+                        )
+                        .with(\.leadingTrivia, .newlines(2))
+                    }
                 }
-            }
+            )
+            .cast(DeclSyntax.self)
         )
 
-        try builderFactory.objcBuilderExtensionDecl(
-            structDecl: structDecl
+
+        decls.append(
+            try builderFactory.objcBuilderExtensionDecl(
+                structDecl: structDecl
+            )
+            .with(\.leadingTrivia, .newlines(2))
+            .with(\.trailingTrivia, .newline)
+            .cast(DeclSyntax.self)
         )
-        .with(\.leadingTrivia, .newlines(2))
-        .with(\.trailingTrivia, .newline)
+
+        return decls
     }
 
     @MemberBlockItemListBuilder 
