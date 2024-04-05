@@ -3,7 +3,7 @@ import XCTest
 import CustomDump
 
 final class SourcePreprocessorTests: XCTestCase {
-    func testParser_baseCase() throws {
+    func testParser_value_baseCase() throws {
         let source = """
         # Some comments
         # comment line 2
@@ -19,7 +19,7 @@ final class SourcePreprocessorTests: XCTestCase {
 
         let parser = RemodelValueObjectParser()
         XCTAssertNoDifference(
-            try parser.parse(source),
+            try parser.parse(type: .value, source: source),
             RMModelSyntax(
                 comments: ["Some comments", "comment line 2"],
                 typeDecls: [],
@@ -45,7 +45,7 @@ final class SourcePreprocessorTests: XCTestCase {
         )
     }
 
-    func testParser_baseCase2() throws {
+    func testParser_value_withTypes() throws {
         let source = """
         # Configuration for CTA
 
@@ -69,7 +69,7 @@ final class SourcePreprocessorTests: XCTestCase {
 
         let parser = RemodelValueObjectParser()
         XCTAssertNoDifference(
-            try parser.parse(source),
+            try parser.parse(type: .value, source: source),
             RMModelSyntax(
                 comments: ["Configuration for CTA"],
                 typeDecls: [

@@ -31,15 +31,44 @@ public struct RMTypeDeclSyntax: Equatable {
 }
 
 public struct RMPropertySyntax: Equatable {
-    public let comments: [String]
-    public let declaresIsNullable: Bool
-    public let type: String
-    public let name: String
+    public struct StructValue: Equatable {
+        public let comments: [String]
+        public let declaresIsNullable: Bool
+        public let type: String
+        public let name: String
+
+        public init(comments: [String] = [], declaresIsNullable: Bool = false, type: String, name: String) {
+            self.comments = comments
+            self.declaresIsNullable = declaresIsNullable
+            self.type = type
+            self.name = name
+        }
+    }
+
+    public struct AdtValue: Equatable {
+        public let comments: [String]
+        public let name: String
+        public let innerValues: [StructValue]
+
+        public init(comments: [String], name: String, innerValues: [StructValue]) {
+            self.comments = comments
+            self.name = name
+            self.innerValues = innerValues
+        }
+    }
+
+    public enum Value: Equatable {
+        case value(StructValue)
+        case adt(AdtValue)
+    }
+
+    public let value: Value
+
+    public init(_ value: Value) {
+        self.value = value
+    }
 
     public init(comments: [String] = [], declaresIsNullable: Bool = false, type: String, name: String) {
-        self.comments = comments
-        self.declaresIsNullable = declaresIsNullable
-        self.type = type
-        self.name = name
+        self.init(.value(StructValue(comments: comments, declaresIsNullable: declaresIsNullable, type: type, name: name)))
     }
 }
