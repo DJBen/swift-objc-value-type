@@ -23,8 +23,17 @@ struct GenerateValueTypeCommand: ParsableCommand, FileHandlingCommand {
     var genArguments: GenerateValueTypeArguments
 
     func run() throws {
-        var sourceFiles = sourceFiles()
-        while let sourceFile = sourceFiles.next() {
+        var sourceFilesIterator = sourceFiles()
+        let preprocessor = SourcePreprocessor()
+        while let sourceFile = sourceFilesIterator.next() {
+            sourceFile.content.withUnsafeBufferPointer { sourceBuffer in
+                let tree = Parser.parse(source: sourceBuffer)
+                preprocessor.addSource(sourceFileSyntax: tree)
+            }
+        }
+
+        sourceFilesIterator = sourceFiles()
+        while let sourceFile = sourceFilesIterator.next() {
             try sourceFile.content.withUnsafeBufferPointer { sourceBuffer in
                 let tree = Parser.parse(source: sourceBuffer)
                 let generatedCodeBlocks = try SwiftObjcValueTypeFactory().wrappingClassDecl(

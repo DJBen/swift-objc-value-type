@@ -121,3 +121,17 @@ extension String {
         return ([first] + rest).joined()
     }
 }
+
+extension AttributeListSyntax {
+    /// Whether attribute has @objc annotation.
+    var hasObjc: Bool {
+        contains { attr in
+            switch attr {
+            case .attribute(let attrSyntax):
+                return attrSyntax.attributeName.as(IdentifierTypeSyntax.self)?.name.text == "objc"
+            case .ifConfigDecl(_):
+                return false
+            }
+        }
+    }
+}
