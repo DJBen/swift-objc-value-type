@@ -7,7 +7,6 @@ let package = Package(
   name: "SwiftObjcValueType",
   platforms: [
     .macOS(.v13),
-    .iOS(.v13),
   ],
   products: [
     .executable(name: "swift-objc-value-type", targets: ["SwiftObjcValueTypeExecutable"]),
@@ -15,7 +14,8 @@ let package = Package(
   ],
   dependencies: [
     .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.2"),
-    .package(url: "https://github.com/apple/swift-syntax.git", from: "509.0.2")
+    .package(url: "https://github.com/apple/swift-syntax.git", from: "509.0.2"),
+    .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "1.3.0")
   ],
   targets: [
     .macro(
@@ -29,6 +29,14 @@ let package = Package(
 
     .target(
       name: "SwiftObjcValueType",
+      dependencies: [
+        .product(name: "SwiftSyntax", package: "swift-syntax"),
+        .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
+      ]
+    ),
+
+    .target(
+      name: "Remodel",
       dependencies: [
         .product(name: "SwiftSyntax", package: "swift-syntax"),
         .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
@@ -67,6 +75,14 @@ let package = Package(
         ]
     ),
 
+    .testTarget(
+        name: "RemodelTests",
+        dependencies: [
+            "Remodel",
+            .product(name: "CustomDump", package: "swift-custom-dump")
+        ]
+    ),
+
     .executableTarget(
       name: "SwiftObjcValueTypeExecutable",
       dependencies: [
@@ -81,3 +97,15 @@ let package = Package(
     ),
   ]
 )
+
+let swiftSettings: [SwiftSetting] = [
+    .enableUpcomingFeature("BareSlashRegexLiterals"),
+    .enableUpcomingFeature("StrictConcurrency"),
+    .unsafeFlags(["-enable-actor-data-race-checks"],
+        .when(configuration: .debug)),
+]
+
+for target in package.targets {
+    target.swiftSettings = target.swiftSettings ?? []
+    target.swiftSettings?.append(contentsOf: swiftSettings)
+}

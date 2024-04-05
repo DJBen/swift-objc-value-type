@@ -31,6 +31,18 @@ final class SourcePreprocessorTests: XCTestCase {
                 #"""
                 public struct Value2: Equatable, Codable {
                     public let someArg: Arg
+                    public let value3: Value3
+                }
+
+                """#
+            })
+        )
+
+        sourcePreprocessor.addSource(
+            sourceFileSyntax: SourceFileSyntax(statementsBuilder: {
+                #"""
+                public struct Value3: Equatable, Codable {
+                    public let someArg2: Arg2
                 }
 
                 """#
@@ -38,8 +50,8 @@ final class SourcePreprocessorTests: XCTestCase {
         )
 
         XCTAssertEqual(
-            sourcePreprocessor.referencedStructTypes(),
-            ["Value2"]
+            Set(sourcePreprocessor.referencedStructTypes),
+            Set(["Value2", "Value3"])
         )
     }
 }

@@ -34,7 +34,7 @@ public class SourcePreprocessor {
     ///
     /// This is used to hint the alias of the objc wrapper type.
     /// - Returns: a list of struct types that are declared and referenced within the source.
-    public func referencedStructTypes() -> [String] {
+    public var referencedStructTypes: [String] {
         referencedTypes.compactMap { type -> String? in
             if let identifier = type.as(IdentifierTypeSyntax.self) {
                 if structNames.contains(identifier.trimmed.name.text) {
