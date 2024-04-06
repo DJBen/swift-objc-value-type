@@ -103,4 +103,61 @@ final class SourcePreprocessorTests: XCTestCase {
             )
         )
     }
+
+    func testParser_adtValue_withTypes() throws {
+        let source = """
+        # An Example Algebraic data type (akin to swift enum associated value)
+        
+        AdtValue includes(RMEquality) {
+            case1 {
+                NSString *string
+        
+                # some non-pointer integer
+                int32_t someInt
+            }
+        
+            # second case
+            case2 {
+                BOOL hello
+            }
+        }
+        """
+        
+        let parser = RemodelValueObjectParser()
+        XCTAssertNoDifference(
+            try parser.parse(type: .value, source: source),
+            RMModelSyntax(
+                comments: ["An Example Algebraic data type (akin to swift enum associated value)"],
+                typeDecls: [],
+                name: "AdtValue",
+                includes: ["RMEquality"],
+                excludes: [],
+                properties: [
+                    RMPropertySyntax(
+                        .adt(
+                            RMPropertySyntax.AdtValue(
+                                comments: [],
+                                name: "case1",
+                                innerValues: [
+                                    RMPropertySyntax.StructValue(type: "NSString *", name: "string"),
+                                    RMPropertySyntax.StructValue(comments: ["some non-pointer integer"], type: "int32_t", name: "someInt"),
+                                ]
+                            )
+                        )
+                    ),
+                    RMPropertySyntax(
+                        .adt(
+                            RMPropertySyntax.AdtValue(
+                                comments: ["second case"],
+                                name: "case2",
+                                innerValues: [
+                                    RMPropertySyntax.StructValue(type: "BOOL", name: "hello")
+                                ]
+                            )
+                        )
+                    )
+                ]
+            )
+        )
+    }
 }

@@ -176,6 +176,7 @@ public class RemodelValueObjectParser {
                             )
                         )
                     )
+                    adtInnerProperties = []
                     propertyComments = []
                 }
             case .end:
