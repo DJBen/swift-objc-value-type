@@ -23,19 +23,27 @@ struct GenerateValueTypeCommand: ParsableCommand, FileHandlingCommand {
     var genArguments: GenerateValueTypeArguments
 
     func run() throws {
-        var sourceFiles = sourceFiles()
-        while let sourceFile = sourceFiles.next() {
-            try sourceFile.content.withUnsafeBufferPointer { sourceBuffer in
+        var sourceFilesIterator = sourceFiles()
+        var sourceFiles = [(String?, SourceFileSyntax)]()
+        let preprocessor = SourcePreprocessor()
+        while let sourceFile = sourceFilesIterator.next() {
+            sourceFile.content.withUnsafeBufferPointer { sourceBuffer in
                 let tree = Parser.parse(source: sourceBuffer)
-                let generatedCodeBlocks = try SwiftObjcValueTypeFactory().wrappingClassDecl(
-                    codeBlocks: tree.statements,
-                    shouldSynthesizeNSCopying: genArguments.shouldSynthesizeNSCopying,
-                    shouldSynthesizeObjCBuilder: genArguments.shouldSynthesizeObjCBuilder
-                )
+                sourceFiles.append((sourceFile.fileName, tree))
+                preprocessor.addSource(sourceFileSyntax: tree)
+            }
+        }
 
-                try withFileHandler(sourceFile.fileName) { sink in
-                    try sink.stream(generatedCodeBlocks.formatted())
-                }
+        for (fileName, tree) in sourceFiles {
+            let generatedCodeBlocks = try SwiftObjcValueTypeFactory().wrappingClassDecl(
+                codeBlocks: tree.statements,
+                referencedStructTypes: preprocessor.referencedStructTypes,
+                shouldSynthesizeNSCopying: genArguments.shouldSynthesizeNSCopying,
+                shouldSynthesizeObjCBuilder: genArguments.shouldSynthesizeObjCBuilder
+            )
+
+            try withFileHandler(fileName) { sink in
+                try sink.stream(generatedCodeBlocks.formatted())
             }
         }
     }

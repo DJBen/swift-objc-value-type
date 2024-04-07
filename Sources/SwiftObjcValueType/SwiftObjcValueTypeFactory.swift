@@ -15,6 +15,7 @@ public struct SwiftObjcValueTypeFactory {
     @CodeBlockItemListBuilder
     public func wrappingClassDecl(
         codeBlocks: CodeBlockItemListSyntax,
+        referencedStructTypes: [String] = [],
         shouldSynthesizeNSCopying: Bool = true,
         shouldSynthesizeObjCBuilder: Bool = true
     ) throws -> CodeBlockItemListSyntax {
@@ -29,6 +30,7 @@ public struct SwiftObjcValueTypeFactory {
             try CodeBlockItemListSyntax {
                 for decl in try wrappingClassDecl(
                     structDecl: descriptor.structDecl,
+                    referencedStructTypes: referencedStructTypes,
                     shouldSynthesizeEquatable: descriptor.inheritedTypes.contains("Equatable") || descriptor.inheritedTypes.contains("Hashable") ||
                     descriptor.inheritedTypes.contains("Identifiable"),
                     shouldSynthesizeNSCodable: descriptor.inheritedTypes.contains("Codable"),
@@ -46,6 +48,7 @@ public struct SwiftObjcValueTypeFactory {
     ) throws -> [DeclSyntax] {
         try wrappingClassDecl(
             structDecl: structDecl,
+            referencedStructTypes: [],
             shouldSynthesizeEquatable: structDecl.inheritedTypes.contains("Equatable") || structDecl.inheritedTypes.contains("Hashable") ||
             structDecl.inheritedTypes.contains("Identifiable"),
             shouldSynthesizeNSCodable: structDecl.inheritedTypes.contains("Codable"),
@@ -56,6 +59,7 @@ public struct SwiftObjcValueTypeFactory {
 
     public func wrappingClassDecl(
         structDecl: StructDeclSyntax,
+        referencedStructTypes: [String],
         shouldSynthesizeEquatable: Bool,
         shouldSynthesizeNSCodable: Bool,
         shouldSynthesizeNSCopying: Bool,
