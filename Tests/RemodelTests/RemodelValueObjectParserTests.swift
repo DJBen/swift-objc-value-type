@@ -104,6 +104,65 @@ final class SourcePreprocessorTests: XCTestCase {
         )
     }
 
+    func testParser_value_nullables() throws {
+        let source = """
+        %type name=CGFloat file=UIKit library=UIKit
+
+        CTAConfigValue includes(RMAssumeNonnull, RMEquality) excludes(RMDescription) {
+
+            # Enable config for a given CTA
+            BOOL enable
+
+            %nullable NSString *lollol
+
+            # rofl
+            %nullable
+            NSArray<NSString *> *rofl
+
+            # The animation duration length in ms
+            NSTimeInterval animationTimeMs
+        }
+        """
+
+        let parser = RemodelValueObjectParser()
+        XCTAssertNoDifference(
+            try parser.parse(type: .value, source: source),
+            RMModelSyntax(
+                comments: [],
+                typeDecls: [
+                    RMTypeDeclSyntax(name: "CGFloat", library: "UIKit", file: "UIKit")
+                ],
+                name: "CTAConfigValue",
+                includes: ["RMAssumeNonnull", "RMEquality"],
+                excludes: ["RMDescription"],
+                properties: [
+                    RMPropertySyntax(
+                        comments: ["Enable config for a given CTA"],
+                        type: "BOOL",
+                        name: "enable"
+                    ),
+                    RMPropertySyntax(
+                        comments: [],
+                        declaresIsNullable: true,
+                        type: "NSString *",
+                        name: "lollol"
+                    ),
+                    RMPropertySyntax(
+                        comments: ["rofl"],
+                        declaresIsNullable: true,
+                        type: "NSArray<NSString *> *",
+                        name: "rofl"
+                    ),
+                    RMPropertySyntax(
+                        comments: ["The animation duration length in ms"],
+                        type: "NSTimeInterval",
+                        name: "animationTimeMs"
+                    )
+                ]
+            )
+        )
+    }
+
     func testParser_adtValue_withTypes() throws {
         let source = """
         # An Example Algebraic data type (akin to swift enum associated value)

@@ -19,6 +19,7 @@ class SwiftObjcValueTypeExecutable: ParsableCommand {
         abstract: "Generate objc compatible value types for Swift structs and enums",
         subcommands: [
             GenerateValueTypeCommand.self,
+            ParseRemodelCommand.self,
         ]
     )
 }

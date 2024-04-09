@@ -1,3 +1,34 @@
+// https://engineering.fb.com/2016/04/13/ios/building-and-managing-ios-model-objects-with-remodel/
+public enum RemodelType: Equatable, Hashable, Codable {
+    /**
+     MessageContent {
+      ContentType(NSUInteger) type
+      # Set if the type is ContentTypePhoto
+      Photo *photo;
+      # Set if the type is ContentTypeSticker
+      NSInteger stickerId
+      # Set if the type is ContentTypeText
+      NSString *text
+         }
+     */
+    case value
+
+    /**
+     MessageContent includes(RMCoding) {
+       image {
+         Photo *photo
+       }
+       sticker {
+         NSInteger stickerId
+       }
+       text {
+          NSString *body
+       }
+     }
+     */
+    case adtValue
+}
+
 public struct RMModelSyntax: Equatable {
     public let comments: [String]
     public let typeDecls: [RMTypeDeclSyntax]
@@ -13,6 +44,19 @@ public struct RMModelSyntax: Equatable {
         self.includes = includes
         self.excludes = excludes
         self.properties = properties
+    }
+
+    public var type: RemodelType {
+        if let property = properties.first {
+            switch property.value {
+            case .value(_):
+                return .value
+            case .adt(_):
+                return .adtValue
+            }
+        } else {
+            return .value
+        }
     }
 }
 
