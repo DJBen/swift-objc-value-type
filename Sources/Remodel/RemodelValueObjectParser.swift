@@ -1,6 +1,4 @@
 import Foundation
-import SwiftSyntax
-import SwiftSyntaxBuilder
 
 public class RemodelValueObjectParser {
     enum State {
@@ -10,44 +8,15 @@ public class RemodelValueObjectParser {
         case end
     }
 
-    // https://engineering.fb.com/2016/04/13/ios/building-and-managing-ios-model-objects-with-remodel/
-    public enum ModelType {
-        /**
-         MessageContent {
-          ContentType(NSUInteger) type
-          # Set if the type is ContentTypePhoto
-          Photo *photo;
-          # Set if the type is ContentTypeSticker
-          NSInteger stickerId
-          # Set if the type is ContentTypeText
-          NSString *text
-             }
-         */
-        case value
-
-        /**
-         MessageContent includes(RMCoding) {
-           image {
-             Photo *photo
-           }
-           sticker {
-             NSInteger stickerId
-           }
-           text {
-              NSString *body
-           }
-         }
-         */
-        case adtValue
-    }
-
     enum ParseError: Error {
         case missingPropertyName(String)
         case unfinishedParsing
     }
 
+    public init() {}
+
     public func parse(
-        type: ModelType,
+        type: RemodelType,
         source: String
     ) throws -> RMModelSyntax {
         var state = State.parsingTypeAndHeader
@@ -72,6 +41,7 @@ public class RemodelValueObjectParser {
         var includes: [String] = []
         var excludes: [String] = []
         var properties: [RMPropertySyntax] = []
+        var nextPropertyIsNullable = false
 
         var propertyComments: [String] = []
         var adtInnerPropertyComments: [String] = []
@@ -121,8 +91,14 @@ public class RemodelValueObjectParser {
             case .parsingProperties:
                 if line.hasPrefix("#") {
                     propertyComments.append(String(line[line.index(after: line.startIndex)...].trimmingCharacters(in: .whitespacesAndNewlines)))
+                } else if line.contains(/^%nullable$/) {
+                    nextPropertyIsNullable = true
                 } else if let match = line.firstMatch(of: propertyRegex) {
-                    let isNullable = match.1 != nil
+                    var isNullable = match.1 != nil
+                    if nextPropertyIsNullable {
+                        isNullable = true
+                        nextPropertyIsNullable = false
+                    }
                     let type = String(match.2).trimmingCharacters(in: .whitespaces)
                     let name = String(match.3)
                     properties.append(

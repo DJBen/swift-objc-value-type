@@ -79,6 +79,7 @@ let package = Package(
         name: "RemodelTests",
         dependencies: [
             "Remodel",
+            "TestingSupport",
             .product(name: "CustomDump", package: "swift-custom-dump")
         ]
     ),
@@ -87,6 +88,8 @@ let package = Package(
       name: "SwiftObjcValueTypeExecutable",
       dependencies: [
         "SwiftObjcValueType",
+        "Remodel",
+        .product(name: "CustomDump", package: "swift-custom-dump"),
         .product(name: "SwiftDiagnostics", package: "swift-syntax"),
         .product(name: "SwiftOperators", package: "swift-syntax"),
         .product(name: "SwiftParser", package: "swift-syntax"),
