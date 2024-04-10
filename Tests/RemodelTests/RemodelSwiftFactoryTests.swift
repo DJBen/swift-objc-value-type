@@ -52,7 +52,7 @@ final class RemodelSwiftFactoryTests: XCTestCase {
         )
     }
 
-    func testFactory_nullable() throws {
+    func testFactory_structValue_nullable() throws {
         let factory = RemodelSwiftFactory()
 
         let source = """
@@ -103,4 +103,57 @@ final class RemodelSwiftFactoryTests: XCTestCase {
             """
         )
     }
+
+    func testFactory_adtValue() throws {
+        let factory = RemodelSwiftFactory()
+
+        let source = """
+        # An Example Algebraic data type (akin to swift enum associated value)
+        # multiline comment
+
+        AdtValue includes(RMEquality) {
+            # case 1 comment
+            case1 {
+                NSString *string
+
+                # some non-pointer integer
+                # someInt multiline
+                int32_t someInt
+            }
+
+            # second case
+            case2 {
+                BOOL hello
+            }
+        }
+        """
+
+        let parser = RemodelValueObjectParser()
+
+        let result = try factory.generate(
+            try parser.parse(type: .value, source: source)
+        )
+
+        assertBuildResult(
+            result,
+            """
+
+
+            /// An Example Algebraic data type (akin to swift enum associated value)
+            /// multiline comment
+            public enum AdtValue: Equatable {
+                
+                /// case 1 comment
+                /// - someInt: some non-pointer integer
+                ///   someInt multiline
+                case case1(string: String?, someInt: Int32)
+
+                /// second case
+                case case2(hello: Bool)
+            }
+
+            """
+        )
+    }
+
 }

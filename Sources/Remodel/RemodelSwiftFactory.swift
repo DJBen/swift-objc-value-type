@@ -7,6 +7,7 @@ public enum RemodelSwiftFactoryError: Error {
     case valueInAdt
 }
 
+let primitiveCIntTRegex = /(?:(u)?int(\d+)_t)/
 let primitiveCIntRegex = /(?:unsigned\s+)?(?:(?:short|(?:long)(?: long)?)\s+)?int/
 
 /// https://developer.apple.com/documentation/swift/working-with-foundation-types
@@ -75,14 +76,7 @@ public class RemodelSwiftFactory {
                     DeclModifierSyntax(name: .identifier("public"))
                 },
                 name: .identifier(model.name),
-                inheritanceClause: model.includes.contains("RMEquality") || model.includes.contains("RMCoding") ? InheritanceClauseSyntax {
-                    if model.includes.contains("RMEquality") {
-                        InheritedTypeSyntax(type: IdentifierTypeSyntax(name: "Equatable"))
-                    }
-                    if model.includes.contains("RMCoding") {
-                        InheritedTypeSyntax(type: IdentifierTypeSyntax(name: "Codable"))
-                    }
-                } : nil
+                inheritanceClause: inheritanceClause(model)
             ) {
                 for property in model.properties {
                     switch property.value {
@@ -148,7 +142,83 @@ public class RemodelSwiftFactory {
     func generateAdt(
         _ model: RMModelSyntax
     ) throws -> [DeclSyntax] {
-        return []
+        let assumesNonnull = model.includes.contains("RMAssumeNonnull")
+
+        var decls = [DeclSyntax]()
+        for typeDecl in model.typeDecls {
+            if let library = typeDecl.library {
+                decls.append(DeclSyntax("import \(raw: library)"))
+            }
+        }
+
+        decls.append(
+            try EnumDeclSyntax(
+                leadingTrivia: Trivia(
+                    pieces: [.newlines(2)] + model.comments.flatMap({ [.docLineComment("/// " + $0), .newlines(1)] })),
+                modifiers: DeclModifierListSyntax {
+                    DeclModifierSyntax(name: .identifier("public"))
+                },
+                name: .identifier(model.name),
+                inheritanceClause: inheritanceClause(model)
+            ) {
+                for property in model.properties {
+                    switch property.value {
+                    case .value(_):
+                        throw RemodelSwiftFactoryError.valueInAdt
+                    case .adt(let adtValue):
+                        EnumCaseDeclSyntax(
+                            leadingTrivia: Trivia(
+                                pieces: {
+                                    var pieces: [TriviaPiece] = [.newlines(2)]
+                                    for comment in adtValue.comments {
+                                        pieces.append(.docLineComment("/// \(comment)"))
+                                    }
+                                    for innerValue in adtValue.innerValues {
+                                        for (index, comment) in innerValue.comments.enumerated() {
+                                            pieces.append(.newlines(1))
+                                            let prefix = index == 0 ? "- \(innerValue.name): " : "  "
+                                            pieces.append(.docLineComment("/// \(prefix)\(comment)"))
+                                        }
+                                    }
+                                    pieces.append(.newlines(1))
+                                    return pieces
+                                }()
+                            )
+                        ) {
+                            EnumCaseElementSyntax(
+                                name: .identifier(adtValue.name),
+                                parameterClause: EnumCaseParameterClauseSyntax(
+                                    parameters: EnumCaseParameterListSyntax {
+                                        for innerValue in adtValue.innerValues {
+                                            EnumCaseParameterSyntax(
+                                                firstName: .identifier(innerValue.name),
+                                                colon: .colonToken(),
+                                                type: propertyType(innerValue, assumesNonnull: assumesNonnull)
+                                            )
+                                        }
+                                    }
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+            .with(\.trailingTrivia, .newline)
+            .cast(DeclSyntax.self)
+        )
+
+        return decls
+    }
+
+    private func inheritanceClause(_ model: RMModelSyntax) -> InheritanceClauseSyntax? {
+        model.includes.contains("RMEquality") || model.includes.contains("RMCoding") ? InheritanceClauseSyntax {
+            if model.includes.contains("RMEquality") {
+                InheritedTypeSyntax(type: IdentifierTypeSyntax(name: "Equatable"))
+            }
+            if model.includes.contains("RMCoding") {
+                InheritedTypeSyntax(type: IdentifierTypeSyntax(name: "Codable"))
+            }
+        } : nil
     }
 
     private func propertyType(_ structValue: RMPropertySyntax.StructValue, assumesNonnull: Bool) -> TypeSyntax {
@@ -185,6 +255,9 @@ public class RemodelSwiftFactory {
             return "Bool"
         } else if remodelType == "char" {
             return "UInt8"
+        } else if let match = remodelType.firstMatch(of: primitiveCIntTRegex) {
+            let u = String(match.1 ?? "").uppercased()
+            return "\(u)Int\(String(match.2))"
         } else if remodelType.contains(primitiveCIntRegex) {
             return "Int"
         } else if remodelType == "float" {
