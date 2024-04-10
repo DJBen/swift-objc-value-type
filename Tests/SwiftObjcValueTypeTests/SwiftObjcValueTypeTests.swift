@@ -106,6 +106,66 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
     """#
 
+    func testValueClass_hashable() throws {
+        let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
+            codeBlocks: CodeBlockItemListSyntax {
+                #"""
+                public struct Value: Hashable, Equatable {
+                    public let doubleValue: Double
+
+                    public let optInt: Int64?
+                }
+                """#
+            },
+            shouldSynthesizeObjCBuilder: false
+        )
+
+        assertBuildResult(
+            result,
+            #"""
+            @objc(Value)
+            public class ValueClass: NSObject, NSCopying {
+
+                @objc public var doubleValue: Double {
+                    wrapped.doubleValue
+                }
+
+                @objc public var optInt: NSNumber? {
+                    wrapped.optInt.map(NSNumber.init)
+                }
+
+                private let wrapped: Value
+
+                @objc
+                public init(doubleValue: Double, optInt: NSNumber?) {
+                    self.wrapped = Value(doubleValue: doubleValue, optInt: optInt.map(\.int64Value))
+                }
+
+                public override var hash: Int {
+                    var hasher = Hasher()
+                    hasher.combine(wrapped)
+                    return hasher.finalize()
+                }
+
+                public override func isEqual(_ object: Any?) -> Bool {
+                    if let other = object as? ValueClass {
+                        return wrapped == other.wrapped
+                    }
+                    return false
+                }
+
+                private init(wrapped: Value) {
+                    self.wrapped = wrapped
+                }
+
+                public func copy(with zone: NSZone? = nil) -> Any {
+                    return ValueClass(wrapped: wrapped)
+                }
+            }
+            """#
+        )
+    }
+
     func testValueClass_baseCase() throws {
         let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
             codeBlocks: CodeBlockItemListSyntax {
@@ -160,7 +220,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
     }
 }
 
-public struct Value: Equatable, Codable {
+public struct Value: Hashable, Equatable, Codable {
     public let doubleValue: Double
 
     public let optInt: Int64?
@@ -199,6 +259,12 @@ public class ValueClass: NSObject, NSCopying {
             stringArray: stringArray,
             map: map
         )
+    }
+
+    public override var hash: Int {
+        var hasher = Hasher()
+        hasher.combine(wrapped)
+        return hasher.finalize()
     }
 
     public override func isEqual(_ object: Any?) -> Bool {

@@ -33,6 +33,7 @@ public struct SwiftObjcValueTypeFactory {
                     referencedStructTypes: referencedStructTypes,
                     shouldSynthesizeEquatable: descriptor.inheritedTypes.contains("Equatable") || descriptor.inheritedTypes.contains("Hashable") ||
                     descriptor.inheritedTypes.contains("Identifiable"),
+                    shouldSynthesizeHash: descriptor.inheritedTypes.contains("Hashable"),
                     shouldSynthesizeNSCodable: descriptor.inheritedTypes.contains("Codable"),
                     shouldSynthesizeNSCopying: shouldSynthesizeNSCopying,
                     shouldSynthesizeObjCBuilder: shouldSynthesizeObjCBuilder
@@ -51,6 +52,7 @@ public struct SwiftObjcValueTypeFactory {
             referencedStructTypes: [],
             shouldSynthesizeEquatable: structDecl.inheritedTypes.contains("Equatable") || structDecl.inheritedTypes.contains("Hashable") ||
             structDecl.inheritedTypes.contains("Identifiable"),
+            shouldSynthesizeHash: structDecl.inheritedTypes.contains("Hashable"),
             shouldSynthesizeNSCodable: structDecl.inheritedTypes.contains("Codable"),
             shouldSynthesizeNSCopying: shouldSynthesizeNSCopying,
             shouldSynthesizeObjCBuilder: shouldSynthesizeObjCBuilder
@@ -61,6 +63,7 @@ public struct SwiftObjcValueTypeFactory {
         structDecl: StructDeclSyntax,
         referencedStructTypes: [String],
         shouldSynthesizeEquatable: Bool,
+        shouldSynthesizeHash: Bool,
         shouldSynthesizeNSCodable: Bool,
         shouldSynthesizeNSCopying: Bool,
         shouldSynthesizeObjCBuilder: Bool
@@ -179,6 +182,13 @@ public struct SwiftObjcValueTypeFactory {
                     }
                     .with(\.leadingTrivia, .newlines(2))
 
+                    if shouldSynthesizeHash {
+                        try objcHashFunc(
+                            structDecl: structDecl
+                        )
+                        .with(\.leadingTrivia, .newlines(2))
+                    }
+
                     if shouldSynthesizeEquatable {
                         try objcIsEqualFunc(
                             structDecl: structDecl
@@ -204,15 +214,16 @@ public struct SwiftObjcValueTypeFactory {
             .cast(DeclSyntax.self)
         )
 
-
-        decls.append(
-            try builderFactory.objcBuilderExtensionDecl(
-                structDecl: structDecl
+        if shouldSynthesizeObjCBuilder {
+            decls.append(
+                try builderFactory.objcBuilderExtensionDecl(
+                    structDecl: structDecl
+                )
+                .with(\.leadingTrivia, .newlines(2))
+                .with(\.trailingTrivia, .newline)
+                .cast(DeclSyntax.self)
             )
-            .with(\.leadingTrivia, .newlines(2))
-            .with(\.trailingTrivia, .newline)
-            .cast(DeclSyntax.self)
-        )
+        }
 
         return decls
     }
@@ -259,6 +270,40 @@ public struct SwiftObjcValueTypeFactory {
                     )
                 }
             }
+        }
+    }
+
+    @MemberBlockItemListBuilder
+    private func objcHashFunc(
+        structDecl: StructDeclSyntax
+    ) throws -> MemberBlockItemListSyntax {
+        VariableDeclSyntax(
+            modifiers: DeclModifierListSyntax {
+                // Inherit visibility modifiers
+                structDecl.modifiers.trimmed
+
+                DeclModifierSyntax(
+                    name: .keyword(.override)
+                )
+            },
+            bindingSpecifier: .keyword(.var)
+        ) {
+            PatternBindingSyntax(
+                pattern: IdentifierPatternSyntax(identifier: .identifier("hash")),
+                typeAnnotation: TypeAnnotationSyntax(
+                    colon: .colonToken(),
+                    type: IdentifierTypeSyntax(name: "Int")
+                ),
+                accessorBlock: AccessorBlockSyntax(
+                    accessors: .getter(
+                        CodeBlockItemListSyntax {
+                            "var hasher = Hasher()"
+                            "hasher.combine(wrapped)"
+                            "return hasher.finalize()"
+                        }
+                    )
+                )
+            )
         }
     }
 
