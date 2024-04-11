@@ -3,7 +3,8 @@ import Foundation
 public class RemodelValueObjectParser {
     enum State {
         case parsingTypeAndHeader
-        case parsingProperties
+        case parsingValueProperties
+        case parsingAdtValueProperties
         case parsingAdtInnerProperties
         case end
     }
@@ -86,9 +87,9 @@ public class RemodelValueObjectParser {
                     modelName = String(match.1)
                     includes = match.2.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
                     excludes = match.3?.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) } ?? []
-                    state = .parsingProperties
+                    state = type == .value ? .parsingValueProperties : .parsingAdtValueProperties
                 }
-            case .parsingProperties:
+            case .parsingValueProperties:
                 if line.hasPrefix("#") {
                     propertyComments.append(String(line[line.index(after: line.startIndex)...].trimmingCharacters(in: .whitespacesAndNewlines)))
                 } else if line.contains(/^%nullable$/) {
@@ -114,9 +115,29 @@ public class RemodelValueObjectParser {
                         )
                     )
                     propertyComments = []
+                }
+                if line.hasSuffix("}") {
+                    state = .end
+                }
+            case .parsingAdtValueProperties:
+                if line.hasPrefix("#") {
+                    propertyComments.append(String(line[line.index(after: line.startIndex)...].trimmingCharacters(in: .whitespacesAndNewlines)))
                 } else if let match = line.firstMatch(of: adtHeaderRegex) {
                     adtName = String(match.1)
                     state = .parsingAdtInnerProperties
+                } else if let match = line.firstMatch(of: /^(\w+)$/) {
+                    properties.append(
+                        RMPropertySyntax(
+                            .adt(
+                                RMPropertySyntax.AdtValue(
+                                    comments: propertyComments,
+                                    name: String(match.1),
+                                    innerValues: []
+                                )
+                            )
+                        )
+                    )
+                    propertyComments = []
                 }
                 if line.hasSuffix("}") {
                     state = .end
@@ -140,7 +161,7 @@ public class RemodelValueObjectParser {
                     adtInnerPropertyComments = []
                 }
                 if line.hasSuffix("}") {
-                    state = .parsingProperties
+                    state = .parsingAdtValueProperties
                     properties.append(
                         RMPropertySyntax(
                             .adt(

@@ -131,7 +131,7 @@ final class RemodelSwiftFactoryTests: XCTestCase {
         let parser = RemodelValueObjectParser()
 
         let result = try factory.generate(
-            try parser.parse(type: .value, source: source)
+            try parser.parse(type: .adtValue, source: source)
         )
 
         assertBuildResult(
@@ -150,6 +150,42 @@ final class RemodelSwiftFactoryTests: XCTestCase {
 
                 /// second case
                 case case2(hello: Bool)
+            }
+
+            """
+        )
+    }
+
+    func testFactory_adtValue_withoutArgs() throws {
+        let factory = RemodelSwiftFactory()
+
+        let source = """
+        # Defines the updates
+
+        Updates includes(UseForwardDeclarations, SkipAttributePrivateImports, RMAssumeNonnull) {
+        identifiers
+        info
+        }
+
+        """
+
+        let parser = RemodelValueObjectParser()
+
+        let result = try factory.generate(
+            try parser.parse(type: .adtValue, source: source)
+        )
+
+        assertBuildResult(
+            result,
+            """
+
+
+            /// Defines the updates
+            public enum Updates {
+            
+                case identifiers
+
+                case info
             }
 
             """

@@ -180,14 +180,16 @@ public class RemodelSwiftFactory {
                                             pieces.append(.docLineComment("/// \(prefix)\(comment)"))
                                         }
                                     }
-                                    pieces.append(.newlines(1))
+                                    if !adtValue.innerValues.isEmpty {
+                                        pieces.append(.newlines(1))
+                                    }
                                     return pieces
                                 }()
                             )
                         ) {
                             EnumCaseElementSyntax(
                                 name: .identifier(adtValue.name),
-                                parameterClause: EnumCaseParameterClauseSyntax(
+                                parameterClause: adtValue.innerValues.isEmpty ? nil : EnumCaseParameterClauseSyntax(
                                     parameters: EnumCaseParameterListSyntax {
                                         for innerValue in adtValue.innerValues {
                                             EnumCaseParameterSyntax(

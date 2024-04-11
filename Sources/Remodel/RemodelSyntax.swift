@@ -94,7 +94,7 @@ public struct RMPropertySyntax: Equatable {
         public let name: String
         public let innerValues: [StructValue]
 
-        public init(comments: [String], name: String, innerValues: [StructValue]) {
+        public init(comments: [String] = [], name: String, innerValues: [StructValue] = []) {
             self.comments = comments
             self.name = name
             self.innerValues = innerValues

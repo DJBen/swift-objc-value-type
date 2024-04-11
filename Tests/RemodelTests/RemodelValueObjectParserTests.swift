@@ -163,6 +163,47 @@ final class SourcePreprocessorTests: XCTestCase {
         )
     }
 
+    func testParser_adtValue_noTypes() {
+        let source = """
+        # Defines the updates
+
+        Updates includes(UseForwardDeclarations, SkipAttributePrivateImports, RMAssumeNonnull) {
+        identifiers
+        info
+        }
+
+        """
+
+        let parser = RemodelValueObjectParser()
+
+        XCTAssertNoDifference(
+            try parser.parse(type: .adtValue, source: source),
+            RMModelSyntax(
+                comments: ["Defines the updates"],
+                typeDecls: [],
+                name: "Updates",
+                includes: ["UseForwardDeclarations", "SkipAttributePrivateImports", "RMAssumeNonnull"],
+                excludes: [],
+                properties: [
+                    RMPropertySyntax(
+                        .adt(
+                            RMPropertySyntax.AdtValue(
+                                name: "identifiers"
+                            )
+                        )
+                    ),
+                    RMPropertySyntax(
+                        .adt(
+                            RMPropertySyntax.AdtValue(
+                                name: "info"
+                            )
+                        )
+                    )
+                ]
+            )
+        )
+    }
+
     func testParser_adtValue_withTypes() throws {
         let source = """
         # An Example Algebraic data type (akin to swift enum associated value)
@@ -184,7 +225,7 @@ final class SourcePreprocessorTests: XCTestCase {
         
         let parser = RemodelValueObjectParser()
         XCTAssertNoDifference(
-            try parser.parse(type: .value, source: source),
+            try parser.parse(type: .adtValue, source: source),
             RMModelSyntax(
                 comments: ["An Example Algebraic data type (akin to swift enum associated value)"],
                 typeDecls: [],
