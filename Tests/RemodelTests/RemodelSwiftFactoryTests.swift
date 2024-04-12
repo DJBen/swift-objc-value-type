@@ -58,6 +58,7 @@ final class RemodelSwiftFactoryTests: XCTestCase {
         let source = """
         %type name=Action file=ActionFile library=ActionLib
         %type name=Icon file="Icon"
+        %type name=MediaType file=MediaType library=MediaModels
         # Some comments
         Config includes(RMAssumeNonnull) {
           # id comment
@@ -67,6 +68,8 @@ final class RemodelSwiftFactoryTests: XCTestCase {
           # subtitle comment
           %nullable
           NSString *subtitle
+          # The type of media represented.
+          MediaType(NSInteger) type
         }
         """
 
@@ -80,6 +83,7 @@ final class RemodelSwiftFactoryTests: XCTestCase {
             result,
             """
             import ActionLib
+            import MediaModels
 
             /// Some comments
             public struct Config {
@@ -93,10 +97,14 @@ final class RemodelSwiftFactoryTests: XCTestCase {
                 /// subtitle comment
                 public let subtitle: String?
 
-                public init(id: String, title: String?, subtitle: String?) {
+                /// The type of media represented.
+                public let type: MediaType
+
+                public init(id: String, title: String?, subtitle: String?, type: MediaType) {
                     self.id = id
                     self.title = title
                     self.subtitle = subtitle
+                    self.type = type
                 }
             }
 

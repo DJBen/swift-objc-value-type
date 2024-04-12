@@ -10,6 +10,10 @@ public enum RemodelSwiftFactoryError: Error {
 let primitiveCIntTRegex = /(?:(u)?int(\d+)_t)/
 let primitiveCIntRegex = /(?:unsigned\s+)?(?:(?:short|(?:long)(?: long)?)\s+)?int/
 
+// In remodel, types can be declared as `MediaType(NSInteger)`, indicating this
+// is a primitive backed enum.
+let aliasedPrimitiveTypeRegex = /(\w+)\((\w+)\)/
+
 /// https://developer.apple.com/documentation/swift/working-with-foundation-types
 let objcToSwiftMaps = [
     "NSAffineTransform": "AffineTransform",
@@ -255,6 +259,8 @@ public class RemodelSwiftFactory {
             var result = remodelType
             result.removeLast()
             return mapType(result.trimmingCharacters(in: .whitespacesAndNewlines))
+        } else if let aliasedType = remodelType.firstMatch(of: aliasedPrimitiveTypeRegex) {
+            return String(aliasedType.1)
         } else if remodelType.lowercased() == "bool" {
             return "Bool"
         } else if remodelType == "char" {
@@ -282,8 +288,12 @@ public class RemodelSwiftFactory {
             return true
         } else if remodelType == "float" || remodelType == "double" {
             return true
+        } else if let aliasedType = remodelType.firstMatch(of: aliasedPrimitiveTypeRegex) {
+            return isObjcPrimitive(String(aliasedType.2))
+        } else if remodelType == "NSInteger" || remodelType == "NSUInteger" {
+            return true
         } else {
-            return remodelType.contains(primitiveCIntRegex)
+            return remodelType.contains(primitiveCIntRegex) || remodelType.contains(primitiveCIntTRegex)
         }
     }
 }

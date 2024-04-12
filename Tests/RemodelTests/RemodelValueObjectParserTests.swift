@@ -50,6 +50,7 @@ final class SourcePreprocessorTests: XCTestCase {
         # Configuration for CTA
 
         %type name=CGFloat file=UIKit library=UIKit
+        %type name=MediaType file=MediaType library=MediaModels
 
         CTAConfigValue includes(RMAssumeNonnull, RMEquality) excludes(RMDescription) {
 
@@ -64,6 +65,9 @@ final class SourcePreprocessorTests: XCTestCase {
 
             # The animation delay in ms
             NSTimeInterval animationDelayMs
+
+            # The type of media represented.
+            MediaType(NSInteger) type
         }
         """
 
@@ -73,7 +77,8 @@ final class SourcePreprocessorTests: XCTestCase {
             RMModelSyntax(
                 comments: ["Configuration for CTA"],
                 typeDecls: [
-                    RMTypeDeclSyntax(name: "CGFloat", library: "UIKit", file: "UIKit")
+                    RMTypeDeclSyntax(name: "CGFloat", library: "UIKit", file: "UIKit"),
+                    RMTypeDeclSyntax(name: "MediaType", library: "MediaModels", file: "MediaType")
                 ],
                 name: "CTAConfigValue",
                 includes: ["RMAssumeNonnull", "RMEquality"],
@@ -98,6 +103,11 @@ final class SourcePreprocessorTests: XCTestCase {
                         comments: ["The animation delay in ms"],
                         type: "NSTimeInterval",
                         name: "animationDelayMs"
+                    ),
+                    RMPropertySyntax(
+                        comments: ["The type of media represented."],
+                        type: "MediaType(NSInteger)",
+                        name: "type"
                     )
                 ]
             )
