@@ -36,6 +36,7 @@ let objcToSwiftMaps = [
     "NSURLQueryItem": "URLQueryItem",
     "NSURLRequest": "URLRequest",
     "NSUUID": "UUID",
+    "NSError": "Error",
 ]
 
 /// Generate Swift models (enums or structs) from Remodel models.
@@ -216,6 +217,7 @@ public class RemodelSwiftFactory {
         model.includes.contains("RMEquality") || model.includes.contains("RMCoding") ? InheritanceClauseSyntax {
             if model.includes.contains("RMEquality") {
                 InheritedTypeSyntax(type: IdentifierTypeSyntax(name: "Equatable"))
+                InheritedTypeSyntax(type: IdentifierTypeSyntax(name: "Hashable"))
             }
             if model.includes.contains("RMCoding") {
                 InheritedTypeSyntax(type: IdentifierTypeSyntax(name: "Codable"))

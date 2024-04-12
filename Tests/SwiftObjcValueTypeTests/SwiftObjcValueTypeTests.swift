@@ -218,6 +218,143 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             expectedWrapperClass
         )
     }
+
+    func testAdtClass_baseCase() throws {
+        let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
+            codeBlocks: CodeBlockItemListSyntax {
+                """
+                public enum SaveUpdates {
+
+                    case saveBegan(savingToAlpha: Bool, savingToBeta: Bool, savingGamma: Bool)
+
+                    case saveSucceeded(savedToAlpha: Bool, savedToBeta: Bool, savedGamma: Bool, displayName: String?)
+
+                    case saveFailed(error: Error?)
+                }
+                """
+            }
+        )
+
+        assertBuildResult(
+            result,
+            #"""
+
+
+            public typealias SaveUpdatesSaveBeganMatchHandler = (_ savingToAlpha: Bool, _ savingToBeta: Bool, _ savingGamma: Bool) -> Void
+
+            public typealias SaveUpdatesSaveSucceededMatchHandler = (_ savedToAlpha: Bool, _ savedToBeta: Bool, _ savedGamma: Bool, _ displayName: String?) -> Void
+
+            public typealias SaveUpdatesSaveFailedMatchHandler = (_ error: Error?) -> Void
+
+            @objc(SaveUpdates)
+            public class SaveUpdatesClass: NSObject, NSCopying {
+                
+                private let wrapped: SaveUpdates
+
+                @available(*, unavailable) 
+                public override init() {
+                    fatalError()
+                }
+
+                private init(wrapped: SaveUpdates) {
+                    self.wrapped = wrapped
+                }
+
+                public func copy(with zone: NSZone? = nil) -> Any {
+                    return SaveUpdatesClass(wrapped: wrapped)
+                }
+
+                @objc
+                public class func saveBegan(savingToAlpha: Bool, savingToBeta: Bool, savingGamma: Bool) -> SaveUpdatesClass {
+                    return SaveUpdatesClass(wrapped: .saveBegan(savingToAlpha: savingToAlpha, savingToBeta: savingToBeta, savingGamma: savingGamma))
+                }
+
+                @objc
+                public class func saveSucceeded(savedToAlpha: Bool, savedToBeta: Bool, savedGamma: Bool, displayName: String?) -> SaveUpdatesClass {
+                    return SaveUpdatesClass(wrapped: .saveSucceeded(savedToAlpha: savedToAlpha, savedToBeta: savedToBeta, savedGamma: savedGamma, displayName: displayName))
+                }
+
+                @objc
+                public class func saveFailed(error: Error?) -> SaveUpdatesClass {
+                    return SaveUpdatesClass(wrapped: .saveFailed(error: error))
+                }
+
+                @objc
+                public func match(saveBegan: SaveUpdatesSaveBeganMatchHandler?, saveSucceeded: SaveUpdatesSaveSucceededMatchHandler?, saveFailed: SaveUpdatesSaveFailedMatchHandler?) {
+                    switch wrapped {
+                    case .saveBegan(let savingToAlpha, let savingToBeta, let savingGamma):
+                        saveBegan?(savingToAlpha, savingToBeta, savingGamma)
+                    case .saveSucceeded(let savedToAlpha, let savedToBeta, let savedGamma, let displayName):
+                        saveSucceeded?(savedToAlpha, savedToBeta, savedGamma, displayName)
+                    case .saveFailed(let error):
+                        saveFailed?(error)
+                    }
+                }
+            }
+            """#
+        )
+    }
+}
+
+public enum SaveUpdates {
+
+    case saveBegan(savingToAlpha: Bool, savingToBeta: Bool, savingGamma: Bool)
+
+    case saveSucceeded(savedToAlpha: Bool, savedToBeta: Bool, savedGamma: Bool, displayName: String?)
+
+    case saveFailed(error: Error?)
+}
+
+public typealias SaveUpdatesSaveBeganMatchHandler = (_ savingToAlpha: Bool, _ savingToBeta: Bool, _ savingGamma: Bool) -> Void
+
+public typealias SaveUpdatesSaveSucceededMatchHandler = (_ savedToAlpha: Bool, _ savedToBeta: Bool, _ savedGamma: Bool, _ displayName: String?) -> Void
+
+public typealias SaveUpdatesSaveFailedMatchHandler = (_ error: Error?) -> Void
+
+@objc(SaveUpdates)
+public class SaveUpdatesClass: NSObject, NSCopying {
+
+    private let wrapped: SaveUpdates
+
+    @available(*, unavailable)
+    public override init() {
+        fatalError()
+    }
+
+    private init(wrapped: SaveUpdates) {
+        self.wrapped = wrapped
+    }
+
+    public func copy(with zone: NSZone? = nil) -> Any {
+        return SaveUpdatesClass(wrapped: wrapped)
+    }
+
+    @objc
+    public class func saveBegan(savingToAlpha: Bool, savingToBeta: Bool, savingGamma: Bool) -> SaveUpdatesClass {
+        return SaveUpdatesClass(wrapped: .saveBegan(savingToAlpha: savingToAlpha, savingToBeta: savingToBeta, savingGamma: savingGamma))
+    }
+
+    @objc
+    public class func saveSucceeded(savedToAlpha: Bool, savedToBeta: Bool, savedGamma: Bool, displayName: String?) -> SaveUpdatesClass {
+        return SaveUpdatesClass(wrapped: .saveSucceeded(savedToAlpha: savedToAlpha, savedToBeta: savedToBeta, savedGamma: savedGamma, displayName: displayName))
+    }
+
+    @objc
+    public class func saveFailed(error: Error?) -> SaveUpdatesClass {
+        return SaveUpdatesClass(wrapped: .saveFailed(error: error))
+    }
+
+    @objc
+    public func match(saveBegan: SaveUpdatesSaveBeganMatchHandler?, saveSucceeded: SaveUpdatesSaveSucceededMatchHandler?, saveFailed: SaveUpdatesSaveFailedMatchHandler?) {
+        switch wrapped {
+        case .saveBegan(let savingToAlpha, let savingToBeta, let savingGamma):
+            saveBegan?(savingToAlpha, savingToBeta, savingGamma)
+        case .saveSucceeded(let savedToAlpha, let savedToBeta, let savedGamma, let displayName):
+            saveSucceeded?(savedToAlpha, savedToBeta, savedGamma, displayName)
+        case .saveFailed(let error):
+            saveFailed?(error)
+        }
+    }
 }
 
 public struct Value: Hashable, Equatable, Codable {
@@ -300,6 +437,11 @@ public class ValueClass: NSObject, NSCopying {
 
         self.wrapped = wrapped
         super.init()
+    }
+
+    @available(*, unavailable)
+    public override init() {
+        fatalError()
     }
 }
 

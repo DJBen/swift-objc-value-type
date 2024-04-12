@@ -50,7 +50,7 @@ final class SourcePreprocessorTests: XCTestCase {
         )
 
         XCTAssertEqual(
-            Set(sourcePreprocessor.referencedStructTypes),
+            Set(sourcePreprocessor.referencedSiblingTypes),
             Set(["Value2", "Value3"])
         )
     }

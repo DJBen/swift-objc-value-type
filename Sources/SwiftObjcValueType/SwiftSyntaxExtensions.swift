@@ -59,6 +59,18 @@ extension DeclReferenceExprSyntax {
     }
 }
 
+extension EnumDeclSyntax {
+    var inheritedTypes: [String] {
+        inheritanceClause?.inheritedTypes.compactMap {
+            if let identifierType = $0.type.as(IdentifierTypeSyntax.self) {
+                return identifierType.name.trimmed.text
+            } else {
+                return nil
+            }
+        } ?? []
+    }
+}
+
 extension StructDeclSyntax {
     var inheritedTypes: [String] {
         inheritanceClause?.inheritedTypes.compactMap {

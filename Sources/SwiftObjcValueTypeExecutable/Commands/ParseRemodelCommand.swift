@@ -19,7 +19,7 @@ struct ParseRemodelCommand: ParsableCommand, FileHandlingCommand {
     var fileArguments: FileHandlingArguments
 
     @OptionGroup
-    var parseRemodelArguments: ParseRemodelArguments
+    var parseRemodelArguments: RemodelArguments
 
     func run() throws {
         var sourceFilesIterator = sourceFiles()
@@ -33,12 +33,12 @@ struct ParseRemodelCommand: ParsableCommand, FileHandlingCommand {
                 } else if (fileName as NSString).pathExtension.lowercased() == "adtvalue" {
                     remodelType = .adtValue
                 } else {
-                    throw ParseRemodelError.unableToInferRemodelType
+                    throw RemodelError.unableToInferRemodelType
                 }
             } else if let type = parseRemodelArguments.type {
                 remodelType = type
             } else {
-                throw ParseRemodelError.unableToInferRemodelType
+                throw RemodelError.unableToInferRemodelType
             }
             customDump(
                 try remodelParser.parse(
@@ -48,25 +48,4 @@ struct ParseRemodelCommand: ParsableCommand, FileHandlingCommand {
             )
         }
     }
-}
-enum ParseRemodelError: Error {
-    case typeArgumentError
-    case unableToInferRemodelType
-}
-
-struct ParseRemodelArguments: ParsableArguments {
-    @Option(
-        help: "Supply the type of remodel (value or adtValue) if not already inferrable from file name. Required if source is from stdin",
-        transform: {
-            switch $0 {
-            case "value":
-                return .value
-            case "adtValue", "adtvalue":
-                return .adtValue
-            default:
-                throw ParseRemodelError.typeArgumentError
-            }
-        }
-    )
-    var type: RemodelType?
 }

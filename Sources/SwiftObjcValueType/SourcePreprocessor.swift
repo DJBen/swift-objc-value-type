@@ -5,7 +5,7 @@ import SwiftSyntaxBuilder
 /// need to be communicated with one another.
 public class SourcePreprocessor {
     private var referencedTypes: Set<TypeSyntax> = []
-    private var structNames: Set<String> = []
+    private var containerTypes: Set<String> = []
 
     public init() {}
 
@@ -15,7 +15,7 @@ public class SourcePreprocessor {
         for codeBlockItem in sourceFileSyntax.statements {
             if let structDecl = codeBlockItem.item.as(StructDeclSyntax.self) {
                 let structName = structDecl.name.trimmed.text
-                structNames.insert(structName)
+                containerTypes.insert(structName)
                 for member in structDecl.memberBlock.members {
                     if let variableDecl = member.decl.as(VariableDeclSyntax.self) {
                         for binding in variableDecl.bindings {
@@ -23,6 +23,18 @@ public class SourcePreprocessor {
                                 continue
                             }
                             referencedTypes.insert(typeAnnotation.type.trimmed)
+                        }
+                    }
+                }
+            } else if let enumDecl = codeBlockItem.item.as(EnumDeclSyntax.self) {
+                let enumName = enumDecl.name.trimmed.text
+                containerTypes.insert(enumName)
+                for member in enumDecl.memberBlock.members {
+                    if let enumCaseDecl = member.decl.as(EnumCaseDeclSyntax.self) {
+                        for element in enumCaseDecl.elements {
+                            for param in element.parameterClause?.parameters ?? [] {
+                                referencedTypes.insert(param.type.trimmed)
+                            }
                         }
                     }
                 }
@@ -34,10 +46,10 @@ public class SourcePreprocessor {
     ///
     /// This is used to hint the alias of the objc wrapper type.
     /// - Returns: a list of struct types that are declared and referenced within the source.
-    public var referencedStructTypes: [String] {
+    public var referencedSiblingTypes: [String] {
         referencedTypes.compactMap { type -> String? in
             if let identifier = type.as(IdentifierTypeSyntax.self) {
-                if structNames.contains(identifier.trimmed.name.text) {
+                if containerTypes.contains(identifier.trimmed.name.text) {
                     return identifier.trimmed.name.text
                 }
             }
