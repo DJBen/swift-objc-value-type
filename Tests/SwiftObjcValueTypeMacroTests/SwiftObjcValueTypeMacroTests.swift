@@ -92,6 +92,11 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
                     self.wrapped = wrapped
                     super.init()
                 }
+
+                @available(*, unavailable)
+                public override init() {
+                    fatalError()
+                }
             }
 
             extension ValueClass {

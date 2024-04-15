@@ -95,6 +95,81 @@ extension StructDeclSyntax {
     var visibilityModifierString: String {
         visibilityModifiers.first.map { $0.trimmed.name.text + " " } ?? ""
     }
+
+    func enumerateVariableDecls(
+        @MemberBlockItemListBuilder memberBlockItem: (VariableDeclSyntax) throws -> MemberBlockItemListSyntax
+    ) rethrows -> MemberBlockItemListSyntax {
+        try enumerateVariableDeclsGeneric(memberBlockItem: memberBlockItem)
+    }
+
+    func enumerateVariableDecls(
+        @FunctionParameterListBuilder memberBlockItem: (VariableDeclSyntax) throws -> FunctionParameterListSyntax
+    ) rethrows -> FunctionParameterListSyntax {
+        try enumerateVariableDeclsGeneric(memberBlockItem: memberBlockItem)
+    }
+
+    func enumerateVariableDecls(
+        @LabeledExprListBuilder memberBlockItem: (VariableDeclSyntax) throws -> LabeledExprListSyntax
+    ) rethrows -> LabeledExprListSyntax {
+        try enumerateVariableDeclsGeneric(memberBlockItem: memberBlockItem)
+    }
+
+    func enumerateBindings(
+        @FunctionParameterListBuilder memberBlockItem: (PatternBindingSyntax) throws -> FunctionParameterListSyntax
+    ) rethrows -> FunctionParameterListSyntax {
+        try enumerateVariableDecls { variableTypeDecl in
+            for binding in variableTypeDecl.bindings where !binding.isDerived {
+                try memberBlockItem(binding)
+            }
+        }
+    }
+
+    func enumerateBindings(
+        @LabeledExprListBuilder memberBlockItem: (PatternBindingSyntax) throws -> LabeledExprListSyntax
+    ) rethrows -> LabeledExprListSyntax {
+        try enumerateVariableDecls { variableTypeDecl in
+            for binding in variableTypeDecl.bindings where !binding.isDerived {
+                try memberBlockItem(binding)
+            }
+        }
+    }
+
+    private func enumerateVariableDeclsGeneric<T: SyntaxCollection>(
+        memberBlockItem: (VariableDeclSyntax) throws -> T
+    ) rethrows -> T {
+        var collection = T()
+
+        for member in memberBlock.members {
+            if let variableTypeDecl = member.decl.as(VariableDeclSyntax.self) {
+                // If all bindings are derived values, skip this variable
+                if !variableTypeDecl.bindings.allSatisfy(\.isDerived) {
+                    collection.append(contentsOf: try memberBlockItem(variableTypeDecl))
+                }
+            }
+        }
+
+        return collection
+    }
+}
+
+extension VariableDeclSyntax {
+
+}
+
+extension PatternBindingSyntax {
+    /// True if the variable binding has a getter.
+    var isDerived: Bool {
+        switch accessorBlock?.accessors {
+        case .accessors(let accessorDeclListSyntax):
+            return accessorDeclListSyntax.allSatisfy { accessorDecl in
+                accessorDecl.accessorSpecifier.keyword == .didSet || accessorDecl.accessorSpecifier.keyword == .willSet
+            }
+        case .getter(_):
+            return true
+        case nil:
+            return false
+        }
+    }
 }
 
 extension ExtensionDeclSyntax {

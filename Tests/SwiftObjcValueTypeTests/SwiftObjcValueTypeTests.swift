@@ -65,6 +65,11 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             self.wrapped = wrapped
             super.init()
         }
+
+        @available(*, unavailable)
+        public override init() {
+            fatalError()
+        }
     }
 
     extension ValueClass {
@@ -161,8 +166,61 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 public func copy(with zone: NSZone? = nil) -> Any {
                     return ValueClass(wrapped: wrapped)
                 }
+
+                @available(*, unavailable)
+                public override init() {
+                    fatalError()
+                }
             }
             """#
+        )
+    }
+
+    func testValueClass_customStringConvertible() throws {
+        let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
+            codeBlocks: CodeBlockItemListSyntax {
+                #"""
+                public struct Value: CustomStringConvertible {
+                    public let doubleValue: Double
+
+                    public var description: String {
+                        "placeholder"
+                    }
+                }
+
+                """#
+            },
+            shouldSynthesizeNSCopying: false,
+            shouldSynthesizeObjCBuilder: false
+        )
+
+        assertBuildResult(
+            result,
+            """
+            @objc(Value)
+            public class ValueClass: NSObject {
+
+                @objc public var doubleValue: Double {
+                    wrapped.doubleValue
+                }
+
+                private let wrapped: Value
+
+                @objc
+                public init(doubleValue: Double) {
+                    self.wrapped = Value(doubleValue: doubleValue)
+                }
+
+                public override var description: String {
+                    return wrapped.description
+                }
+
+                @available(*, unavailable)
+                public override init() {
+                    fatalError()
+                }
+            }
+            """
         )
     }
 
@@ -357,7 +415,7 @@ public class SaveUpdatesClass: NSObject, NSCopying {
     }
 }
 
-public struct Value: Hashable, Equatable, Codable {
+public struct Value: Hashable, Equatable, Codable, CustomStringConvertible {
     public let doubleValue: Double
 
     public let optInt: Int64?
@@ -365,6 +423,10 @@ public struct Value: Hashable, Equatable, Codable {
     public let stringArray: [String]
 
     public let map: [String: [String: Double]]
+
+    public var description: String {
+        "placeholder"
+    }
 }
 
 // Auto generated:
@@ -424,6 +486,10 @@ public class ValueClass: NSObject, NSCopying {
             return
         }
         coder.encode(encodedData)
+    }
+
+    public override var description: String {
+        return wrapped.description
     }
 
     public required init?(coder: NSCoder) {
