@@ -31,7 +31,7 @@ public class RemodelValueObjectParser {
         // - BOOL enableAttachment
         // - %nullable NSArray<NSNumber *> *supportedTypes
         // - NSDictionary<NSNumber *, NSString *> *parserRegexes
-        let propertyRegex = /(?:(%nullable)\s+)?(\S+(?:\<[^>]+\>)?\s+\*?)(\w+)\s*;?/
+        let propertyRegex = /(?:(%nullable|%nonnull)\s+)?(\S+(?:\<[^>]+\>)?\s+\*?)(\w+)\s*;?/
         let adtHeaderRegex = /(\w+)\s*{/
 
         let lines = source.components(separatedBy: .newlines)
@@ -42,7 +42,7 @@ public class RemodelValueObjectParser {
         var includes: [String] = []
         var excludes: [String] = []
         var properties: [RMPropertySyntax] = []
-        var nextPropertyIsNullable = false
+        var nextPropertyNullability: RMPropertyNullability?
 
         var propertyComments: [String] = []
         var adtInnerPropertyComments: [String] = []
@@ -92,13 +92,13 @@ public class RemodelValueObjectParser {
             case .parsingValueProperties:
                 if line.hasPrefix("#") {
                     propertyComments.append(String(line[line.index(after: line.startIndex)...].trimmingCharacters(in: .whitespacesAndNewlines)))
-                } else if line.contains(/^%nullable$/) {
-                    nextPropertyIsNullable = true
+                } else if let match = line.firstMatch(of: /^(%nullable|%nonnull)$/) {
+                    nextPropertyNullability = String(match.1) == "%nullable" ? .null : .nonnull
                 } else if let match = line.firstMatch(of: propertyRegex) {
-                    var isNullable = match.1 != nil
-                    if nextPropertyIsNullable {
-                        isNullable = true
-                        nextPropertyIsNullable = false
+                    var nullability: RMPropertyNullability? = match.1.map { $0 == "%nullable" ? .null : .nonnull }
+                    if let nn = nextPropertyNullability {
+                        nullability = nullability ?? nn
+                        nextPropertyNullability = nil
                     }
                     let type = String(match.2).trimmingCharacters(in: .whitespaces)
                     let name = String(match.3)
@@ -107,7 +107,7 @@ public class RemodelValueObjectParser {
                             .value(
                                 RMPropertySyntax.StructValue(
                                     comments: propertyComments,
-                                    declaresIsNullable: isNullable,
+                                    nullability: nullability,
                                     type: type,
                                     name: name
                                 )
@@ -146,13 +146,13 @@ public class RemodelValueObjectParser {
                 if line.hasPrefix("#") {
                     adtInnerPropertyComments.append(String(line[line.index(after: line.startIndex)...].trimmingCharacters(in: .whitespacesAndNewlines)))
                 } else if let match = line.firstMatch(of: propertyRegex) {
-                    let isNullable = match.1 != nil
+                    let nullability: RMPropertyNullability? = match.1.map { $0 == "%nullable" ? .null : .nonnull }
                     let type = String(match.2).trimmingCharacters(in: .whitespaces)
                     let name = String(match.3)
                     adtInnerProperties.append(
                         RMPropertySyntax.StructValue(
                             comments: adtInnerPropertyComments,
-                            declaresIsNullable: isNullable, 
+                            nullability: nullability,
                             type: type,
                             name: name
                         )

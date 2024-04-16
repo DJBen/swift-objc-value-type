@@ -73,17 +73,21 @@ public struct RMTypeDeclSyntax: Equatable {
         self.canForwardDeclare = canForwardDeclare
     }
 }
+public enum RMPropertyNullability {
+    case nonnull
+    case null
+}
 
 public struct RMPropertySyntax: Equatable {
     public struct StructValue: Equatable {
         public let comments: [String]
-        public let declaresIsNullable: Bool
+        public let nullability: RMPropertyNullability?
         public let type: String
         public let name: String
 
-        public init(comments: [String] = [], declaresIsNullable: Bool = false, type: String, name: String) {
+        public init(comments: [String] = [], nullability: RMPropertyNullability? = nil, type: String, name: String) {
             self.comments = comments
-            self.declaresIsNullable = declaresIsNullable
+            self.nullability = nullability
             self.type = type
             self.name = name
         }
@@ -112,7 +116,7 @@ public struct RMPropertySyntax: Equatable {
         self.value = value
     }
 
-    public init(comments: [String] = [], declaresIsNullable: Bool = false, type: String, name: String) {
-        self.init(.value(StructValue(comments: comments, declaresIsNullable: declaresIsNullable, type: type, name: name)))
+    public init(comments: [String] = [], nullability: RMPropertyNullability? = nil, type: String, name: String) {
+        self.init(.value(StructValue(comments: comments, nullability: nullability, type: type, name: name)))
     }
 }

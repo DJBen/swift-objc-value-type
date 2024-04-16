@@ -153,13 +153,13 @@ final class SourcePreprocessorTests: XCTestCase {
                     ),
                     RMPropertySyntax(
                         comments: [],
-                        declaresIsNullable: true,
+                        nullability: .null,
                         type: "NSString *",
                         name: "lollol"
                     ),
                     RMPropertySyntax(
                         comments: ["rofl"],
-                        declaresIsNullable: true,
+                        nullability: .null,
                         type: "NSArray<NSString *> *",
                         name: "rofl"
                     ),

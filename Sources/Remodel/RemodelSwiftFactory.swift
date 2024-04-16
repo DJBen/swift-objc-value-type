@@ -237,10 +237,14 @@ public class RemodelSwiftFactory {
             if isObjcPrimitive(structValue.type) {
                 return false
             }
-            if structValue.declaresIsNullable {
+            switch structValue.nullability {
+            case .nonnull:
+                return false
+            case .null:
                 return true
+            case .none:
+                return !assumesNonnull
             }
-            return !assumesNonnull
         }())
     }
 

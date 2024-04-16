@@ -52,6 +52,55 @@ final class RemodelSwiftFactoryTests: XCTestCase {
         )
     }
 
+    func testFactory_structValue_nonnull() throws {
+        let factory = RemodelSwiftFactory()
+
+        let source = """
+        Foo includes(RMAssumeNonnull) {
+          %nonnull NSString *bar
+          %nonnull NSDate *baz
+          %nullable NSString *baq
+          %nonnull SomeCustomType *customType
+          %nullable NSDate *bab
+        }
+        """
+
+        let parser = RemodelValueObjectParser()
+
+        let result = try factory.generate(
+            try parser.parse(type: .value, source: source)
+        )
+
+        assertBuildResult(
+            result,
+            """
+
+            
+            public struct Foo {
+
+                public let bar: String
+
+                public let baz: Date
+
+                public let baq: String?
+
+                public let customType: SomeCustomType
+
+                public let bab: Date?
+
+                public init(bar: String, baz: Date, baq: String?, customType: SomeCustomType, bab: Date?) {
+                    self.bar = bar
+                    self.baz = baz
+                    self.baq = baq
+                    self.customType = customType
+                    self.bab = bab
+                }
+            }
+
+            """
+        )
+    }
+
     func testFactory_structValue_nullable() throws {
         let factory = RemodelSwiftFactory()
 
