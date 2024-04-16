@@ -1,6 +1,6 @@
 # SwiftObjcValueType
 
-Generate @objc value types for existing Swift structs.
+Generate @objc value types for existing Swift structs and enums; migrate [Remodel](https://github.com/facebookarchive/remodel) domain specific language based value objects to Swift.
 
 ## Quick start
 
@@ -22,6 +22,10 @@ public struct Value: Equatable, Codable {
 ```
 
 Press `Ctrl+D` to signal end-of-file, and value class should be generated!
+- For each property, it synthesizes an objc getter.
+- Primitive-C types and NS-types are automatically bridged - e.g. `Int?` -> `NSNumber?`, `NSString` -> `String`.
+- Equality, NSCopying, hashing, NSCoding are synthesized.
+- Builder can be synthesized on demand.
 
 ```swift
 @objc(Value)
@@ -124,4 +128,26 @@ extension ValueClass {
 }
 ```
 
-## Multiple files
+## Usage 
+```
+> swift run swift-objc-value-type --help
+
+OVERVIEW: Generate objc compatible value types for Swift structs and enums
+
+USAGE: swift-objc-value-type <subcommand>
+
+OPTIONS:
+  -h, --help              Show help information.
+
+SUBCOMMANDS:
+  gen                     Generate objc compatible value type interfaces for Swift structs and enums.
+  parse-remodel           Parse remodel value files into syntax representation.
+  migrate-remodel         Migrate remodel value files (.value, .adtValue) into structs and enums
+                          respectively.
+
+```
+You may also invoke `--help` in any of the subcommands, like `swift run swift-objc-value-type gen --help`
+
+## How can I...?
+
+TBD
