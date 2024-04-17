@@ -23,8 +23,16 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-syntax.git",
       "state" : {
-        "revision" : "64889f0c732f210a935a0ad7cda38f77f876262d",
-        "version" : "509.1.1"
+        "revision" : "fa8f95c2d536d6620cc2f504ebe8a6167c9fc2dd",
+        "version" : "510.0.1"
+      }
+    },
+    {
+      "identity" : "swiftbuildermacro",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/DJBen/SwiftBuilderMacro",
+      "state" : {
+        "revision" : "14607b93c4f346b12f729cf6a72f8d72e6031b39"
       }
     },
     {
