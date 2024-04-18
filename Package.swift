@@ -13,9 +13,10 @@ let package = Package(
     .library(name: "SwiftObjcValueTypeMacroInterface", targets: ["SwiftObjcValueTypeMacroInterface"]),
   ],
   dependencies: [
-    .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.2"),
-    .package(url: "https://github.com/apple/swift-syntax.git", from: "509.0.2"),
-    .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "1.3.0")
+    .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.3.1"),
+    .package(url: "https://github.com/apple/swift-syntax.git", from: "510.0.1"),
+    .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "1.3.0"),
+    .package(url: "https://github.com/DJBen/SwiftBuilderMacro", revision: "14607b93c4f346b12f729cf6a72f8d72e6031b39"),
   ],
   targets: [
     .macro(
@@ -30,6 +31,15 @@ let package = Package(
     .target(
       name: "SwiftObjcValueType",
       dependencies: [
+        .product(name: "SwiftSyntax", package: "swift-syntax"),
+        .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
+      ]
+    ),
+
+    .target(
+      name: "ObjcSupport",
+      dependencies: [
+        .product(name: "BuilderMacro", package: "SwiftBuilderMacro"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
         .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
       ]
@@ -79,6 +89,15 @@ let package = Package(
         name: "RemodelTests",
         dependencies: [
             "Remodel",
+            "TestingSupport",
+            .product(name: "CustomDump", package: "swift-custom-dump")
+        ]
+    ),
+
+    .testTarget(
+        name: "ObjcSupportTests",
+        dependencies: [
+            "ObjcSupport",
             "TestingSupport",
             .product(name: "CustomDump", package: "swift-custom-dump")
         ]
