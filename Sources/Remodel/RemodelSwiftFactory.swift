@@ -41,6 +41,9 @@ let objcToSwiftMaps = [
     "NSURLRequest": "URLRequest",
     "NSUUID": "UUID",
     "NSError": "Error",
+    "NSInteger": "Int",
+    "NSUInteger": "UInt",
+    "Class": "AnyClass",
 ]
 
 /// Generate Swift models (enums or structs) from Remodel models.
@@ -57,20 +60,21 @@ public class RemodelSwiftFactory {
                 for decl in try generateValue(model) { decl }
             case .adtValue:
                 for decl in try generateAdt(model) { decl }
+            case .interface:
+                ""
             }
         }
     }
 
     func generateValue(
         _ model: RMModelSyntax
-    ) throws -> [DeclSyntax] {
+    ) throws -> [any DeclSyntaxProtocol] {
         let assumesNonnull = model.includes.contains("RMAssumeNonnull")
 
-        var decls = [DeclSyntax]()
-        for typeDecl in model.typeDecls {
-            if let library = typeDecl.library {
-                decls.append(DeclSyntax("import \(raw: library)"))
-            }
+        var decls = [any DeclSyntaxProtocol]()
+
+        for library in Set(model.typeDecls.compactMap(\.library)).sorted() {
+            decls.append(DeclSyntax("import \(raw: library)"))
         }
 
         decls.append(
@@ -139,21 +143,18 @@ public class RemodelSwiftFactory {
                 .with(\.leadingTrivia, .newlines(2))
             }
             .with(\.trailingTrivia, .newline)
-            .cast(DeclSyntax.self)
         )
         return decls
     }
 
     func generateAdt(
         _ model: RMModelSyntax
-    ) throws -> [DeclSyntax] {
+    ) throws -> [any DeclSyntaxProtocol] {
         let assumesNonnull = model.includes.contains("RMAssumeNonnull")
 
-        var decls = [DeclSyntax]()
-        for typeDecl in model.typeDecls {
-            if let library = typeDecl.library {
-                decls.append(DeclSyntax("import \(raw: library)"))
-            }
+        var decls = [any DeclSyntaxProtocol]()
+        for library in Set(model.typeDecls.compactMap(\.library)).sorted() {
+            decls.append(DeclSyntax("import \(raw: library)"))
         }
 
         decls.append(
@@ -174,7 +175,9 @@ public class RemodelSwiftFactory {
                         EnumCaseDeclSyntax(
                             leadingTrivia: Trivia(
                                 pieces: {
-                                    var pieces: [TriviaPiece] = [.newlines(2)]
+                                    var pieces: [TriviaPiece] = [
+                                        adtValue.comments.isEmpty ? .newlines(1): .newlines(2)
+                                    ]
                                     for comment in adtValue.comments {
                                         pieces.append(.docLineComment("/// \(comment)"))
                                     }
@@ -185,9 +188,7 @@ public class RemodelSwiftFactory {
                                             pieces.append(.docLineComment("/// \(prefix)\(comment)"))
                                         }
                                     }
-                                    if !adtValue.innerValues.isEmpty {
-                                        pieces.append(.newlines(1))
-                                    }
+                                    pieces.append(.newlines(1))
                                     return pieces
                                 }()
                             )
@@ -211,7 +212,6 @@ public class RemodelSwiftFactory {
                 }
             }
             .with(\.trailingTrivia, .newline)
-            .cast(DeclSyntax.self)
         )
 
         return decls
@@ -229,7 +229,7 @@ public class RemodelSwiftFactory {
         } : nil
     }
 
-    private func propertyType(_ structValue: RMPropertySyntax.StructValue, assumesNonnull: Bool) -> TypeSyntax {
+    private func propertyType(_ structValue: RMPropertySyntax.StructValue, assumesNonnull: Bool) -> any TypeSyntaxProtocol {
         IdentifierTypeSyntax(
             name: .identifier(mapType(structValue.type))
         )
@@ -303,11 +303,11 @@ public class RemodelSwiftFactory {
 }
 
 extension IdentifierTypeSyntax {
-    func optionalized(_ shouldOptionalize: Bool) -> TypeSyntax {
+    func optionalized(_ shouldOptionalize: Bool) -> any TypeSyntaxProtocol {
         if shouldOptionalize {
-            return OptionalTypeSyntax(wrappedType: self).cast(TypeSyntax.self)
+            return OptionalTypeSyntax(wrappedType: self)
         } else {
-            return cast(TypeSyntax.self)
+            return self
         }
     }
 }

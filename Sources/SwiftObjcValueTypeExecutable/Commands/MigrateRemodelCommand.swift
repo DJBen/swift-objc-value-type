@@ -22,6 +22,15 @@ struct MigrateRemodelCommand: ParsableCommand, FileHandlingCommand {
     @OptionGroup
     var RemodelArguments: RemodelArguments
 
+    @Flag(
+        name: [.long],
+        help: """
+        If false, processing legacy .value type with `interface` declarations
+        will throw an error; set this to true to skip those files.
+        """
+    )
+    var skipLegacyInterfaceValueType: Bool = false
+
     func run() throws {
         var sourceFilesIterator = sourceFiles()
         let remodelParser = RemodelValueObjectParser()
@@ -30,6 +39,9 @@ struct MigrateRemodelCommand: ParsableCommand, FileHandlingCommand {
         while let sourceFile = sourceFilesIterator.next() {
             let remodelType: RemodelType
             if let fileName = sourceFile.fileName {
+                if fileArguments.verbose {
+                    print("swift-objc-value-type: reading from (\(fileName))")
+                }
                 if (fileName as NSString).pathExtension.lowercased() == "value" {
                     remodelType = .value
                 } else if (fileName as NSString).pathExtension.lowercased() == "adtvalue" {
@@ -42,12 +54,28 @@ struct MigrateRemodelCommand: ParsableCommand, FileHandlingCommand {
             } else {
                 throw RemodelError.unableToInferRemodelType
             }
-            let ast = try remodelParser.parse(
+            guard let ast = try remodelParser.parse(
                 type: remodelType,
                 source: String(bytes: sourceFile.content, encoding: .utf8) ?? ""
-            )
-            try withFileHandler(sourceFile.fileName) { sink in
-                try sink.stream(try remodelSwiftFactory.generate(ast).formatted())
+            ) else {
+                if fileArguments.verbose {
+                    print("swift-objc-value-type: skip processing (\(sourceFile.fileName ?? "stdin"))")
+                }
+                return
+            }
+            do {
+                try withFileHandler(sourceFile.fileName) { sink in
+                    try sink.stream(try remodelSwiftFactory.generate(ast).formatted())
+                }
+            } catch let error as RemodelValueObjectParser.ParseError {
+                switch error {
+                case .unsupportedLegacyInterfaceValueType:
+                    if !skipLegacyInterfaceValueType {
+                        throw error
+                    }
+                default:
+                    throw error
+                }
             }
         }
     }

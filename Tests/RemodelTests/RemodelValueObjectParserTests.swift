@@ -45,12 +45,42 @@ final class SourcePreprocessorTests: XCTestCase {
         )
     }
 
+    func testParser_value_interface() throws {
+        let source = """
+        #import <Foo/Bar.h>
+        #import <Foo2/Baz.h>
+
+        interface SomeViewModel
+          NSString *name1
+          NSString *location
+          ButtonViewModel *buttonViewModel
+          NetworkImage *logoImage
+          id<NSCoding> cacheData
+        end
+        """
+
+        let parser = RemodelValueObjectParser()
+        XCTAssertThrowsError(try parser.parse(type: .value, source: source))
+    }
+
+    func testParser_value_empty() throws {
+        let source = """
+
+        """
+
+        let parser = RemodelValueObjectParser()
+        XCTAssertNoDifference(
+            try parser.parse(type: .value, source: source),
+            nil
+        )
+    }
+
     func testParser_value_withTypes() throws {
         let source = """
         # Configuration for CTA
 
         %type name=CGFloat file=UIKit library=UIKit
-        %type name=MediaType file=MediaType library=MediaModels
+        %type name="MediaType" file="MediaType" library=MediaModels
 
         CTAConfigValue includes(RMAssumeNonnull, RMEquality) excludes(RMDescription) {
 

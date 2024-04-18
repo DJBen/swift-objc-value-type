@@ -27,6 +27,21 @@ public enum RemodelType: Equatable, Hashable, Codable {
      }
      */
     case adtValue
+
+    /**
+     #import <Foo/Bar.h>
+     #import <Foo/Baz.h>
+
+     interface Weather
+         float celsius
+         float fahrenheit
+         NSString *locationName
+         NSArray<SOJUHourlyForecast *> *hourlyForecasts
+         NSArray<SOJUDailyForecast *> *dailyForecasts
+         enum WeatherFilterType weatherFilterViewType
+     end
+     */
+    case interface
 }
 
 public struct RMModelSyntax: Equatable {

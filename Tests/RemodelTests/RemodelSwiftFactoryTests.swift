@@ -3,6 +3,76 @@ import XCTest
 import TestingSupport
 
 final class RemodelSwiftFactoryTests: XCTestCase {
+    func testFactory_structValue_empty() throws {
+        let factory = RemodelSwiftFactory()
+        let source = """
+        EmptyValue {
+
+        }
+
+
+        """
+
+        let parser = RemodelValueObjectParser()
+        let result = try factory.generate(
+            try parser.parse(type: .value, source: source)!
+        )
+        assertBuildResult(
+            result,
+            """
+
+
+            public struct EmptyValue {
+
+                public init() {
+                }
+            }
+
+            """
+        )
+    }
+
+    func testFactory_adtValue_colonNumbered() throws {
+        let factory = RemodelSwiftFactory()
+        let source = """
+        %type name=FooA file=FooFileA library=FooServices
+        %type name=FooB file=FooFileB library=FooServices
+        %type name=FooC file=FooFileC library=FooServices
+
+        DataRequest includes(SkipAttributePrivateImports) {
+          # Case foo documentations
+          handleCaseFoo:1 {
+
+          }
+          handleCaseBar:2 {
+            # ClientId some documentations
+            %nonnull NSString *clientId
+          }
+        }
+        """
+
+        let parser = RemodelValueObjectParser()
+        let ast = try parser.parse(type: .adtValue, source: source)!
+        let result = try factory.generate(ast)
+        assertBuildResult(
+            result,
+            """
+            import FooServices
+
+            public enum DataRequest {
+                
+                /// Case foo documentations
+                case handleCaseFoo
+
+                /// - clientId: ClientId some documentations
+                case handleCaseBar(clientId: String)
+            }
+
+            """
+        )
+
+    }
+
     func testFactory_structValue() throws {
         let factory = RemodelSwiftFactory()
 
@@ -22,7 +92,7 @@ final class RemodelSwiftFactoryTests: XCTestCase {
         let parser = RemodelValueObjectParser()
 
         let result = try factory.generate(
-            try parser.parse(type: .value, source: source)
+            try parser.parse(type: .value, source: source)!
         )
 
         assertBuildResult(
@@ -62,13 +132,14 @@ final class RemodelSwiftFactoryTests: XCTestCase {
           %nullable NSString *baq
           %nonnull SomeCustomType *customType
           %nullable NSDate *bab
+          NSInteger cellIndex
         }
         """
 
         let parser = RemodelValueObjectParser()
 
         let result = try factory.generate(
-            try parser.parse(type: .value, source: source)
+            try parser.parse(type: .value, source: source)!
         )
 
         assertBuildResult(
@@ -88,12 +159,15 @@ final class RemodelSwiftFactoryTests: XCTestCase {
 
                 public let bab: Date?
 
-                public init(bar: String, baz: Date, baq: String?, customType: SomeCustomType, bab: Date?) {
+                public let cellIndex: Int
+
+                public init(bar: String, baz: Date, baq: String?, customType: SomeCustomType, bab: Date?, cellIndex: Int) {
                     self.bar = bar
                     self.baz = baz
                     self.baq = baq
                     self.customType = customType
                     self.bab = bab
+                    self.cellIndex = cellIndex
                 }
             }
 
@@ -125,7 +199,7 @@ final class RemodelSwiftFactoryTests: XCTestCase {
         let parser = RemodelValueObjectParser()
 
         let result = try factory.generate(
-            try parser.parse(type: .value, source: source)
+            try parser.parse(type: .value, source: source)!
         )
 
         assertBuildResult(
@@ -188,7 +262,7 @@ final class RemodelSwiftFactoryTests: XCTestCase {
         let parser = RemodelValueObjectParser()
 
         let result = try factory.generate(
-            try parser.parse(type: .adtValue, source: source)
+            try parser.parse(type: .adtValue, source: source)!
         )
 
         assertBuildResult(
@@ -199,7 +273,7 @@ final class RemodelSwiftFactoryTests: XCTestCase {
             /// An Example Algebraic data type (akin to swift enum associated value)
             /// multiline comment
             public enum AdtValue: Equatable, Hashable {
-
+                
                 /// case 1 comment
                 /// - someInt: some non-pointer integer
                 ///   someInt multiline
@@ -229,7 +303,7 @@ final class RemodelSwiftFactoryTests: XCTestCase {
         let parser = RemodelValueObjectParser()
 
         let result = try factory.generate(
-            try parser.parse(type: .adtValue, source: source)
+            try parser.parse(type: .adtValue, source: source)!
         )
 
         assertBuildResult(
@@ -249,4 +323,38 @@ final class RemodelSwiftFactoryTests: XCTestCase {
         )
     }
 
+    func testFactory_structValue_adverse1() throws {
+        let factory = RemodelSwiftFactory()
+
+        let source = """
+        %type library=UIKit file=UIKit
+
+        ModelWithCTA {
+            NSString *ctaTitleString
+        }
+        """
+
+        let parser = RemodelValueObjectParser()
+
+        let result = try factory.generate(
+            try parser.parse(type: .value, source: source)!
+        )
+
+        assertBuildResult(
+            result,
+            """
+            import UIKit
+
+            public struct ModelWithCTA {
+
+                public let ctaTitleString: String?
+
+                public init(ctaTitleString: String?) {
+                    self.ctaTitleString = ctaTitleString
+                }
+            }
+
+            """
+        )
+    }
 }

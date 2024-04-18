@@ -6,12 +6,14 @@ public class RemodelValueObjectParser {
         case parsingValueProperties
         case parsingAdtValueProperties
         case parsingAdtInnerProperties
+        case parsingLegacyInterfaceProperties
         case end
     }
 
-    enum ParseError: Error {
+    public enum ParseError: Error {
         case missingPropertyName(String)
         case unfinishedParsing
+        case unsupportedLegacyInterfaceValueType
     }
 
     public init() {}
@@ -19,22 +21,33 @@ public class RemodelValueObjectParser {
     public func parse(
         type: RemodelType,
         source: String
-    ) throws -> RMModelSyntax {
+    ) throws -> RMModelSyntax? {
         var state = State.parsingTypeAndHeader
 
-        let typeRegex = /%type((?:\s+\w+=\w+)*)/
+        let typeRegex = /^%type((?:\s+[\w"]+=[\w"]+)*)/
+        // let legacyImportRegex = /#import\s+(?:"([\w\._]+)"|<([\w_]+)\/([\w\._]+)>)/
 
-        // Matches `TrackV2ConfigValue includes(RMAssumeNonnull, RMEquality)`
-        let headerRegex = /(\w+)\s*includes\(([^)]+)\)(?:\s*excludes\(([^)]+)\))?\s*{/
+        // Matches the following
+        // - TrackV2ConfigValue {
+        // - TrackV2ConfigValue includes(RMAssumeNonnull, RMEquality) {
+        // - TrackV2ConfigValue includes(RMAssumeNonnull, RMEquality) excludes(RMDescription) {
+        let headerRegex = /^(\w+)(?:\s*includes\(([^)]*)\))?(?:\s*excludes\(([^)]*)\))?(\s*{)?/
+
+        let adtHeaderRegex = /^(\w+)(:\d+)?(\s*{)?/
+
+        let legacyInterfaceHeaderRegex = /^interface\s*(\w+)/
 
         // Matches the following
         // - BOOL enableAttachment
         // - %nullable NSArray<NSNumber *> *supportedTypes
         // - NSDictionary<NSNumber *, NSString *> *parserRegexes
         let propertyRegex = /(?:(%nullable|%nonnull)\s+)?(\S+(?:\<[^>]+\>)?\s+\*?)(\w+)\s*;?/
-        let adtHeaderRegex = /(\w+)\s*{/
 
-        let lines = source.components(separatedBy: .newlines)
+        let lines = source.trimmingCharacters(in: .whitespacesAndNewlines).components(separatedBy: .newlines)
+
+        guard !lines.isEmpty && !lines.first!.isEmpty else {
+            return nil
+        }
 
         var comments: [String] = []
         var typeDecls: [RMTypeDeclSyntax] = []
@@ -56,14 +69,14 @@ public class RemodelValueObjectParser {
                 if line.hasPrefix("#") {
                     comments.append(String(line[line.index(after: line.startIndex)...].trimmingCharacters(in: .whitespacesAndNewlines)))
                 } else if let match = line.firstMatch(of: typeRegex) {
-                    let typeParams = match.1.trimmingCharacters(in: .whitespaces).split(separator: " ")
+                    let typeParams = match.1.split(separator: " ").compactMap { $0.trimmingCharacters(in: .whitespaces) }
                     var paramName: String?
                     var paramFile: String?
                     var paramLib: String?
                     var paramCanForwardDeclare: Bool?
 
                     for typeParam in typeParams {
-                        if let paramMatch = typeParam.firstMatch(of: /(\w+)=(\w+)/) {
+                        if let paramMatch = typeParam.firstMatch(of: /(\w+)="?([\w]+)"?/) {
                             switch paramMatch.1 {
                             case "name":
                                 paramName = String(paramMatch.2)
@@ -78,15 +91,21 @@ public class RemodelValueObjectParser {
                             }
                         }
                     }
-                    guard let paramName = paramName else {
+                    guard let paramName = paramName ?? paramFile else {
                         throw ParseError.missingPropertyName(line)
                     }
                     typeDecls.append(RMTypeDeclSyntax(name: paramName, library: paramLib, file: paramFile, canForwardDeclare: paramCanForwardDeclare))
 
+                } else if let _ = line.firstMatch(of: legacyInterfaceHeaderRegex) {
+                    state = .parsingLegacyInterfaceProperties
                 } else if let match = line.firstMatch(of: headerRegex) {
                     modelName = String(match.1)
-                    includes = match.2.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+                    includes = match.2?.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) } ?? []
                     excludes = match.3?.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) } ?? []
+                    if match.4 != nil { // if contains trailing '{'
+                        state = type == .value ? .parsingValueProperties : .parsingAdtValueProperties
+                    }
+                } else if line == "{" {
                     state = type == .value ? .parsingValueProperties : .parsingAdtValueProperties
                 }
             case .parsingValueProperties:
@@ -124,7 +143,22 @@ public class RemodelValueObjectParser {
                     propertyComments.append(String(line[line.index(after: line.startIndex)...].trimmingCharacters(in: .whitespacesAndNewlines)))
                 } else if let match = line.firstMatch(of: adtHeaderRegex) {
                     adtName = String(match.1)
-                    state = .parsingAdtInnerProperties
+                    if match.3 != nil { // If trailing '{' exists
+                        state = .parsingAdtInnerProperties
+                    } else {
+                        properties.append(
+                            RMPropertySyntax(
+                                .adt(
+                                    RMPropertySyntax.AdtValue(
+                                        comments: propertyComments,
+                                        name: adtName,
+                                        innerValues: []
+                                    )
+                                )
+                            )
+                        )
+                        propertyComments = []
+                    }
                 } else if let match = line.firstMatch(of: /^(\w+)$/) {
                     properties.append(
                         RMPropertySyntax(
@@ -176,6 +210,11 @@ public class RemodelValueObjectParser {
                     adtInnerProperties = []
                     propertyComments = []
                 }
+            case .parsingLegacyInterfaceProperties:
+                if line.contains(/^end/) {
+                    state = .end
+                }
+                throw ParseError.unsupportedLegacyInterfaceValueType
             case .end:
                 break
             }

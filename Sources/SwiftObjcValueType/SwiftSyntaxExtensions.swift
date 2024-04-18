@@ -24,7 +24,7 @@ extension TypeSyntax {
 extension DeclReferenceExprSyntax {
     func toNSNumberOptionalMapping(
         identifierType: IdentifierTypeSyntax
-    ) -> ExprSyntax {
+    ) -> any ExprSyntaxProtocol {
         switch identifierType.name.trimmed.text {
         case "Int8", "UInt8", "Int16", "UInt16", "Int32", "UInt32", "Int64", "UInt64", "Float", "Double", "Bool", "Int", "UInt":
             return FunctionCallExprSyntax(
@@ -52,9 +52,9 @@ extension DeclReferenceExprSyntax {
                         }
                     )
                 )
-            }.cast(ExprSyntax.self)
+            }
         default:
-            return cast(ExprSyntax.self)
+            return self
         }
     }
 }

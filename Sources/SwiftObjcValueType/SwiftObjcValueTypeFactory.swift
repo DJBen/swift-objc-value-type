@@ -59,7 +59,7 @@ public struct SwiftObjcValueTypeFactory {
         structDecl: StructDeclSyntax,
         shouldSynthesizeNSCopying: Bool,
         shouldSynthesizeObjCBuilder: Bool
-    ) throws -> [DeclSyntax] {
+    ) throws -> [any DeclSyntaxProtocol] {
         try wrappingClassDecl(
             structDecl: structDecl,
             referencedSiblingTypes: [],
@@ -84,10 +84,10 @@ public struct SwiftObjcValueTypeFactory {
         shouldSynthesizeObjCBuilder: Bool,
         shouldSynthesizeDescription: Bool,
         shouldSynthesizeDebugDescription: Bool
-    ) throws -> [DeclSyntax] {
+    ) throws -> [any DeclSyntaxProtocol] {
         let structName = structDecl.name.trimmed.text
 
-        var decls = [DeclSyntax]()
+        var decls = [any DeclSyntaxProtocol]()
 
         decls.append(
             try ClassDeclSyntax(
@@ -129,18 +129,19 @@ public struct SwiftObjcValueTypeFactory {
                                     structDecl.enumerateBindings { binding in
                                         if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let typeAnnotation = binding.typeAnnotation {
                                             let variableName = identifierPattern.identifier.trimmed.text
+                                            let type: any TypeSyntaxProtocol = {
+                                                if let optional = typeAnnotation.type.as(OptionalTypeSyntax.self), optional.wrappedType.isNSNumberBridged {
+                                                    return OptionalTypeSyntax(
+                                                        wrappedType: IdentifierTypeSyntax(name: "NSNumber")
+                                                    )
+                                                } else {
+                                                    return typeAnnotation.type.trimmed
+                                                }
+                                            }()
 
                                             FunctionParameterSyntax(
                                                 firstName: .identifier(variableName),
-                                                type: { () -> TypeSyntax in
-                                                    if let optional = typeAnnotation.type.as(OptionalTypeSyntax.self), optional.wrappedType.isNSNumberBridged {
-                                                        return OptionalTypeSyntax(
-                                                            wrappedType: IdentifierTypeSyntax(name: "NSNumber")
-                                                        ).cast(TypeSyntax.self)
-                                                    } else {
-                                                        return typeAnnotation.type.trimmed
-                                                    }
-                                                }()
+                                                type: type
                                             )
                                         }
                                     }
@@ -163,26 +164,26 @@ public struct SwiftObjcValueTypeFactory {
                             ) {
                                 structDecl.enumerateBindings { binding in
                                     if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let typeAnnotation = binding.typeAnnotation {
-                                            let variableName = identifierPattern.identifier.trimmed.text
+                                        let variableName = identifierPattern.identifier.trimmed.text
+                                        let expr: any ExprSyntaxProtocol = {
+                                            if let optional = typeAnnotation.type.as(OptionalTypeSyntax.self), optional.wrappedType.isNSNumberBridged, let identifierType = optional.wrappedType.as(IdentifierTypeSyntax.self) {
+                                                return DeclReferenceExprSyntax(
+                                                    baseName: .identifier(variableName)
+                                                )
+                                                .toNSNumberOptionalMapping(identifierType: identifierType)
+                                            } else {
+                                                return DeclReferenceExprSyntax(
+                                                    baseName: .identifier(variableName)
+                                                )
+                                            }
+                                        }()
 
-                                            LabeledExprSyntax(
-                                                label: .identifier(variableName),
-                                                colon: .colonToken(),
-                                                expression: { () -> ExprSyntax in
-                                                    if let optional = typeAnnotation.type.as(OptionalTypeSyntax.self), optional.wrappedType.isNSNumberBridged, let identifierType = optional.wrappedType.as(IdentifierTypeSyntax.self) {
-                                                        return DeclReferenceExprSyntax(
-                                                            baseName: .identifier(variableName)
-                                                        )
-                                                        .toNSNumberOptionalMapping(identifierType: identifierType)
-                                                    } else {
-                                                        return DeclReferenceExprSyntax(
-                                                            baseName: .identifier(variableName)
-                                                        )
-                                                        .cast(ExprSyntax.self)
-                                                    }
-                                                }()
-                                            )
-                                        }
+                                        LabeledExprSyntax(
+                                            label: .identifier(variableName),
+                                            colon: .colonToken(),
+                                            expression: expr
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -241,7 +242,6 @@ public struct SwiftObjcValueTypeFactory {
                     .with(\.leadingTrivia, .newlines(2))
                 }
             )
-            .cast(DeclSyntax.self)
         )
 
         if shouldSynthesizeObjCBuilder {
@@ -251,7 +251,6 @@ public struct SwiftObjcValueTypeFactory {
                 )
                 .with(\.leadingTrivia, .newlines(2))
                 .with(\.trailingTrivia, .newline)
-                .cast(DeclSyntax.self)
             )
         }
 
@@ -263,8 +262,8 @@ public struct SwiftObjcValueTypeFactory {
         referencedSiblingTypes: [String],
         shouldSynthesizeEquatable: Bool,
         shouldSynthesizeNSCopying: Bool
-    ) throws -> [DeclSyntax] {
-        var decls = [DeclSyntax]()
+    ) throws -> [any DeclSyntaxProtocol] {
+        var decls = [any DeclSyntaxProtocol]()
         let enumName = enumDecl.name.trimmed.text
 
         for member in enumDecl.memberBlock.members {
@@ -297,7 +296,6 @@ public struct SwiftObjcValueTypeFactory {
                             )
                         )
                         .with(\.leadingTrivia, .newlines(2))
-                        .cast(DeclSyntax.self)
                     )
                 }
             }
@@ -365,18 +363,19 @@ public struct SwiftObjcValueTypeFactory {
                                         parameterClause: FunctionParameterClauseSyntax(
                                             parametersBuilder: {
                                                 for (index, caseParam) in (caseElement.parameterClause?.parameters ?? []).enumerated() {
+                                                    let type: any TypeSyntaxProtocol = {
+                                                        if let optional = caseParam.type.as(OptionalTypeSyntax.self), optional.wrappedType.isNSNumberBridged {
+                                                            return OptionalTypeSyntax(
+                                                                wrappedType: IdentifierTypeSyntax(name: "NSNumber")
+                                                            )
+                                                        } else {
+                                                            return caseParam.type.trimmed
+                                                        }
+                                                    }()
                                                     FunctionParameterSyntax(
                                                         firstName: caseParam.firstName ?? caseParam.secondName ?? .identifier("param\(index)"),
                                                         secondName: caseParam.secondName,
-                                                        type: { () -> TypeSyntax in
-                                                            if let optional = caseParam.type.as(OptionalTypeSyntax.self), optional.wrappedType.isNSNumberBridged {
-                                                                return OptionalTypeSyntax(
-                                                                    wrappedType: IdentifierTypeSyntax(name: "NSNumber")
-                                                                ).cast(TypeSyntax.self)
-                                                            } else {
-                                                                return caseParam.type.trimmed
-                                                            }
-                                                        }()
+                                                        type: type
                                                     )
                                                 }
                                             }
@@ -410,11 +409,9 @@ public struct SwiftObjcValueTypeFactory {
                         enumDecl: enumDecl
                     )
                     .with(\.leadingTrivia, .newlines(2))
-                    .cast(DeclSyntax.self)
                 }
             )
             .with(\.leadingTrivia, .newlines(2))
-            .cast(DeclSyntax.self)
         )
 
         return decls

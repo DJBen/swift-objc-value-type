@@ -177,12 +177,11 @@ public struct BuilderFactory {
 extension TypeAnnotationSyntax {
     func unwrapedNSNumberForNonNullVariables(
         variableName: String
-    ) -> ExprSyntax {
+    ) -> any ExprSyntaxProtocol {
         if type.is(OptionalTypeSyntax.self) {
             return DeclReferenceExprSyntax(
                 baseName: .identifier(variableName)
             )
-            .cast(ExprSyntax.self)
         } else {
             if let identifierSyntax = type.asNSNumberBridged() {
                 return MemberAccessExprSyntax(
@@ -194,12 +193,10 @@ extension TypeAnnotationSyntax {
                         baseName: .identifier(identifierSyntax.name.trimmed.text.camelCased + "Value")
                     )
                 )
-                .cast(ExprSyntax.self)
             } else {
                 return DeclReferenceExprSyntax(
                     baseName: .identifier(variableName)
                 )
-                .cast(ExprSyntax.self)
             }
         }
     }

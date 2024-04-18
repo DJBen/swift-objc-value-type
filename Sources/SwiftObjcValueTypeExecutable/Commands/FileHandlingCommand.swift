@@ -46,12 +46,6 @@ protocol TextOutputStreamableSink {
     func stream(_ content: any TextOutputStreamable) throws
 }
 
-final class StdoutSink: TextOutputStreamableSink {
-    func stream(_ content: TextOutputStreamable) throws {
-        print(content)
-    }
-}
-
 final class FileStreamSink: TextOutputStreamableSink {
     private(set) var stream: FileHandlerOutputStream
 
@@ -86,7 +80,9 @@ extension FileHandlingCommand {
     ///   - writeBlock: A closure in which the first argument is a sink object providing an interface to stream content.
     func withFileHandler(_ fileName: String?, writeBlock: (TextOutputStreamableSink) throws -> Void) throws -> Void {
         guard let outputDir = fileArguments.outputDir else {
-            try writeBlock(StdoutSink())
+            try writeBlock(
+                FileStreamSink(stream: FileHandlerOutputStream(.standardOutput))
+            )
             return
         }
 

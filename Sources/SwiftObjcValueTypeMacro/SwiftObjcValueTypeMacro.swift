@@ -29,6 +29,7 @@ public enum SwiftObjcValueTypeMacro: PeerMacro {
                 shouldSynthesizeNSCopying: true,
                 shouldSynthesizeObjCBuilder: true
             )
+            .map(DeclSyntax.init)
         }
         return []
     }
