@@ -41,7 +41,7 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
             private let kMapKey = "MAP"
             
             @objc(Value)
-            public class ValueClass: NSObject, NSCopying {
+            public class ValueClass: NSObject, NSCopying, NSCoding {
 
                 @objc public var doubleValue: Double {
                     wrapped.doubleValue

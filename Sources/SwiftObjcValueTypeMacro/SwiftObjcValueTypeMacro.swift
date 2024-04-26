@@ -26,7 +26,7 @@ public enum SwiftObjcValueTypeMacro: PeerMacro {
         if let structDecl = declaration.as(StructDeclSyntax.self) {
             return try factory.wrappingClassDeclInMacro(
                 structDecl: structDecl,
-                shouldSynthesizeNSCodable: true,
+                shouldSynthesizeNSCoding: true,
                 shouldSynthesizeNSCopying: true,
                 shouldSynthesizeObjCBuilder: true
             )

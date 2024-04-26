@@ -11,7 +11,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
     private let kMapKey = "MAP"
 
     @objc(Value)
-    public class ValueClass: NSObject, NSCopying {
+    public class ValueClass: NSObject, NSCopying, NSCoding {
 
         @objc public var doubleValue: Double {
             wrapped.doubleValue
@@ -126,7 +126,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
                 """#
             },
-            shouldSynthesizeNSCodable: false,
+            shouldSynthesizeNSCoding: false,
             shouldSynthesizeObjCBuilder: false
         )
 
@@ -197,7 +197,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
                 """#
             },
-            shouldSynthesizeNSCodable: false,
+            shouldSynthesizeNSCoding: false,
             shouldSynthesizeNSCopying: false,
             shouldSynthesizeObjCBuilder: false
         )
