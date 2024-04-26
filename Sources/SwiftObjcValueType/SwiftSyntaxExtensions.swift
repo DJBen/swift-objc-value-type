@@ -19,6 +19,39 @@ extension TypeSyntax {
         }
         return nil
     }
+
+    var nsCodableDecodingFunction: TokenSyntax {
+        if let identifierType = self.as(IdentifierTypeSyntax.self) {
+            switch identifierType.name.trimmed.text {
+            case "Int8", "UInt8", "Int16", "UInt16":
+                return .identifier("decodeCInt")
+            case "Int32", "UInt32":
+                return .identifier("decodeInt32")
+            case "Int64", "UInt64":
+                return .identifier("decodeInt64")
+            case "Float":
+                return .identifier("decodeFloat")
+            case "Double":
+                return .identifier("decodeDouble")
+            case "Bool":
+                return .identifier("decodeBool")
+            case "Int", "UInt":
+                return .identifier("decodeInteger")
+            default:
+                return .identifier("decodeObject")
+            }
+        } else {
+            return .identifier("decodeObject")
+        }
+    }
+
+    var unwrappedIfOptional: TypeSyntax {
+        if let optionalType = self.as(OptionalTypeSyntax.self) {
+            return optionalType.wrappedType
+        } else {
+            return self
+        }
+    }
 }
 
 extension DeclReferenceExprSyntax {
@@ -114,22 +147,49 @@ extension StructDeclSyntax {
         try enumerateVariableDeclsGeneric(memberBlockItem: memberBlockItem)
     }
 
+    func enumerateVariableDecls(
+        @CodeBlockItemListBuilder memberBlockItem: (VariableDeclSyntax) throws -> CodeBlockItemListSyntax
+    ) rethrows -> CodeBlockItemListSyntax {
+        try enumerateVariableDeclsGeneric(memberBlockItem: memberBlockItem)
+    }
+
     func enumerateBindings(
         @FunctionParameterListBuilder memberBlockItem: (PatternBindingSyntax) throws -> FunctionParameterListSyntax
     ) rethrows -> FunctionParameterListSyntax {
-        try enumerateVariableDecls { variableTypeDecl in
-            for binding in variableTypeDecl.bindings where !binding.isDerived {
-                try memberBlockItem(binding)
-            }
-        }
+        try enumerateBindingsGeneric(memberBlockItem: memberBlockItem)
+    }
+
+    func enumerateBindings(
+        @CodeBlockItemListBuilder memberBlockItem: (PatternBindingSyntax) throws -> CodeBlockItemListSyntax
+    ) rethrows -> CodeBlockItemListSyntax {
+        try enumerateBindingsGeneric(memberBlockItem: memberBlockItem)
     }
 
     func enumerateBindings(
         @LabeledExprListBuilder memberBlockItem: (PatternBindingSyntax) throws -> LabeledExprListSyntax
     ) rethrows -> LabeledExprListSyntax {
-        try enumerateVariableDecls { variableTypeDecl in
-            for binding in variableTypeDecl.bindings where !binding.isDerived {
+        try enumerateBindingsGeneric(memberBlockItem: memberBlockItem)
+    }
+
+    func enumerateBindings(
+        memberBlockItem: (PatternBindingSyntax) throws -> Void
+    ) rethrows {
+        try enumerateVariableDecls { variableDeclSyntax in
+            for binding in variableDeclSyntax.bindings where !binding.isDerived {
                 try memberBlockItem(binding)
+            }
+        }
+    }
+
+    func enumerateVariableDecls(
+        memberBlockItem: (VariableDeclSyntax) throws -> Void
+    ) rethrows {
+        for member in memberBlock.members {
+            if let variableTypeDecl = member.decl.as(VariableDeclSyntax.self) {
+                // If all bindings are derived values, skip this variable
+                if !variableTypeDecl.bindings.allSatisfy(\.isDerived) {
+                    try memberBlockItem(variableTypeDecl)
+                }
             }
         }
     }
@@ -138,22 +198,23 @@ extension StructDeclSyntax {
         memberBlockItem: (VariableDeclSyntax) throws -> T
     ) rethrows -> T {
         var collection = T()
+        try enumerateVariableDecls { variableDeclSyntax in
+            collection.append(contentsOf: try memberBlockItem(variableDeclSyntax))
+        }
+        return collection
+    }
 
-        for member in memberBlock.members {
-            if let variableTypeDecl = member.decl.as(VariableDeclSyntax.self) {
-                // If all bindings are derived values, skip this variable
-                if !variableTypeDecl.bindings.allSatisfy(\.isDerived) {
-                    collection.append(contentsOf: try memberBlockItem(variableTypeDecl))
-                }
-            }
+    private func enumerateBindingsGeneric<T: SyntaxCollection>(
+        memberBlockItem: (PatternBindingSyntax) throws -> T
+    ) rethrows -> T {
+        var collection = T()
+
+        try enumerateBindings { binding in
+            collection.append(contentsOf: try memberBlockItem(binding))
         }
 
         return collection
     }
-}
-
-extension VariableDeclSyntax {
-
 }
 
 extension PatternBindingSyntax {
@@ -206,6 +267,23 @@ extension String {
         let rest = parts.dropFirst().map { $0.uppercasingFirst }
 
         return ([first] + rest).joined()
+    }
+
+    var upperSnakeCased: String {
+        guard !isEmpty else { return "" }
+
+        var result = ""
+        var previousChar: Character?
+
+        for char in self {
+            if char.isUppercase, let previous = previousChar, previous.isLowercase {
+                result += "_"
+            }
+            result += char.uppercased()
+            previousChar = char
+        }
+
+        return result
     }
 }
 

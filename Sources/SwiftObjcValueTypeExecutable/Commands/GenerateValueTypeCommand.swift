@@ -71,7 +71,7 @@ struct GenerateValueTypeArguments: ParsableArguments {
 
     @Option(
         name: .customLong("nscopying"),
-        help: "Synthesize NSCopying conformances for wrapper class of each struct if enabled."
+        help: "Synthesize NSCopying conformances for the type and its wrapper class if enabled."
     )
     var shouldSynthesizeNSCopying: Bool = true
 

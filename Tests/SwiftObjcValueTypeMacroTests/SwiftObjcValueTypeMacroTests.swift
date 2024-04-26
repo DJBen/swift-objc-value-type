@@ -32,6 +32,14 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
                 public let map: [String: [String: Double]]
             }
 
+            private let kDoubleValueKey = "DOUBLE_VALUE"
+            
+            private let kOptIntKey = "OPT_INT"
+            
+            private let kStringArrayKey = "STRING_ARRAY"
+            
+            private let kMapKey = "MAP"
+            
             @objc(Value)
             public class ValueClass: NSObject, NSCopying {
 
@@ -51,7 +59,7 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
                     wrapped.map
                 }
 
-                private let wrapped: Value
+                public let wrapped: Value
 
                 @objc
                 public init(doubleValue: Double, optInt: NSNumber?, stringArray: [String], map: [String: [String: Double]]) {
@@ -74,23 +82,22 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
                 }
 
                 public func encode(with coder: NSCoder) {
-                    guard let encodedData = try? JSONEncoder().encode(wrapped) else {
-                        return
-                    }
-                    coder.encode(encodedData)
+                    coder.encode(doubleValue, forKey: kDoubleValueKey)
+                    coder.encodeConditionalObject(optInt, forKey: kOptIntKey)
+                    coder.encode(stringArray, forKey: kStringArrayKey)
+                    coder.encode(map, forKey: kMapKey)
                 }
 
-                public required init?(coder: NSCoder) {
-                    guard let data = coder.decodeData() else {
+                public required convenience init?(coder: NSCoder) {
+                    let doubleValue = coder.decodeDouble(forKey: kDoubleValueKey)
+                    let optInt = coder.decodeObject(forKey: kOptIntKey) as? NSNumber
+                    guard let stringArray = coder.decodeObject(forKey: kStringArrayKey) as? [String] else {
                         return nil
                     }
-
-                    guard let wrapped = try? JSONDecoder().decode(Value.self, from: data) else {
+                    guard let map = coder.decodeObject(forKey: kMapKey) as? [String: [String: Double]] else {
                         return nil
                     }
-
-                    self.wrapped = wrapped
-                    super.init()
+                    self.init(doubleValue: doubleValue, optInt: optInt, stringArray: stringArray, map: map)
                 }
 
                 @available(*, unavailable)
