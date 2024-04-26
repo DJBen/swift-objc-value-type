@@ -47,7 +47,7 @@ public class ValueClass: NSObject, NSCopying {
         wrapped.map
     }
 
-    private let wrapped: Value
+    public let wrapped: Value
 
     @objc
     public init(doubleValue: Double, optInt: NSNumber?, stringArray: [String], map: [String: [String: Double]]) {
@@ -63,30 +63,6 @@ public class ValueClass: NSObject, NSCopying {
 
     private init(wrapped: Value) {
         self.wrapped = wrapped
-    }
-
-    public func copy(with zone: NSZone? = nil) -> Any {
-        return ValueClass(wrapped: wrapped)
-    }
-
-    public func encode(with coder: NSCoder) {
-        guard let encodedData = try? JSONEncoder().encode(wrapped) else {
-            return
-        }
-        coder.encode(encodedData)
-    }
-
-    public required init?(coder: NSCoder) {
-        guard let data = coder.decodeData() else {
-            return nil
-        }
-
-        guard let wrapped = try? JSONDecoder().decode(Value.self, from: data) else {
-            return nil
-        }
-
-        self.wrapped = wrapped
-        super.init()
     }
 }
 

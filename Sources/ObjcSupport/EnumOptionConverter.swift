@@ -16,6 +16,13 @@ public final class EnumOptionConverter {
         case unfinishedParsing
     }
 
+    @MemberBlockItemListBuilder
+    public func convert(
+        _ enumOrOption: ObjcEnumOrOption
+    ) throws -> MemberBlockItemListSyntax {
+        
+    }
+
     public func parse(
         source: String
     ) throws -> ObjcEnumOrOption? {
@@ -101,7 +108,7 @@ public final class EnumOptionConverter {
                     // CaseXXX = 123,
                     // CaseXXX = 2 << 1,
                     // CaseXXX,
-                    // CaseXXX = AB | CD | let caseBuilder.beforeTrivia = beforeTrivia
+                    // CaseXXX = AB | CD
                     caseBuilder.name = String(match.1)
                     if let value = match.2.map({ String($0).trimmingCharacters(in: .whitespaces) }) {
                         if let valueMatch = value.firstMatch(of: /^(\d+)\s*<<\s*(\d+)$/) {

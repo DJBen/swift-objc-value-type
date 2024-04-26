@@ -9,8 +9,7 @@ struct MigrateRemodelCommand: ParsableCommand, FileHandlingCommand {
     static var configuration = CommandConfiguration(
         commandName: "migrate-remodel",
         abstract: """
-        Migrate remodel value files (.value, .adtValue) into structs and enums
-        respectively.
+        Migrate remodel value files (.value, .adtValue) into structs and enums respectively.
         """,
         discussion: """
         """
