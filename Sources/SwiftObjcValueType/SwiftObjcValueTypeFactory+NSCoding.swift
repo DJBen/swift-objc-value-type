@@ -2,6 +2,39 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 
 extension SwiftObjcValueTypeFactory {
+    
+    /// Turn a pattern binding `let fooBar: MyType` in a struct into a NSCoding constant decl `let kFooKey = "FOO"`.
+    /// - Parameter binding: The pattern binding.
+    /// - Returns: A variable declaration if available.
+    func nsCodingConstant(
+        identifier: TokenSyntax
+    ) -> VariableDeclSyntax {
+        VariableDeclSyntax(
+            modifiers: DeclModifierListSyntax {
+                DeclModifierSyntax(name: .keyword(.private))
+            },
+            bindingSpecifier: .keyword(.let)
+        ) {
+            PatternBindingListSyntax {
+                PatternBindingSyntax(
+                    pattern: IdentifierPatternSyntax(identifier: .identifier("k\(identifier.trimmed.text.uppercasingFirst)Key")),
+                    initializer: InitializerClauseSyntax(
+                        equal: .equalToken(),
+                        value: StringLiteralExprSyntax(
+                            openingQuote: .stringQuoteToken(),
+                            segments: StringLiteralSegmentListSyntax {
+                                StringSegmentSyntax(
+                                    content: .stringSegment(identifier.trimmed.text.upperSnakeCased)
+                                )
+                            },
+                            closingQuote: .stringQuoteToken()
+                        )
+                    )
+                )
+            }
+        }
+    }
+
     func nsCodingConstants(
         structDecl: StructDeclSyntax
     ) -> [VariableDeclSyntax] {
@@ -9,33 +42,49 @@ extension SwiftObjcValueTypeFactory {
 
         structDecl.enumerateBindings { binding in
             if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self) {
-                decls.append(
-                    VariableDeclSyntax(
-                        modifiers: DeclModifierListSyntax {
-                            DeclModifierSyntax(name: .keyword(.private))
-                        },
-                        bindingSpecifier: .keyword(.let)
-                    ) {
-                        PatternBindingListSyntax {
-                            PatternBindingSyntax(
-                                pattern: IdentifierPatternSyntax(identifier: .identifier("k\(identifierPattern.identifier.trimmed.text.uppercasingFirst)Key")),
-                                initializer: InitializerClauseSyntax(
-                                    equal: .equalToken(),
-                                    value: StringLiteralExprSyntax(
-                                        openingQuote: .stringQuoteToken(),
-                                        segments: StringLiteralSegmentListSyntax {
-                                            StringSegmentSyntax(
-                                                content: .stringSegment(identifierPattern.identifier.trimmed.text.upperSnakeCased)
-                                            )
-                                        },
-                                        closingQuote: .stringQuoteToken()
-                                    )
-                                )
-                            )
-                        }
-                    }
-                )
+                decls.append(nsCodingConstant(identifier: identifierPattern.identifier))
             }
+        }
+
+        return decls
+    }
+
+    func nsCodingConstants(
+        enumDecl: EnumDeclSyntax
+    ) -> [VariableDeclSyntax] {
+        var decls = [VariableDeclSyntax]()
+
+        // let kCodedSubtypeKey = "CODED_SUBTYPE"
+        // used to distinguish which case the enum type belongs to in its objc wrapper
+        decls.append(
+            VariableDeclSyntax(
+                modifiers: DeclModifierListSyntax {
+                    DeclModifierSyntax(name: .keyword(.private))
+                },
+                bindingSpecifier: .keyword(.let)
+            ) {
+                PatternBindingListSyntax {
+                    PatternBindingSyntax(
+                        pattern: IdentifierPatternSyntax(identifier: .identifier("kCodedSubtypeKey")),
+                        initializer: InitializerClauseSyntax(
+                            equal: .equalToken(),
+                            value: StringLiteralExprSyntax(
+                                openingQuote: .stringQuoteToken(),
+                                segments: StringLiteralSegmentListSyntax {
+                                    StringSegmentSyntax(
+                                        content: .stringSegment("CODED_SUBTYPE")
+                                    )
+                                },
+                                closingQuote: .stringQuoteToken()
+                            )
+                        )
+                    )
+                }
+            }
+        )
+
+        enumDecl.enumerateCaseElements { caseElement in
+            decls.append(nsCodingConstant(identifier: caseElement.name))
         }
 
         return decls

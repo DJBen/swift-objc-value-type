@@ -20,6 +20,14 @@ extension TypeSyntax {
         return nil
     }
 
+    var asNSNumberIfOptionalNumeral: any TypeSyntaxProtocol {
+        if let optional = self.as(OptionalTypeSyntax.self), optional.wrappedType.isNSNumberBridged {
+            return OptionalTypeSyntax(wrappedType: IdentifierTypeSyntax(name: .identifier("NSNumber")))
+        } else {
+            return self
+        }
+    }
+
     var nsCodableDecodingFunction: TokenSyntax {
         if let identifierType = self.as(IdentifierTypeSyntax.self) {
             switch identifierType.name.trimmed.text {
@@ -55,9 +63,16 @@ extension TypeSyntax {
 }
 
 extension DeclReferenceExprSyntax {
-    func toNSNumberOptionalMapping(
-        identifierType: IdentifierTypeSyntax
+    /// Append a `.map(\.<numeral>Value)` to an identifier if it is NSNumber optional.
+    /// - Parameter identifierType: The identifier type.
+    /// - Returns: A function expression call of `.map(\.<numeral>Value)`.
+    func mappingNSNumberToNumeralValue(
+        type: some TypeSyntaxProtocol
     ) -> any ExprSyntaxProtocol {
+        guard let optional = type.as(OptionalTypeSyntax.self), optional.wrappedType.isNSNumberBridged, let identifierType = optional.wrappedType.as(IdentifierTypeSyntax.self) else {
+            return self
+        }
+
         switch identifierType.name.trimmed.text {
         case "Int8", "UInt8", "Int16", "UInt16", "Int32", "UInt32", "Int64", "UInt64", "Float", "Double", "Bool", "Int", "UInt":
             return FunctionCallExprSyntax(
@@ -92,6 +107,42 @@ extension DeclReferenceExprSyntax {
     }
 }
 
+extension ExprSyntaxProtocol {
+    /// Append a `.map(NSNumber.init)` to an identifier if it is a numeral
+    /// - Parameter identifierType: The identifier type.
+    /// - Returns: A function expression call of `.map(NSNumber.init)`.
+    func mappingNumeralValueToNSNumber(
+        type: some TypeSyntaxProtocol
+    ) -> any ExprSyntaxProtocol {
+        guard let optional = type.as(OptionalTypeSyntax.self), optional.wrappedType.isNSNumberBridged, let identifierType = optional.wrappedType.as(IdentifierTypeSyntax.self) else {
+            return self
+        }
+
+        switch identifierType.name.trimmed.text {
+        case "Int8", "UInt8", "Int16", "UInt16", "Int32", "UInt32", "Int64", "UInt64", "Float", "Double", "Bool", "Int", "UInt":
+            return FunctionCallExprSyntax(
+                calledExpression: MemberAccessExprSyntax(
+                    base: self,
+                    period: .periodToken(),
+                    declName: DeclReferenceExprSyntax(baseName: "map")
+                ),
+                leftParen: .leftParenToken(),
+                rightParen: .rightParenToken()
+            ) {
+                LabeledExprSyntax(
+                    expression: MemberAccessExprSyntax(
+                        base: DeclReferenceExprSyntax(baseName: .identifier("NSNumber")),
+                        period: .periodToken(),
+                        declName: DeclReferenceExprSyntax(baseName: .keyword(.`init`))
+                    )
+                )
+            }
+        default:
+            return self
+        }
+    }
+}
+
 extension EnumDeclSyntax {
     var inheritedTypes: [String] {
         inheritanceClause?.inheritedTypes.compactMap {
@@ -101,6 +152,40 @@ extension EnumDeclSyntax {
                 return nil
             }
         } ?? []
+    }
+
+    func enumerateCaseElements(
+        caseElementBlock: (EnumCaseElementSyntax) throws -> Void
+    ) rethrows {
+        for member in memberBlock.members {
+            if let caseDecl = member.decl.as(EnumCaseDeclSyntax.self) {
+                for caseElement in caseDecl.elements {
+                    try caseElementBlock(caseElement)
+                }
+            }
+        }
+    }
+
+    private func enumerateCaseElementsGeneric<T: SyntaxCollection>(
+        caseElementBlock: (EnumCaseElementSyntax) throws -> T
+    ) rethrows -> T {
+        var collection = T()
+        try enumerateCaseElements { caseElement in
+            collection.append(contentsOf: try caseElementBlock(caseElement))
+        }
+        return collection
+    }
+
+    func enumerateCaseElements(
+        @FunctionParameterListBuilder caseElementBlock: (EnumCaseElementSyntax) throws -> FunctionParameterListSyntax
+    ) rethrows -> FunctionParameterListSyntax {
+        try enumerateCaseElementsGeneric(caseElementBlock: caseElementBlock)
+    }
+
+    func enumerateCaseElements(
+        @SwitchCaseListBuilder caseElementBlock: (EnumCaseElementSyntax) throws -> SwitchCaseListSyntax
+    ) rethrows -> SwitchCaseListSyntax {
+        try enumerateCaseElementsGeneric(caseElementBlock: caseElementBlock)
     }
 }
 

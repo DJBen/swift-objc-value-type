@@ -293,9 +293,9 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 """
                 public enum SaveUpdates {
 
-                    case saveBegan(savingToAlpha: Bool, savingToBeta: Bool, savingGamma: Bool)
+                    case saveBegan(savingToAlpha: Bool)
 
-                    case saveSucceeded(savedToAlpha: Bool, savedToBeta: Bool, savedGamma: Bool, displayName: String?)
+                    case saveSucceeded(savedToAlpha: Bool, savedToBeta: Bool, optFloat: Float?, displayName: String?)
 
                     case saveFailed(error: Error?)
                 }
@@ -308,9 +308,9 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             #"""
 
 
-            public typealias SaveUpdatesSaveBeganMatchHandler = (_ savingToAlpha: Bool, _ savingToBeta: Bool, _ savingGamma: Bool) -> Void
+            public typealias SaveUpdatesSaveBeganMatchHandler = (_ savingToAlpha: Bool) -> Void
 
-            public typealias SaveUpdatesSaveSucceededMatchHandler = (_ savedToAlpha: Bool, _ savedToBeta: Bool, _ savedGamma: Bool, _ displayName: String?) -> Void
+            public typealias SaveUpdatesSaveSucceededMatchHandler = (_ savedToAlpha: Bool, _ savedToBeta: Bool, _ optFloat: NSNumber?, _ displayName: String?) -> Void
 
             public typealias SaveUpdatesSaveFailedMatchHandler = (_ error: Error?) -> Void
 
@@ -333,13 +333,13 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
 
                 @objc
-                public class func saveBegan(savingToAlpha: Bool, savingToBeta: Bool, savingGamma: Bool) -> SaveUpdatesClass {
-                    return SaveUpdatesClass(wrapped: .saveBegan(savingToAlpha: savingToAlpha, savingToBeta: savingToBeta, savingGamma: savingGamma))
+                public class func saveBegan(savingToAlpha: Bool) -> SaveUpdatesClass {
+                    return SaveUpdatesClass(wrapped: .saveBegan(savingToAlpha: savingToAlpha))
                 }
 
                 @objc
-                public class func saveSucceeded(savedToAlpha: Bool, savedToBeta: Bool, savedGamma: Bool, displayName: String?) -> SaveUpdatesClass {
-                    return SaveUpdatesClass(wrapped: .saveSucceeded(savedToAlpha: savedToAlpha, savedToBeta: savedToBeta, savedGamma: savedGamma, displayName: displayName))
+                public class func saveSucceeded(savedToAlpha: Bool, savedToBeta: Bool, optFloat: NSNumber?, displayName: String?) -> SaveUpdatesClass {
+                    return SaveUpdatesClass(wrapped: .saveSucceeded(savedToAlpha: savedToAlpha, savedToBeta: savedToBeta, optFloat: optFloat.map(\.floatValue), displayName: displayName))
                 }
 
                 @objc
@@ -350,10 +350,10 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 @objc
                 public func match(saveBegan: SaveUpdatesSaveBeganMatchHandler?, saveSucceeded: SaveUpdatesSaveSucceededMatchHandler?, saveFailed: SaveUpdatesSaveFailedMatchHandler?) {
                     switch wrapped {
-                    case .saveBegan(let savingToAlpha, let savingToBeta, let savingGamma):
-                        saveBegan?(savingToAlpha, savingToBeta, savingGamma)
-                    case .saveSucceeded(let savedToAlpha, let savedToBeta, let savedGamma, let displayName):
-                        saveSucceeded?(savedToAlpha, savedToBeta, savedGamma, displayName)
+                    case .saveBegan(let savingToAlpha):
+                        saveBegan?(savingToAlpha)
+                    case .saveSucceeded(let savedToAlpha, let savedToBeta, let optFloat, let displayName):
+                        saveSucceeded?(savedToAlpha, savedToBeta, optFloat.map(NSNumber.init), displayName)
                     case .saveFailed(let error):
                         saveFailed?(error)
                     }
@@ -366,21 +366,24 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
 public enum SaveUpdates {
 
-    case saveBegan(savingToAlpha: Bool, savingToBeta: Bool, savingGamma: Bool)
+    case saveBegan(savingToAlpha: Bool)
 
-    case saveSucceeded(savedToAlpha: Bool, savedToBeta: Bool, savedGamma: Bool, displayName: String?)
+    case saveSucceeded(savedToAlpha: Bool, savedToBeta: Bool, optFloat: Float?, displayName: String?)
 
     case saveFailed(error: Error?)
 }
 
-public typealias SaveUpdatesSaveBeganMatchHandler = (_ savingToAlpha: Bool, _ savingToBeta: Bool, _ savingGamma: Bool) -> Void
+public typealias SaveUpdatesSaveBeganMatchHandler = (_ savingToAlpha: Bool) -> Void
 
-public typealias SaveUpdatesSaveSucceededMatchHandler = (_ savedToAlpha: Bool, _ savedToBeta: Bool, _ savedGamma: Bool, _ displayName: String?) -> Void
+public typealias SaveUpdatesSaveSucceededMatchHandler = (_ savedToAlpha: Bool, _ savedToBeta: Bool, _ optFloat: NSNumber?, _ displayName: String?) -> Void
 
 public typealias SaveUpdatesSaveFailedMatchHandler = (_ error: Error?) -> Void
 
+private let kCodedSubtypeKey = "CODED_SUBTYPE"
+private let kSaveBegainSavingToAlpha = "SAVE_BEGAN_SAVING_TO_ALPHA"
+
 @objc(SaveUpdates)
-public class SaveUpdatesClass: NSObject, NSCopying {
+public class SaveUpdatesClass: NSObject, NSCopying, NSCoding {
 
     public let wrapped: SaveUpdates
 
@@ -397,14 +400,39 @@ public class SaveUpdatesClass: NSObject, NSCopying {
         return SaveUpdatesClass(wrapped: wrapped)
     }
 
-    @objc
-    public class func saveBegan(savingToAlpha: Bool, savingToBeta: Bool, savingGamma: Bool) -> SaveUpdatesClass {
-        return SaveUpdatesClass(wrapped: .saveBegan(savingToAlpha: savingToAlpha, savingToBeta: savingToBeta, savingGamma: savingGamma))
+    public func encode(with coder: NSCoder) {
+        switch wrapped {
+        case .saveBegan(let savingToAlpha):
+            coder.encode(savingToAlpha, forKey: kSaveBegainSavingToAlpha)
+            coder.encode("SUBTYPE_SAVE_BEGAN", forKey: kCodedSubtypeKey)
+        case .saveSucceeded(let savedToAlpha, let savedToBeta, let optFloat, let displayName):
+            coder.encode("SUBTYPE_SAVE_SUCCEEDED", forKey: kCodedSubtypeKey)
+        case .saveFailed(let error):
+            coder.encode("SUBTYPE_SAVE_FAILED", forKey: kCodedSubtypeKey)
+        }
+    }
+
+    public required init?(coder: NSCoder) {
+        guard let codedSubtype = coder.decodeObject(forKey: kCodedSubtypeKey) as? String else {
+            return nil
+        }
+        switch codedSubtype {
+        case "SUBTYPE_SAVE_BEGAN":
+            let savingToAlpha = coder.decodeBool(forKey: kSaveBegainSavingToAlpha)
+            self.wrapped = .saveBegan(savingToAlpha: savingToAlpha)
+        default:
+            return nil
+        }
     }
 
     @objc
-    public class func saveSucceeded(savedToAlpha: Bool, savedToBeta: Bool, savedGamma: Bool, displayName: String?) -> SaveUpdatesClass {
-        return SaveUpdatesClass(wrapped: .saveSucceeded(savedToAlpha: savedToAlpha, savedToBeta: savedToBeta, savedGamma: savedGamma, displayName: displayName))
+    public class func saveBegan(savingToAlpha: Bool) -> SaveUpdatesClass {
+        return SaveUpdatesClass(wrapped: .saveBegan(savingToAlpha: savingToAlpha))
+    }
+
+    @objc
+    public class func saveSucceeded(savedToAlpha: Bool, savedToBeta: Bool, optFloat: NSNumber?, displayName: String?) -> SaveUpdatesClass {
+        return SaveUpdatesClass(wrapped: .saveSucceeded(savedToAlpha: savedToAlpha, savedToBeta: savedToBeta, optFloat: optFloat.map(\.floatValue), displayName: displayName))
     }
 
     @objc
@@ -415,10 +443,10 @@ public class SaveUpdatesClass: NSObject, NSCopying {
     @objc
     public func match(saveBegan: SaveUpdatesSaveBeganMatchHandler?, saveSucceeded: SaveUpdatesSaveSucceededMatchHandler?, saveFailed: SaveUpdatesSaveFailedMatchHandler?) {
         switch wrapped {
-        case .saveBegan(let savingToAlpha, let savingToBeta, let savingGamma):
-            saveBegan?(savingToAlpha, savingToBeta, savingGamma)
-        case .saveSucceeded(let savedToAlpha, let savedToBeta, let savedGamma, let displayName):
-            saveSucceeded?(savedToAlpha, savedToBeta, savedGamma, displayName)
+        case .saveBegan(let savingToAlpha):
+            saveBegan?(savingToAlpha)
+        case .saveSucceeded(let savedToAlpha, let savedToBeta, let optFloat, let displayName):
+            saveSucceeded?(savedToAlpha, savedToBeta, optFloat.map(NSNumber.init), displayName)
         case .saveFailed(let error):
             saveFailed?(error)
         }

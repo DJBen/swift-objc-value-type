@@ -176,23 +176,14 @@ public struct SwiftObjcValueTypeFactory {
                                 structDecl.enumerateBindings { binding in
                                     if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let typeAnnotation = binding.typeAnnotation {
                                         let variableName = identifierPattern.identifier.trimmed.text
-                                        let expr: any ExprSyntaxProtocol = {
-                                            if let optional = typeAnnotation.type.as(OptionalTypeSyntax.self), optional.wrappedType.isNSNumberBridged, let identifierType = optional.wrappedType.as(IdentifierTypeSyntax.self) {
-                                                return DeclReferenceExprSyntax(
-                                                    baseName: .identifier(variableName)
-                                                )
-                                                .toNSNumberOptionalMapping(identifierType: identifierType)
-                                            } else {
-                                                return DeclReferenceExprSyntax(
-                                                    baseName: .identifier(variableName)
-                                                )
-                                            }
-                                        }()
 
                                         LabeledExprSyntax(
                                             label: .identifier(variableName),
                                             colon: .colonToken(),
-                                            expression: expr
+                                            expression: DeclReferenceExprSyntax(
+                                                baseName: .identifier(variableName)
+                                            )
+                                            .mappingNSNumberToNumeralValue(type: typeAnnotation.type)
                                         )
                                     }
                                 }
@@ -298,7 +289,7 @@ public struct SwiftObjcValueTypeFactory {
                                                 firstName: .wildcardToken(),
                                                 secondName: caseParam.firstName ?? caseParam.secondName ?? .identifier("param\(index)"),
                                                 colon: .colonToken(),
-                                                type: caseParam.type
+                                                type: caseParam.type.asNSNumberIfOptionalNumeral
                                             )
                                         }
                                     },
@@ -448,7 +439,10 @@ public struct SwiftObjcValueTypeFactory {
                 LabeledExprSyntax(
                     label: caseParam.firstName ?? caseParam.secondName ?? .identifier("param\(index)"),
                     colon: .colonToken(),
-                    expression: DeclReferenceExprSyntax(baseName: caseParam.firstName ?? caseParam.secondName ?? .identifier("param\(index)")),
+                    expression: DeclReferenceExprSyntax(
+                        baseName: caseParam.firstName ?? caseParam.secondName ?? .identifier("param\(index)")
+                    )
+                    .mappingNSNumberToNumeralValue(type: caseParam.type),
                     trailingComma: index + 1 < params.count ? .commaToken() : nil
                 )
             }
@@ -472,78 +466,73 @@ public struct SwiftObjcValueTypeFactory {
             name: .identifier("match"),
             signature: FunctionSignatureSyntax(
                 parameterClause: FunctionParameterClauseSyntax {
-                    for member in enumDecl.memberBlock.members {
-                        if let caseDecl = member.decl.as(EnumCaseDeclSyntax.self) {
-                            for caseElement in caseDecl.elements {
-                                FunctionParameterSyntax(
-                                    firstName: caseElement.name,
-                                    type: OptionalTypeSyntax(
-                                        wrappedType: IdentifierTypeSyntax(
-                                            name: .identifier("\(enumName)\(caseElement.name.trimmed.text.uppercasingFirst)MatchHandler")
-                                        )
-                                    )
+                    enumDecl.enumerateCaseElements { caseElement in
+                        FunctionParameterSyntax(
+                            firstName: caseElement.name,
+                            type: OptionalTypeSyntax(
+                                wrappedType: IdentifierTypeSyntax(
+                                    name: .identifier("\(enumName)\(caseElement.name.trimmed.text.uppercasingFirst)MatchHandler")
                                 )
-                            }
-                        }
+                            )
+                        )
                     }
                 }
             )
         ) {
             try SwitchExprSyntax("switch wrapped") {
-                for member in enumDecl.memberBlock.members {
-                    if let caseDecl = member.decl.as(EnumCaseDeclSyntax.self) {
-                        for caseElement in caseDecl.elements {
-                            SwitchCaseSyntax(
-                                label: .case(
-                                    SwitchCaseLabelSyntax {
-                                        SwitchCaseItemSyntax(
-                                            pattern: ExpressionPatternSyntax(
-                                                expression: FunctionCallExprSyntax(
-                                                    calledExpression: MemberAccessExprSyntax(
-                                                        period: .periodToken(),
-                                                        declName: DeclReferenceExprSyntax(baseName: caseElement.name)
-                                                    ),
-                                                    leftParen: .leftParenToken(),
-                                                    rightParen: .rightParenToken()
-                                                ) {
-                                                    LabeledExprListSyntax {
-                                                        let params = caseElement.parameterClause?.parameters ?? []
-                                                        for (index, caseParam) in params.enumerated() {
-                                                            LabeledExprSyntax(
-                                                                expression: PatternExprSyntax(
-                                                                    pattern: ValueBindingPatternSyntax(
-                                                                        bindingSpecifier: .keyword(.let),
-                                                                        pattern: IdentifierPatternSyntax(identifier: caseParam.firstName ?? caseParam.secondName ?? .identifier("param\(index)"))
-                                                                    )
-                                                                ),
-                                                                trailingComma: index + 1 < params.count ? .commaToken() : nil
+                enumDecl.enumerateCaseElements { caseElement in
+                    SwitchCaseSyntax(
+                        label: .case(
+                            SwitchCaseLabelSyntax {
+                                SwitchCaseItemSyntax(
+                                    pattern: ExpressionPatternSyntax(
+                                        expression: FunctionCallExprSyntax(
+                                            calledExpression: MemberAccessExprSyntax(
+                                                period: .periodToken(),
+                                                declName: DeclReferenceExprSyntax(baseName: caseElement.name)
+                                            ),
+                                            leftParen: .leftParenToken(),
+                                            rightParen: .rightParenToken()
+                                        ) {
+                                            LabeledExprListSyntax {
+                                                let params = caseElement.parameterClause?.parameters ?? []
+                                                for (index, caseParam) in params.enumerated() {
+                                                    LabeledExprSyntax(
+                                                        expression: PatternExprSyntax(
+                                                            pattern: ValueBindingPatternSyntax(
+                                                                bindingSpecifier: .keyword(.let),
+                                                                pattern: IdentifierPatternSyntax(identifier: caseParam.firstName ?? caseParam.secondName ?? .identifier("param\(index)"))
                                                             )
-                                                        }
-                                                    }
+                                                        ),
+                                                        trailingComma: index + 1 < params.count ? .commaToken() : nil
+                                                    )
                                                 }
-                                            )
-                                        )
-                                    }
-                                )
-                            ) {
-                                FunctionCallExprSyntax(
-                                    calledExpression: OptionalChainingExprSyntax(
-                                        expression: DeclReferenceExprSyntax(
-                                            baseName: caseElement.name
-                                        )
-                                    ),
-                                    leftParen: .leftParenToken(),
-                                    rightParen: .rightParenToken()
-                                ) {
-                                    LabeledExprListSyntax {
-                                        let params = caseElement.parameterClause?.parameters ?? []
-                                        for (index, caseParam) in params.enumerated() {
-                                            LabeledExprSyntax(
-                                                expression: DeclReferenceExprSyntax(baseName: caseParam.firstName ?? caseParam.secondName ?? .identifier("param\(index)")),
-                                                trailingComma: index + 1 < params.count ? .commaToken() : nil
-                                            )
+                                            }
                                         }
-                                    }
+                                    )
+                                )
+                            }
+                        )
+                    ) {
+                        FunctionCallExprSyntax(
+                            calledExpression: OptionalChainingExprSyntax(
+                                expression: DeclReferenceExprSyntax(
+                                    baseName: caseElement.name
+                                )
+                            ),
+                            leftParen: .leftParenToken(),
+                            rightParen: .rightParenToken()
+                        ) {
+                            LabeledExprListSyntax {
+                                let params = caseElement.parameterClause?.parameters ?? []
+                                for (index, caseParam) in params.enumerated() {
+                                    LabeledExprSyntax(
+                                        expression: DeclReferenceExprSyntax(
+                                            baseName: caseParam.firstName ?? caseParam.secondName ?? .identifier("param\(index)")
+                                        )
+                                        .mappingNumeralValueToNSNumber(type: caseParam.type),
+                                        trailingComma: index + 1 < params.count ? .commaToken() : nil
+                                    )
                                 }
                             }
                         }
@@ -590,7 +579,6 @@ public struct SwiftObjcValueTypeFactory {
         ) {
             for binding in variableTypeDecl.bindings where !binding.isDerived {
                 if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let typeAnnotation = binding.typeAnnotation {
-                    let variableName = identifierPattern.identifier.trimmed.text
 
                     PatternBindingSyntax(
                         pattern: binding.pattern,
@@ -608,11 +596,15 @@ public struct SwiftObjcValueTypeFactory {
                         accessorBlock: AccessorBlockSyntax(
                             accessors: .getter(
                                 CodeBlockItemListSyntax {
-                                    if let optional = typeAnnotation.type.as(OptionalTypeSyntax.self), optional.wrappedType.isNSNumberBridged {
-                                        "wrapped.\(raw: variableName).map(NSNumber.init)"
-                                    } else {
-                                        "wrapped.\(raw: variableName)"
-                                    }
+                                    MemberAccessExprSyntax(
+                                        base: DeclReferenceExprSyntax(
+                                            baseName: .identifier("wrapped")
+                                        ),
+                                        declName: DeclReferenceExprSyntax(
+                                            baseName: identifierPattern.identifier
+                                        )
+                                    )
+                                    .mappingNumeralValueToNSNumber(type: typeAnnotation.type)
                                 }
                             )
                         )
