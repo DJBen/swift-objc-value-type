@@ -270,6 +270,10 @@ public struct SwiftObjcValueTypeFactory {
         var decls = [any DeclSyntaxProtocol]()
         let enumName = enumDecl.name.trimmed.text
 
+        if shouldSynthesizeNSCoding {
+            decls.append(contentsOf: nsCodingConstants(enumDecl: enumDecl))
+        }
+
         for member in enumDecl.memberBlock.members {
             if let caseDecl = member.decl.as(EnumCaseDeclSyntax.self) {
                 for caseElement in caseDecl.elements {
@@ -287,7 +291,7 @@ public struct SwiftObjcValueTypeFactory {
                                         for (index, caseParam) in (caseElement.parameterClause?.parameters ?? []).enumerated() {
                                             TupleTypeElementSyntax(
                                                 firstName: .wildcardToken(),
-                                                secondName: caseParam.firstName ?? caseParam.secondName ?? .identifier("param\(index)"),
+                                                secondName: caseParam.properName(index: index),
                                                 colon: .colonToken(),
                                                 type: caseParam.type.asNSNumberIfOptionalNumeral
                                             )
@@ -348,6 +352,13 @@ public struct SwiftObjcValueTypeFactory {
                         .with(\.leadingTrivia, .newlines(2))
                     }
 
+                    if shouldSynthesizeNSCoding {
+                        try nsCodingConformances(
+                            enumDecl: enumDecl
+                        )
+                        .with(\.leadingTrivia, .newlines(2))
+                    }
+
                     for member in enumDecl.memberBlock.members {
                         if let caseDecl = member.decl.as(EnumCaseDeclSyntax.self) {
                             for caseElement in caseDecl.elements {
@@ -377,7 +388,7 @@ public struct SwiftObjcValueTypeFactory {
                                                         }
                                                     }()
                                                     FunctionParameterSyntax(
-                                                        firstName: caseParam.firstName ?? caseParam.secondName ?? .identifier("param\(index)"),
+                                                        firstName: caseParam.properName(index: index),
                                                         secondName: caseParam.secondName,
                                                         type: type
                                                     )
@@ -437,16 +448,49 @@ public struct SwiftObjcValueTypeFactory {
             let params = caseElement.parameterClause?.parameters ?? []
             for (index, caseParam) in params.enumerated() {
                 LabeledExprSyntax(
-                    label: caseParam.firstName ?? caseParam.secondName ?? .identifier("param\(index)"),
+                    label: caseParam.properName(index: index),
                     colon: .colonToken(),
                     expression: DeclReferenceExprSyntax(
-                        baseName: caseParam.firstName ?? caseParam.secondName ?? .identifier("param\(index)")
+                        baseName: caseParam.properName(index: index)
                     )
                     .mappingNSNumberToNumeralValue(type: caseParam.type),
                     trailingComma: index + 1 < params.count ? .commaToken() : nil
                 )
             }
         }
+    }
+
+    func switchCaseLabel(caseElement: EnumCaseElementSyntax) -> SwitchCaseLabelSyntax {
+        SwitchCaseLabelSyntax {
+            SwitchCaseItemSyntax(
+                pattern: ExpressionPatternSyntax(
+                    expression: FunctionCallExprSyntax(
+                        calledExpression: MemberAccessExprSyntax(
+                            period: .periodToken(),
+                            declName: DeclReferenceExprSyntax(baseName: caseElement.name)
+                        ),
+                        leftParen: .leftParenToken(),
+                        rightParen: .rightParenToken()
+                    ) {
+                        LabeledExprListSyntax {
+                            let params = caseElement.parameterClause?.parameters ?? []
+                            for (index, caseParam) in params.enumerated() {
+                                LabeledExprSyntax(
+                                    expression: PatternExprSyntax(
+                                        pattern: ValueBindingPatternSyntax(
+                                            bindingSpecifier: .keyword(.let),
+                                            pattern: IdentifierPatternSyntax(identifier: caseParam.properName(index: index))
+                                        )
+                                    ),
+                                    trailingComma: index + 1 < params.count ? .commaToken() : nil
+                                )
+                            }
+                        }
+                    }
+                )
+            )
+        }
+
     }
 
     private func enumMatchFunc(
@@ -482,37 +526,7 @@ public struct SwiftObjcValueTypeFactory {
             try SwitchExprSyntax("switch wrapped") {
                 enumDecl.enumerateCaseElements { caseElement in
                     SwitchCaseSyntax(
-                        label: .case(
-                            SwitchCaseLabelSyntax {
-                                SwitchCaseItemSyntax(
-                                    pattern: ExpressionPatternSyntax(
-                                        expression: FunctionCallExprSyntax(
-                                            calledExpression: MemberAccessExprSyntax(
-                                                period: .periodToken(),
-                                                declName: DeclReferenceExprSyntax(baseName: caseElement.name)
-                                            ),
-                                            leftParen: .leftParenToken(),
-                                            rightParen: .rightParenToken()
-                                        ) {
-                                            LabeledExprListSyntax {
-                                                let params = caseElement.parameterClause?.parameters ?? []
-                                                for (index, caseParam) in params.enumerated() {
-                                                    LabeledExprSyntax(
-                                                        expression: PatternExprSyntax(
-                                                            pattern: ValueBindingPatternSyntax(
-                                                                bindingSpecifier: .keyword(.let),
-                                                                pattern: IdentifierPatternSyntax(identifier: caseParam.firstName ?? caseParam.secondName ?? .identifier("param\(index)"))
-                                                            )
-                                                        ),
-                                                        trailingComma: index + 1 < params.count ? .commaToken() : nil
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    )
-                                )
-                            }
-                        )
+                        label: .case(switchCaseLabel(caseElement: caseElement))
                     ) {
                         FunctionCallExprSyntax(
                             calledExpression: OptionalChainingExprSyntax(
@@ -528,7 +542,7 @@ public struct SwiftObjcValueTypeFactory {
                                 for (index, caseParam) in params.enumerated() {
                                     LabeledExprSyntax(
                                         expression: DeclReferenceExprSyntax(
-                                            baseName: caseParam.firstName ?? caseParam.secondName ?? .identifier("param\(index)")
+                                            baseName: caseParam.properName(index: index)
                                         )
                                         .mappingNumeralValueToNSNumber(type: caseParam.type),
                                         trailingComma: index + 1 < params.count ? .commaToken() : nil

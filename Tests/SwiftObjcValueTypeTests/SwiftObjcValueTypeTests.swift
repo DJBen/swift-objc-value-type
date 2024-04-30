@@ -306,7 +306,13 @@ final class SwiftObjcValueTypeTests: XCTestCase {
         assertBuildResult(
             result,
             #"""
-
+            private let kCodedSubtypeKey = "CODED_SUBTYPE"
+            private let kSaveBeganSavingToAlphaKey = "SAVE_BEGAN_SAVING_TO_ALPHA"
+            private let kSaveSucceededSavedToAlphaKey = "SAVE_SUCCEEDED_SAVED_TO_ALPHA"
+            private let kSaveSucceededSavedToBetaKey = "SAVE_SUCCEEDED_SAVED_TO_BETA"
+            private let kSaveSucceededOptFloatKey = "SAVE_SUCCEEDED_OPT_FLOAT"
+            private let kSaveSucceededDisplayNameKey = "SAVE_SUCCEEDED_DISPLAY_NAME"
+            private let kSaveFailedErrorKey = "SAVE_FAILED_ERROR"
 
             public typealias SaveUpdatesSaveBeganMatchHandler = (_ savingToAlpha: Bool) -> Void
 
@@ -330,6 +336,45 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
                 public func copy(with zone: NSZone? = nil) -> Any {
                     return SaveUpdatesClass(wrapped: wrapped)
+                }
+
+                public func encode(with coder: NSCoder) {
+                    switch wrapped {
+                    case .saveBegan(let savingToAlpha):
+                        coder.encode(savingToAlpha, forKey: kSaveBeganSavingToAlphaKey)
+                        coder.encode("SUBTYPE_SAVE_BEGAN", forKey: kCodedSubtypeKey)
+                    case .saveSucceeded(let savedToAlpha, let savedToBeta, let optFloat, let displayName):
+                        coder.encode(savedToAlpha, forKey: kSaveSucceededSavedToAlphaKey)
+                        coder.encode(savedToBeta, forKey: kSaveSucceededSavedToBetaKey)
+                        coder.encodeConditionalObject(optFloat, forKey: kSaveSucceededOptFloatKey)
+                        coder.encodeConditionalObject(displayName, forKey: kSaveSucceededDisplayNameKey)
+                        coder.encode("SUBTYPE_SAVE_SUCCEEDED", forKey: kCodedSubtypeKey)
+                    case .saveFailed(let error):
+                        coder.encodeConditionalObject(error, forKey: kSaveFailedErrorKey)
+                        coder.encode("SUBTYPE_SAVE_FAILED", forKey: kCodedSubtypeKey)
+                    }
+                }
+
+                public required init?(coder: NSCoder) {
+                    guard let codedSubtype = coder.decodeObject(forKey: kCodedSubtypeKey) as? String else {
+                        return nil
+                    }
+                    switch codedSubtype {
+                    case "SUBTYPE_SAVE_BEGAN":
+                        let savingToAlpha = coder.decodeBool(forKey: kSaveBeganSavingToAlphaKey)
+                        self.wrapped = .saveBegan(savingToAlpha: savingToAlpha)
+                    case "SUBTYPE_SAVE_SUCCEEDED":
+                        let savedToAlpha = coder.decodeBool(forKey: kSaveSucceededSavedToAlphaKey)
+                        let savedToBeta = coder.decodeBool(forKey: kSaveSucceededSavedToBetaKey)
+                        let optFloat = coder.decodeObject(forKey: kSaveSucceededOptFloatKey) as? NSNumber
+                        let displayName = coder.decodeObject(forKey: kSaveSucceededDisplayNameKey) as? String
+                        self.wrapped = .saveSucceeded(savedToAlpha: savedToAlpha, savedToBeta: savedToBeta, optFloat: optFloat.map(\.floatValue), displayName: displayName)
+                    case "SUBTYPE_SAVE_FAILED":
+                        let error = coder.decodeObject(forKey: kSaveFailedErrorKey) as? Error
+                        self.wrapped = .saveFailed(error: error)
+                    default:
+                        return nil
+                    }
                 }
 
                 @objc
@@ -380,7 +425,12 @@ public typealias SaveUpdatesSaveSucceededMatchHandler = (_ savedToAlpha: Bool, _
 public typealias SaveUpdatesSaveFailedMatchHandler = (_ error: Error?) -> Void
 
 private let kCodedSubtypeKey = "CODED_SUBTYPE"
-private let kSaveBegainSavingToAlpha = "SAVE_BEGAN_SAVING_TO_ALPHA"
+private let kSaveBeganSavingToAlphaKey = "SAVE_BEGAN_SAVING_TO_ALPHA"
+private let kSaveSucceededSavedToAlphaKey = "SAVE_SUCCEEDED_SAVED_TO_ALPHA"
+private let kSaveSucceededSavedToBetaKey = "SAVE_SUCCEEDED_SAVED_TO_BETA"
+private let kSaveSucceededOptFloatKey = "SAVE_SUCCEEDED_OPT_FLOAT"
+private let kSaveSucceededDisplayNameKey = "SAVE_SUCCEEDED_DISPLAY_NAME"
+private let kSaveFailedErrorKey = "SAVE_FAILED_ERROR"
 
 @objc(SaveUpdates)
 public class SaveUpdatesClass: NSObject, NSCopying, NSCoding {
@@ -403,11 +453,16 @@ public class SaveUpdatesClass: NSObject, NSCopying, NSCoding {
     public func encode(with coder: NSCoder) {
         switch wrapped {
         case .saveBegan(let savingToAlpha):
-            coder.encode(savingToAlpha, forKey: kSaveBegainSavingToAlpha)
+            coder.encode(savingToAlpha, forKey: kSaveBeganSavingToAlphaKey)
             coder.encode("SUBTYPE_SAVE_BEGAN", forKey: kCodedSubtypeKey)
         case .saveSucceeded(let savedToAlpha, let savedToBeta, let optFloat, let displayName):
+            coder.encode(savedToAlpha, forKey: kSaveSucceededSavedToAlphaKey)
+            coder.encode(savedToBeta, forKey: kSaveSucceededSavedToBetaKey)
+            coder.encodeConditionalObject(optFloat, forKey: kSaveSucceededOptFloatKey)
+            coder.encodeConditionalObject(displayName, forKey: kSaveSucceededDisplayNameKey)
             coder.encode("SUBTYPE_SAVE_SUCCEEDED", forKey: kCodedSubtypeKey)
         case .saveFailed(let error):
+            coder.encodeConditionalObject(error, forKey: kSaveFailedErrorKey)
             coder.encode("SUBTYPE_SAVE_FAILED", forKey: kCodedSubtypeKey)
         }
     }
@@ -418,8 +473,17 @@ public class SaveUpdatesClass: NSObject, NSCopying, NSCoding {
         }
         switch codedSubtype {
         case "SUBTYPE_SAVE_BEGAN":
-            let savingToAlpha = coder.decodeBool(forKey: kSaveBegainSavingToAlpha)
+            let savingToAlpha = coder.decodeBool(forKey: kSaveBeganSavingToAlphaKey)
             self.wrapped = .saveBegan(savingToAlpha: savingToAlpha)
+        case "SUBTYPE_SAVE_SUCCEEDED":
+            let savedToAlpha = coder.decodeBool(forKey: kSaveSucceededSavedToAlphaKey)
+            let savedToBeta = coder.decodeBool(forKey: kSaveSucceededSavedToBetaKey)
+            let optFloat = coder.decodeObject(forKey: kSaveSucceededOptFloatKey) as? NSNumber
+            let displayName = coder.decodeObject(forKey: kSaveSucceededDisplayNameKey) as? String
+            self.wrapped = .saveSucceeded(savedToAlpha: savedToAlpha, savedToBeta: savedToBeta, optFloat: optFloat.map(\.floatValue), displayName: displayName)
+        case "SUBTYPE_SAVE_FAILED":
+            let error = coder.decodeObject(forKey: kSaveFailedErrorKey) as? Error
+            self.wrapped = .saveFailed(error: error)
         default:
             return nil
         }
