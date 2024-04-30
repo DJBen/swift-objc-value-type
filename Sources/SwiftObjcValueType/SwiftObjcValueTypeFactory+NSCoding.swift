@@ -7,7 +7,7 @@ extension SwiftObjcValueTypeFactory {
     /// - Parameter binding: The pattern binding.
     /// - Returns: A variable declaration if available.
     func nsCodingConstant(
-        identifier: TokenSyntax
+        name: String
     ) -> VariableDeclSyntax {
         VariableDeclSyntax(
             modifiers: DeclModifierListSyntax {
@@ -17,14 +17,14 @@ extension SwiftObjcValueTypeFactory {
         ) {
             PatternBindingListSyntax {
                 PatternBindingSyntax(
-                    pattern: IdentifierPatternSyntax(identifier: .identifier("k\(identifier.trimmed.text.uppercasingFirst)Key")),
+                    pattern: IdentifierPatternSyntax(identifier: .identifier("k\(name.uppercasingFirst)Key")),
                     initializer: InitializerClauseSyntax(
                         equal: .equalToken(),
                         value: StringLiteralExprSyntax(
                             openingQuote: .stringQuoteToken(),
                             segments: StringLiteralSegmentListSyntax {
                                 StringSegmentSyntax(
-                                    content: .stringSegment(identifier.trimmed.text.upperSnakeCased)
+                                    content: .stringSegment(name.upperSnakeCased)
                                 )
                             },
                             closingQuote: .stringQuoteToken()
@@ -42,7 +42,7 @@ extension SwiftObjcValueTypeFactory {
 
         structDecl.enumerateBindings { binding in
             if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self) {
-                decls.append(nsCodingConstant(identifier: identifierPattern.identifier))
+                decls.append(nsCodingConstant(name: identifierPattern.identifier.trimmed.text))
             }
         }
 
@@ -83,18 +83,26 @@ extension SwiftObjcValueTypeFactory {
             }
         )
 
+        // For each enum parameter in each enum case,
+        // generate a key of "ENUM_CASE_NAME_PARAM_NAME"
         enumDecl.enumerateCaseElements { caseElement in
-            decls.append(nsCodingConstant(identifier: caseElement.name))
+            let params = caseElement.parameterClause?.parameters ?? []
+            for (index, caseParam) in params.enumerated() {               
+                decls.append(
+                    nsCodingConstant(
+                        name: caseElement.name.trimmed.text + caseParam.properName(index: index).trimmed.text.uppercasingFirst
+                    )
+                )
+            }
         }
 
         return decls
     }
 
-    // coder.decodeObject(forKey: kOptIntKey) as? NSNumber
-    private func nsCodingDecodeCall(
-        type: TypeSyntax,
-        identifier: TokenSyntax,
-        castToType: Bool
+    // let optInt = coder.decodeObject(forKey: kOptIntKey) as? NSNumber
+    private func nsCodingDecodeAssignmentCall(
+        type: some TypeSyntaxProtocol,
+        constantName: String
     ) -> InitializerClauseSyntax {
         InitializerClauseSyntax(
             value: SequenceExprSyntax {
@@ -112,7 +120,7 @@ extension SwiftObjcValueTypeFactory {
                             label: .identifier("forKey"),
                             colon: .colonToken(),
                             expression: DeclReferenceExprSyntax(
-                                baseName: .identifier("k\(identifier.trimmed.text.uppercasingFirst)Key")
+                                baseName: .identifier(constantName)
                             )
                         )
                     },
@@ -129,17 +137,298 @@ extension SwiftObjcValueTypeFactory {
                             name: .identifier("NSNumber")
                         )
                     )
-                } else if castToType {
+                } else if !type.isNSNumberBridged {
                     UnresolvedAsExprSyntax(
                         questionOrExclamationMark: .postfixQuestionMarkToken()
                     )
 
                     TypeExprSyntax(
-                        type: type
+                        type: type.unwrappedIfOptional
                     )
                 }
             }
         )
+    }
+
+    // coder.encode(displayName, forKey: kDisplayNameKey)
+    // coder.encode("SUBTYPE_SAVE_BEGAN", forKey: kCodedSubtypeKey)
+    private func coderEncodeCall(
+        type: some TypeSyntaxProtocol,
+        propertyExpr: some ExprSyntaxProtocol,
+        constantName: String
+    ) -> FunctionCallExprSyntax {
+        FunctionCallExprSyntax(
+            calledExpression: MemberAccessExprSyntax(
+                base: DeclReferenceExprSyntax(baseName: .identifier("coder")),
+                period: .periodToken(),
+                declName: DeclReferenceExprSyntax(baseName: {
+                    if type.is(OptionalTypeSyntax.self) {
+                        return .identifier("encodeConditionalObject")
+                    } else {
+                        return .identifier("encode")
+                    }
+                }())
+            ),
+            leftParen: .leftParenToken(),
+            arguments: LabeledExprListSyntax {
+                LabeledExprSyntax(
+                    expression: propertyExpr
+                )
+
+                LabeledExprSyntax(
+                    label: .identifier("forKey"),
+                    colon: .colonToken(),
+                    expression: DeclReferenceExprSyntax(
+                        baseName: .identifier(constantName)
+                    )
+                )
+            },
+            rightParen: .rightParenToken()
+        )
+    }
+
+    // coder.encode(displayName, forKey: kDisplayNameKey)
+    private func coderEncodeCall(
+        type: some TypeSyntaxProtocol,
+        propertyName: String,
+        constantName: String
+    ) -> FunctionCallExprSyntax {
+        coderEncodeCall(
+            type: type,
+            propertyExpr: DeclReferenceExprSyntax(baseName: .identifier(propertyName)),
+            constantName: constantName
+        )
+    }
+
+    /// Declare decoded variable as one of them based on whether it is a primitive type or optional
+    /// - `let <variable> = coder.decode<Object|Bool|...>(forKey: <key>)`
+    /// - `guard let <variable> = coder.decode<...>(forKey: <key>) as? <type> else { return nil }`
+    @CodeBlockItemListBuilder
+    private func decodeCall(
+        type: some TypeSyntaxProtocol,
+        identifierPattern: IdentifierPatternSyntax,
+        constantEnumPrefix: String? = nil
+    ) -> CodeBlockItemListSyntax {
+        let constantEnumPrefix = constantEnumPrefix?.uppercasingFirst ?? ""
+        let constantName = "k\(constantEnumPrefix)\(identifierPattern.identifier.trimmed.text.uppercasingFirst)Key"
+        if type.is(OptionalTypeSyntax.self) || type.isNSNumberBridged {
+            VariableDeclSyntax(
+                bindingSpecifier: .keyword(SwiftSyntax.Keyword.let),
+                bindings: PatternBindingListSyntax {
+                    PatternBindingSyntax(
+                        pattern: identifierPattern,
+                        initializer: nsCodingDecodeAssignmentCall(
+                            type: type,
+                            constantName: constantName
+                        )
+                    )
+                }
+            )
+        } else {
+            GuardStmtSyntax(
+                guardKeyword: .keyword(.guard),
+                conditions: ConditionElementListSyntax {
+                    ConditionElementSyntax(
+                        condition: .optionalBinding(
+                            OptionalBindingConditionSyntax(
+                                bindingSpecifier: .keyword(.let),
+                                pattern: identifierPattern,
+                                initializer: nsCodingDecodeAssignmentCall(
+                                    type: type,
+                                    constantName: constantName
+                                )
+                            )
+                        )
+                    )
+                }
+            ) {
+                "return nil"
+            }
+        }
+    }
+
+    @MemberBlockItemListBuilder
+    func nsCodingConformances(
+        enumDecl: EnumDeclSyntax
+    ) throws -> MemberBlockItemListSyntax {
+        FunctionDeclSyntax(
+            modifiers: DeclModifierListSyntax {
+                // Inherit visibility modifiers
+                enumDecl.modifiers.trimmed
+            },
+            name: .identifier("encode"),
+            signature: FunctionSignatureSyntax(
+                parameterClause: FunctionParameterClauseSyntax {
+                    FunctionParameterListSyntax {
+                        FunctionParameterSyntax(
+                            firstName: .identifier("with"),
+                            secondName: .identifier("coder"),
+                            type: TypeSyntax("NSCoder")
+                        )
+                    }
+                }
+            )
+        ) {
+            SwitchExprSyntax(
+                subject: DeclReferenceExprSyntax(baseName: .identifier("wrapped"))
+            ) {
+                enumDecl.enumerateCaseElements { caseElement in
+                    SwitchCaseSyntax(
+                        label: .case(switchCaseLabel(caseElement: caseElement))
+                    ) {
+                        let params = caseElement.parameterClause?.parameters ?? []
+                        let caseName = caseElement.name.trimmed.text.uppercasingFirst
+                        for (index, caseParam) in params.enumerated() {
+                            let propertyName = caseParam.properName(index: index).trimmed.text
+                            coderEncodeCall(
+                                type: caseParam.type,
+                                propertyName: propertyName,
+                                constantName: "k\(caseName)\(propertyName.uppercasingFirst)Key"
+                            )
+                        }
+
+                        coderEncodeCall(
+                            type: IdentifierTypeSyntax(name: .identifier("String")),
+                            propertyExpr: StringLiteralExprSyntax(
+                                openingQuote: .stringQuoteToken(),
+                                segments: StringLiteralSegmentListSyntax {
+                                    .stringSegment(
+                                        StringSegmentSyntax(
+                                            content: .stringSegment(
+                                                "SUBTYPE_\(caseName.upperSnakeCased)"
+                                            )
+                                        )
+                                    )
+                                },
+                                closingQuote: .stringQuoteToken()
+                            ),
+                            constantName: "kCodedSubtypeKey"
+                        )
+                    }
+                }
+            }
+        }
+        .with(\.leadingTrivia, .newlines(2))
+
+        InitializerDeclSyntax(
+            modifiers: DeclModifierListSyntax {
+                DeclModifierSyntax(name: .keyword(Keyword.public))
+                DeclModifierSyntax(name: .keyword(Keyword.required))
+            },
+            optionalMark: .postfixQuestionMarkToken(),
+            signature: FunctionSignatureSyntax(
+                parameterClause: FunctionParameterClauseSyntax {
+                    FunctionParameterListSyntax {
+                        FunctionParameterSyntax(
+                            firstName: .identifier("coder"),
+                            type: IdentifierTypeSyntax(name: .identifier("NSCoder"))
+                        )
+                    }
+                }
+            )
+        ) {
+            """
+            guard let codedSubtype = coder.decodeObject(forKey: kCodedSubtypeKey) as? String else {
+                return nil
+            }
+            """
+
+            SwitchExprSyntax(
+                subject: DeclReferenceExprSyntax(baseName: .identifier("codedSubtype"))
+            ) {
+                enumDecl.enumerateCaseElements { caseElement in
+                    let caseName = caseElement.name.trimmed.text.uppercasingFirst
+
+                    SwitchCaseSyntax(
+                        label: .case(
+                            SwitchCaseLabelSyntax(
+                                caseKeyword: .keyword(.case),
+                                caseItems: SwitchCaseItemListSyntax {
+                                    SwitchCaseItemSyntax(
+                                        pattern: ExpressionPatternSyntax(
+                                            expression: StringLiteralExprSyntax(
+                                                openingQuote: .stringQuoteToken(),
+                                                segments: StringLiteralSegmentListSyntax {
+                                                    StringSegmentSyntax(
+                                                        content: .stringSegment("SUBTYPE_\(caseName.upperSnakeCased)")
+                                                    )
+                                                },
+                                                closingQuote: .stringQuoteToken()
+                                            )
+                                        )
+                                    )
+                                }
+                            )
+                        )
+                    ) {
+                        // let savingToAlpha = coder.decodeBool(forKey: kSaveBeganSavingToAlphaKey)
+                        // ...
+                        let params = caseElement.parameterClause?.parameters ?? []
+                        for (index, caseParam) in params.enumerated() {
+                            decodeCall(
+                                type: caseParam.type,
+                                identifierPattern: IdentifierPatternSyntax(
+                                    identifier: .identifier(caseParam.properName(index: index).trimmed.text)
+                                ),
+                                constantEnumPrefix: caseElement.name.trimmed.text
+                            )
+                        }
+
+                        // self.wrapped = .saveBegan(savingToAlpha: savingToAlpha)
+
+                        SequenceExprSyntax{
+                            MemberAccessExprSyntax(
+                                base: DeclReferenceExprSyntax(
+                                    baseName: .keyword(.`self`)
+                                ),
+                                period: .periodToken(),
+                                declName: DeclReferenceExprSyntax(
+                                    baseName: .identifier("wrapped")
+                                )
+                            )
+
+                            AssignmentExprSyntax(equal: .equalToken())
+
+                            FunctionCallExprSyntax(
+                                calledExpression: MemberAccessExprSyntax(
+                                    period: .periodToken(),
+                                    declName: DeclReferenceExprSyntax(
+                                        baseName: caseElement.name
+                                    )
+                                ),
+                                leftParen: .leftParenToken(),
+                                arguments: LabeledExprListSyntax {
+                                    let params = caseElement.parameterClause?.parameters ?? []
+                                    for (index, caseParam) in params.enumerated() {
+                                        LabeledExprSyntax(
+                                            label: .identifier(caseParam.properName(index: index).trimmed.text),
+                                            colon: .colonToken(),
+                                            expression: DeclReferenceExprSyntax(
+                                                baseName: .identifier(caseParam.properName(index: index).trimmed.text)
+                                            )
+                                            .mappingNSNumberToNumeralValue(
+                                                type: caseParam.type
+                                            ),
+                                            trailingComma: index + 1 < params.count ? .commaToken() : nil
+                                        )
+                                    }
+                                },
+                                rightParen: .rightParenToken()
+                            )
+                        }
+                    }
+                }
+
+                SwitchCaseSyntax(
+                    label: .default(
+                        SwitchDefaultLabelSyntax()
+                    )
+                ) {
+                    "return nil"
+                }
+            }
+        }
+        .with(\.leadingTrivia, .newlines(2))
     }
 
     @MemberBlockItemListBuilder
@@ -166,34 +455,12 @@ extension SwiftObjcValueTypeFactory {
         ) {
             structDecl.enumerateBindings { binding in
                 if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let typeAnnotation = binding.typeAnnotation {
-                    FunctionCallExprSyntax(
-                        calledExpression: MemberAccessExprSyntax(
-                            base: DeclReferenceExprSyntax(baseName: .identifier("coder")),
-                            period: .periodToken(),
-                            declName: DeclReferenceExprSyntax(baseName: {
-                                if typeAnnotation.type.is(OptionalTypeSyntax.self) {
-                                    return .identifier("encodeConditionalObject")
-                                } else {
-                                    return .identifier("encode")
-                                }
-                            }())
-                        ),
-                        leftParen: .leftParenToken(),
-                        arguments: LabeledExprListSyntax {
-                            LabeledExprSyntax(
-                                expression: DeclReferenceExprSyntax(baseName: identifierPattern.identifier)
-                            )
-
-                            LabeledExprSyntax(
-                                label: .identifier("forKey"),
-                                colon: .colonToken(),
-                                expression: DeclReferenceExprSyntax(baseName: .identifier("k\(identifierPattern.identifier.trimmed.text.uppercasingFirst)Key"))
-                            )
-                        },
-                        rightParen: .rightParenToken()
+                    coderEncodeCall(
+                        type: typeAnnotation.type,
+                        propertyName: identifierPattern.identifier.trimmed.text,
+                        constantName: "k\(identifierPattern.identifier.trimmed.text.uppercasingFirst)Key"
                     )
                 }
-
             }
         }
         .with(\.leadingTrivia, .newlines(2))
@@ -230,44 +497,10 @@ extension SwiftObjcValueTypeFactory {
                     // is a primitive type or optional
                     // - let <variable> = coder.decode<Object|Bool|...>(forKey: <key>)
                     // - guard let <variable> = coder.decode<...>(forKey: <key>) as? <type> else { return nil }
-                    if typeAnnotation.type.is(OptionalTypeSyntax.self) || typeAnnotation.type.isNSNumberBridged {
-                        VariableDeclSyntax(
-                            bindingSpecifier: .keyword(SwiftSyntax.Keyword.let),
-                            bindings: PatternBindingListSyntax {
-                                PatternBindingSyntax(
-                                    pattern: IdentifierPatternSyntax(
-                                        identifier: identifierPattern.identifier
-                                    ),
-                                    initializer: nsCodingDecodeCall(
-                                        type: typeAnnotation.type,
-                                        identifier: identifierPattern.identifier,
-                                        castToType: false
-                                    )
-                                )
-                            }
-                        )
-                    } else {
-                        GuardStmtSyntax(
-                            guardKeyword: .keyword(.guard),
-                            conditions: ConditionElementListSyntax {
-                                ConditionElementSyntax(
-                                    condition: .optionalBinding(
-                                        OptionalBindingConditionSyntax(
-                                            bindingSpecifier: .keyword(.let),
-                                            pattern: identifierPattern,
-                                            initializer: nsCodingDecodeCall(
-                                                type: typeAnnotation.type,
-                                                identifier: identifierPattern.identifier,
-                                                castToType: true
-                                            )
-                                        )
-                                    )
-                                )
-                            }
-                        ) {
-                            "return nil"
-                        }
-                    }
+                    decodeCall(
+                        type: typeAnnotation.type,
+                        identifierPattern: identifierPattern
+                    )
                 }
             }
 

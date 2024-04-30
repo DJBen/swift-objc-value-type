@@ -2,7 +2,7 @@ import Foundation
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
-extension TypeSyntax {
+extension TypeSyntaxProtocol {
     // When these types are wrapped as Optional, they can't be bridged to Objective-C, instead they need to be wrapped as NSNumber.
     var isNSNumberBridged: Bool {
         asNSNumberBridged() != nil
@@ -53,7 +53,7 @@ extension TypeSyntax {
         }
     }
 
-    var unwrappedIfOptional: TypeSyntax {
+    var unwrappedIfOptional: any TypeSyntaxProtocol {
         if let optionalType = self.as(OptionalTypeSyntax.self) {
             return optionalType.wrappedType
         } else {
@@ -383,5 +383,11 @@ extension AttributeListSyntax {
                 return false
             }
         }
+    }
+}
+
+extension EnumCaseParameterSyntax {
+    func properName(index: Int) -> TokenSyntax {
+        firstName ?? secondName ?? .identifier("param\(index)")
     }
 }
