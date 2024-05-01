@@ -1,5 +1,6 @@
 import SwiftSyntax
 import SwiftSyntaxBuilder
+import SharedUtilities
 import Foundation
 
 /// Converts objc plain enum into Swift ones.
@@ -14,13 +15,214 @@ public final class EnumOptionConverter {
     public enum ParseError: Error {
         case unclosedBlockComment
         case unfinishedParsing
+        case optionSetsMissingCaseValue
+        case enumCaseUsingNonNumericValue
+    }
+
+    @MemberBlockItemListBuilder
+    private func objcEnum(
+        _ enumOrOption: ObjcEnumOrOption,
+        isPublic: Bool = true
+    ) throws -> MemberBlockItemListSyntax {
+        try EnumDeclSyntax(
+            leadingTrivia: Trivia(enumOrOption.trivia),
+            modifiers: DeclModifierListSyntax {
+                if isPublic {
+                    DeclModifierSyntax(name: .keyword(.public))
+                }
+            },
+            name: .identifier(enumOrOption.name),
+            inheritanceClause: InheritanceClauseSyntax(
+                inheritedTypes: InheritedTypeListSyntax {
+                    InheritedTypeSyntax(
+                        type: IdentifierTypeSyntax(name: .identifier("Int"))
+                    )
+                }
+            )
+        ) {
+            for optionCase in enumOrOption.cases {
+                try EnumCaseDeclSyntax {
+                    EnumCaseElementSyntax(
+                        name: .identifier({
+                            let prefix = optionCase.name.commonPrefix(with: enumOrOption.name)
+                            return String(optionCase.name.suffix(from: optionCase.name.index(optionCase.name.startIndex, offsetBy: prefix.lengthOfBytes(using: .utf8)))).lowercasingFirst
+                        }()),
+                        rawValue: try {
+                            switch optionCase.value {
+                            case .none:
+                                return nil
+                            case .numeric(let int):
+                                return InitializerClauseSyntax(
+                                    equal: .equalToken(),
+                                    value: ExprSyntax("\(raw: int)")
+                                )
+                            case .bitShift, .bitOr:
+                                throw ParseError.enumCaseUsingNonNumericValue
+                            }
+                        }()
+                    )
+                }
+            }
+        }
+    }
+
+    @MemberBlockItemListBuilder
+    private func optionSet(
+        _ enumOrOption: ObjcEnumOrOption,
+        isPublic: Bool = true
+    ) throws -> MemberBlockItemListSyntax {
+        try StructDeclSyntax(
+            leadingTrivia: Trivia(enumOrOption.trivia),
+            modifiers: DeclModifierListSyntax {
+                if isPublic {
+                    DeclModifierSyntax(name: .keyword(.public))
+                }
+            },
+            name: .identifier(enumOrOption.name),
+            inheritanceClause: InheritanceClauseSyntax(
+                inheritedTypes: InheritedTypeListSyntax {
+                    InheritedTypeSyntax(
+                        type: IdentifierTypeSyntax(name: .identifier("OptionSet"))
+                    )
+                }
+            )
+        ) {
+            // public let rawValue: Int
+            VariableDeclSyntax(
+                modifiers: DeclModifierListSyntax {
+                    if isPublic {
+                        DeclModifierSyntax(name: .keyword(.public))
+                    }
+                },
+                bindingSpecifier: .keyword(.let)
+            ) {
+                PatternBindingSyntax(
+                    pattern: IdentifierPatternSyntax(identifier: .identifier("rawValue")),
+                    typeAnnotation: TypeAnnotationSyntax(
+                        colon: .colonToken(),
+                        type: IdentifierTypeSyntax(name: .identifier("Int"))
+                    )
+                )
+            }
+            .with(\.trailingTrivia, .newlines(2))
+
+            for optionCase in enumOrOption.cases {
+                // public static let displayName = UpdateOption(rawValue: 1 << 0)
+                try VariableDeclSyntax(
+                    leadingTrivia: Trivia(optionCase.beforeTrivia),
+                    modifiers: DeclModifierListSyntax {
+                        if isPublic {
+                            DeclModifierSyntax(name: .keyword(.public))
+                        }
+                        DeclModifierSyntax(name: .keyword(.static))
+                    },
+                    bindingSpecifier: .keyword(.let),
+                    bindingsBuilder:  {
+                        PatternBindingSyntax(
+                            pattern: IdentifierPatternSyntax(identifier: .identifier(optionCase.name.lowercasingFirst)),
+                            typeAnnotation: TypeAnnotationSyntax(
+                                colon: .colonToken(),
+                                type: IdentifierTypeSyntax(name: .identifier(enumOrOption.name))
+                            ),
+                            initializer: InitializerClauseSyntax(
+                                equal: .equalToken(),
+                                value: try optionSetBindingExpr(
+                                    option: enumOrOption,
+                                    optionCase: optionCase,
+                                    isPublic: isPublic
+                                )
+                            )
+                        )
+                    },
+                    trailingTrivia: Trivia(optionCase.afterTrivia, isLeading: false)
+                )
+            }
+
+            if isPublic {
+                DeclSyntax(
+                    """
+                    public init(rawValue: Int) {
+                        self.rawValue = rawValue
+                    }
+                    """
+                )
+                .with(\.leadingTrivia, .newlines(2))
+            }
+        }
+    }
+
+    // public static let all: UpdateOption = [.displayName, .postA, .viewB, .listC]
+    // UpdateOption(rawValue: 1 << 0)
+    private func optionSetBindingExpr(
+        option: ObjcEnumOrOption,
+        optionCase: ObjcEnumOrOption.Case,
+        isPublic: Bool
+    ) throws -> any ExprSyntaxProtocol {
+        switch optionCase.value {
+        case .numeric(let int):
+            FunctionCallExprSyntax(
+                calledExpression: DeclReferenceExprSyntax(
+                    baseName: .identifier(option.name)
+                ),
+                leftParen: .leftParenToken(),
+                rightParen: .rightParenToken()
+            ) {
+                LabeledExprSyntax(
+                    label: .identifier("rawValue"),
+                    colon: .colonToken(),
+                    expression: SequenceExprSyntax {
+                        IntegerLiteralExprSyntax(integerLiteral: int)
+                    }
+                )
+            }
+        case .bitShift(let base, let shift):
+            FunctionCallExprSyntax(
+                calledExpression: DeclReferenceExprSyntax(
+                    baseName: .identifier(option.name)
+                ),
+                leftParen: .leftParenToken(),
+                rightParen: .rightParenToken()
+            ) {
+                LabeledExprSyntax(
+                    label: .identifier("rawValue"),
+                    colon: .colonToken(),
+                    expression: SequenceExprSyntax {
+                        IntegerLiteralExprSyntax(integerLiteral: base)
+                        BinaryOperatorExprSyntax(operator: .binaryOperator("<<"))
+                        IntegerLiteralExprSyntax(integerLiteral: shift)
+                    }
+                )
+            }
+        case .bitOr(let options):
+            ArrayExprSyntax {
+                for (index, option) in options.enumerated() {
+                    ArrayElementSyntax(
+                        expression: MemberAccessExprSyntax(
+                            period: .periodToken(),
+                            declName: DeclReferenceExprSyntax(
+                                baseName: .identifier(option.lowercasingFirst)
+                            )
+                        ),
+                        trailingComma: index < options.count - 1 ? .commaToken() : nil
+                    )
+                }
+            }
+        case .none:
+            throw ParseError.optionSetsMissingCaseValue
+        }
     }
 
     @MemberBlockItemListBuilder
     public func convert(
-        _ enumOrOption: ObjcEnumOrOption
+        _ enumOrOption: ObjcEnumOrOption,
+        isPublic: Bool = true
     ) throws -> MemberBlockItemListSyntax {
-        
+        switch enumOrOption.type {
+        case .nsOption:
+            try optionSet(enumOrOption, isPublic: isPublic)
+        case .nsEnum:
+            try objcEnum(enumOrOption, isPublic: isPublic)
+        }
     }
 
     public func parse(
@@ -29,7 +231,7 @@ public final class EnumOptionConverter {
         var parseState = ParseState.parsingHeader
         var expectEndBlockComment = false
 
-        var beforeTrivia = [Trivia]()
+        var beforeTrivia = [ObjcEnumOrOption.Trivia]()
         var blockComment = [String]()
         var cases = [ObjcEnumOrOption.Case]()
 
@@ -103,7 +305,7 @@ public final class EnumOptionConverter {
                 }
                 let caseBuilder = ObjcEnumOrOption.Case.Builder()
 
-                if let match = line.firstMatch(of: /(\w+)(?:\s*=\s*((?:\d+(?:\s*<<\s*\d+)?)|(?:\w+(?:\s*\|\s*\w+)*)))?\s*,?/) {
+                if let match = line.firstMatch(of: /(\w+)(?:\s*=\s*((?:[-\d]+(?:\s*<<\s*\d+)?)|(?:\w+(?:\s*\|\s*\w+)*)))?\s*,?/) {
                     // This regex matches the following
                     // CaseXXX = 123,
                     // CaseXXX = 2 << 1,
@@ -111,9 +313,9 @@ public final class EnumOptionConverter {
                     // CaseXXX = AB | CD
                     caseBuilder.name = String(match.1)
                     if let value = match.2.map({ String($0).trimmingCharacters(in: .whitespaces) }) {
-                        if let valueMatch = value.firstMatch(of: /^(\d+)\s*<<\s*(\d+)$/) {
+                        if let valueMatch = value.firstMatch(of: /^([-\d]+)\s*<<\s*(\d+)$/) {
                             caseBuilder.value = .bitShift(base: Int(valueMatch.1)!, shift: Int(valueMatch.2)!)
-                        } else if let valueMatch = value.firstMatch(of: /^(\d+)$/) {
+                        } else if let valueMatch = value.firstMatch(of: /^([-\d]+)$/) {
                             caseBuilder.value = .numeric(Int(valueMatch.1)!)
                         } else {
                             caseBuilder.value = .bitOr(value.components(separatedBy: "|").map {

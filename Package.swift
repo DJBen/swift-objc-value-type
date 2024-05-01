@@ -29,8 +29,15 @@ let package = Package(
     ),
 
     .target(
+      name: "SharedUtilities",
+      dependencies: [
+      ]
+    ),
+
+    .target(
       name: "SwiftObjcValueType",
       dependencies: [
+        "SharedUtilities",
         .product(name: "SwiftSyntax", package: "swift-syntax"),
         .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
       ]
@@ -39,6 +46,7 @@ let package = Package(
     .target(
       name: "ObjcSupport",
       dependencies: [
+        "SharedUtilities",
         .product(name: "BuilderMacro", package: "SwiftBuilderMacro"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
         .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
@@ -48,6 +56,7 @@ let package = Package(
     .target(
       name: "Remodel",
       dependencies: [
+        "SharedUtilities",
         .product(name: "SwiftSyntax", package: "swift-syntax"),
         .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
       ]
@@ -97,6 +106,7 @@ let package = Package(
     .testTarget(
         name: "ObjcSupportTests",
         dependencies: [
+            "SharedUtilities",
             "ObjcSupport",
             "TestingSupport",
             .product(name: "CustomDump", package: "swift-custom-dump")

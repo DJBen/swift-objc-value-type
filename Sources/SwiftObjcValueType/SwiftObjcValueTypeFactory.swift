@@ -1,5 +1,6 @@
 import SwiftSyntax
 import SwiftSyntaxBuilder
+import SharedUtilities
 
 /// See swift foundation type mapping to objective-C here.
 /// https://developer.apple.com/documentation/swift/working-with-foundation-types

@@ -1,5 +1,6 @@
 import SwiftSyntax
 import SwiftSyntaxBuilder
+import SharedUtilities
 
 extension SwiftObjcValueTypeFactory {
     

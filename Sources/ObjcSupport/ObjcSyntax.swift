@@ -1,19 +1,5 @@
 import BuilderMacro
 
-public enum Trivia: Equatable {
-    /// // comments
-    case doubleSlashLine(String)
-    /// /// comments
-    case tripleSlashLine(String)
-    /// /* ... */ multiline block comments
-    case blockComment([String])
-    case newlines(Int)
-
-    static func newline() -> Trivia {
-        .newlines(1)
-    }
-}
-
 public enum EnumOrOptionType {
     case nsEnum
     case nsOption
@@ -21,6 +7,19 @@ public enum EnumOrOptionType {
 
 @ThrowingBuilder
 public struct ObjcEnumOrOption: Equatable {
+    public enum Trivia: Equatable {
+        /// // comments
+        case doubleSlashLine(String)
+        /// /// comments
+        case tripleSlashLine(String)
+        /// /* ... */ multiline block comments
+        case blockComment([String])
+        case newlines(Int)
+
+        static func newline() -> Trivia {
+            .newlines(1)
+        }
+    }
 
     @ThrowingBuilder
     public struct Case: Equatable {
