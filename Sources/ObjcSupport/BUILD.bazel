@@ -1,0 +1,18 @@
+load("@rules_swift//swift:swift.bzl", "swift_library")
+
+swift_library(
+    name = "ObjcSupport",
+    srcs = [
+        "EnumOptionConverter.swift",
+        "ObjcSyntax.swift",
+        "ProtocolConverter.swift",
+        "SwiftSyntaxExtensions.swift",
+    ],
+    module_name = "ObjcSupport",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//Sources/SharedUtilities",
+        "@swiftpkg_swift_syntax//:SwiftSyntaxBuilder",
+        "@swiftpkg_swiftbuildermacro//:BuilderMacro",
+    ],
+)

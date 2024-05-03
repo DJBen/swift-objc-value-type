@@ -1,0 +1,532 @@
+{
+  "direct_dep_identities": [
+    "swift-argument-parser",
+    "swift-custom-dump",
+    "swift-syntax",
+    "swiftbuildermacro"
+  ],
+  "modules": [
+    {
+      "name": "ArgumentParser",
+      "c99name": "ArgumentParser",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_argument_parser//:ArgumentParser.rspm",
+      "package_identity": "swift-argument-parser",
+      "product_memberships": [
+        "ArgumentParser",
+        "GenerateManual"
+      ]
+    },
+    {
+      "name": "ArgumentParserToolInfo",
+      "c99name": "ArgumentParserToolInfo",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_argument_parser//:ArgumentParserToolInfo.rspm",
+      "package_identity": "swift-argument-parser",
+      "product_memberships": [
+        "ArgumentParser",
+        "GenerateManual"
+      ]
+    },
+    {
+      "name": "GenerateManual",
+      "c99name": "GenerateManual",
+      "src_type": "unknown",
+      "label": "@swiftpkg_swift_argument_parser//:GenerateManual.rspm",
+      "package_identity": "swift-argument-parser",
+      "product_memberships": [
+        "GenerateManual"
+      ]
+    },
+    {
+      "name": "generate-manual",
+      "c99name": "generate_manual",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_argument_parser//:generate-manual.rspm",
+      "package_identity": "swift-argument-parser",
+      "product_memberships": [
+        "GenerateManual"
+      ]
+    },
+    {
+      "name": "CustomDump",
+      "c99name": "CustomDump",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_custom_dump//:CustomDump.rspm",
+      "package_identity": "swift-custom-dump",
+      "product_memberships": [
+        "CustomDump"
+      ]
+    },
+    {
+      "name": "SwiftBasicFormat",
+      "c99name": "SwiftBasicFormat",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_syntax//:SwiftBasicFormat.rspm",
+      "package_identity": "swift-syntax",
+      "product_memberships": [
+        "SwiftBasicFormat",
+        "SwiftCompilerPlugin",
+        "SwiftCompilerPluginMessageHandling",
+        "SwiftParserDiagnostics",
+        "SwiftRefactor",
+        "SwiftSyntaxBuilder",
+        "SwiftSyntaxMacros",
+        "SwiftSyntaxMacroExpansion",
+        "SwiftSyntaxMacrosTestSupport"
+      ]
+    },
+    {
+      "name": "SwiftCompilerPlugin",
+      "c99name": "SwiftCompilerPlugin",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_syntax//:SwiftCompilerPlugin.rspm",
+      "package_identity": "swift-syntax",
+      "product_memberships": [
+        "SwiftCompilerPlugin"
+      ]
+    },
+    {
+      "name": "SwiftCompilerPluginMessageHandling",
+      "c99name": "SwiftCompilerPluginMessageHandling",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_syntax//:SwiftCompilerPluginMessageHandling.rspm",
+      "package_identity": "swift-syntax",
+      "product_memberships": [
+        "SwiftCompilerPlugin",
+        "SwiftCompilerPluginMessageHandling"
+      ]
+    },
+    {
+      "name": "SwiftDiagnostics",
+      "c99name": "SwiftDiagnostics",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_syntax//:SwiftDiagnostics.rspm",
+      "package_identity": "swift-syntax",
+      "product_memberships": [
+        "SwiftCompilerPlugin",
+        "SwiftCompilerPluginMessageHandling",
+        "SwiftDiagnostics",
+        "SwiftOperators",
+        "SwiftParserDiagnostics",
+        "SwiftRefactor",
+        "SwiftSyntaxBuilder",
+        "SwiftSyntaxMacros",
+        "SwiftSyntaxMacroExpansion",
+        "SwiftSyntaxMacrosTestSupport"
+      ]
+    },
+    {
+      "name": "SwiftIDEUtils",
+      "c99name": "SwiftIDEUtils",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_syntax//:SwiftIDEUtils.rspm",
+      "package_identity": "swift-syntax",
+      "product_memberships": [
+        "SwiftIDEUtils"
+      ]
+    },
+    {
+      "name": "SwiftOperators",
+      "c99name": "SwiftOperators",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_syntax//:SwiftOperators.rspm",
+      "package_identity": "swift-syntax",
+      "product_memberships": [
+        "SwiftCompilerPlugin",
+        "SwiftCompilerPluginMessageHandling",
+        "SwiftOperators",
+        "SwiftSyntaxMacroExpansion",
+        "SwiftSyntaxMacrosTestSupport"
+      ]
+    },
+    {
+      "name": "SwiftParser",
+      "c99name": "SwiftParser",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_syntax//:SwiftParser.rspm",
+      "package_identity": "swift-syntax",
+      "product_memberships": [
+        "SwiftCompilerPlugin",
+        "SwiftCompilerPluginMessageHandling",
+        "SwiftOperators",
+        "SwiftParser",
+        "SwiftParserDiagnostics",
+        "SwiftRefactor",
+        "SwiftSyntaxBuilder",
+        "SwiftSyntaxMacros",
+        "SwiftSyntaxMacroExpansion",
+        "SwiftSyntaxMacrosTestSupport"
+      ]
+    },
+    {
+      "name": "SwiftParserDiagnostics",
+      "c99name": "SwiftParserDiagnostics",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_syntax//:SwiftParserDiagnostics.rspm",
+      "package_identity": "swift-syntax",
+      "product_memberships": [
+        "SwiftCompilerPlugin",
+        "SwiftCompilerPluginMessageHandling",
+        "SwiftParserDiagnostics",
+        "SwiftRefactor",
+        "SwiftSyntaxBuilder",
+        "SwiftSyntaxMacros",
+        "SwiftSyntaxMacroExpansion",
+        "SwiftSyntaxMacrosTestSupport"
+      ]
+    },
+    {
+      "name": "SwiftRefactor",
+      "c99name": "SwiftRefactor",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_syntax//:SwiftRefactor.rspm",
+      "package_identity": "swift-syntax",
+      "product_memberships": [
+        "SwiftRefactor"
+      ]
+    },
+    {
+      "name": "SwiftSyntax",
+      "c99name": "SwiftSyntax",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_syntax//:SwiftSyntax.rspm",
+      "package_identity": "swift-syntax",
+      "product_memberships": [
+        "SwiftBasicFormat",
+        "SwiftCompilerPlugin",
+        "SwiftCompilerPluginMessageHandling",
+        "SwiftDiagnostics",
+        "SwiftIDEUtils",
+        "SwiftOperators",
+        "SwiftParser",
+        "SwiftParserDiagnostics",
+        "SwiftRefactor",
+        "SwiftSyntax",
+        "SwiftSyntaxBuilder",
+        "SwiftSyntaxMacros",
+        "SwiftSyntaxMacroExpansion",
+        "SwiftSyntaxMacrosTestSupport"
+      ]
+    },
+    {
+      "name": "SwiftSyntax509",
+      "c99name": "SwiftSyntax509",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_syntax//:SwiftSyntax509.rspm",
+      "package_identity": "swift-syntax",
+      "product_memberships": [
+        "SwiftBasicFormat",
+        "SwiftCompilerPlugin",
+        "SwiftCompilerPluginMessageHandling",
+        "SwiftDiagnostics",
+        "SwiftIDEUtils",
+        "SwiftOperators",
+        "SwiftParser",
+        "SwiftParserDiagnostics",
+        "SwiftRefactor",
+        "SwiftSyntax",
+        "SwiftSyntaxBuilder",
+        "SwiftSyntaxMacros",
+        "SwiftSyntaxMacroExpansion",
+        "SwiftSyntaxMacrosTestSupport"
+      ]
+    },
+    {
+      "name": "SwiftSyntax510",
+      "c99name": "SwiftSyntax510",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_syntax//:SwiftSyntax510.rspm",
+      "package_identity": "swift-syntax",
+      "product_memberships": [
+        "SwiftBasicFormat",
+        "SwiftCompilerPlugin",
+        "SwiftCompilerPluginMessageHandling",
+        "SwiftDiagnostics",
+        "SwiftIDEUtils",
+        "SwiftOperators",
+        "SwiftParser",
+        "SwiftParserDiagnostics",
+        "SwiftRefactor",
+        "SwiftSyntax",
+        "SwiftSyntaxBuilder",
+        "SwiftSyntaxMacros",
+        "SwiftSyntaxMacroExpansion",
+        "SwiftSyntaxMacrosTestSupport"
+      ]
+    },
+    {
+      "name": "SwiftSyntaxBuilder",
+      "c99name": "SwiftSyntaxBuilder",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_syntax//:SwiftSyntaxBuilder.rspm",
+      "package_identity": "swift-syntax",
+      "product_memberships": [
+        "SwiftCompilerPlugin",
+        "SwiftCompilerPluginMessageHandling",
+        "SwiftRefactor",
+        "SwiftSyntaxBuilder",
+        "SwiftSyntaxMacros",
+        "SwiftSyntaxMacroExpansion",
+        "SwiftSyntaxMacrosTestSupport"
+      ]
+    },
+    {
+      "name": "SwiftSyntaxMacroExpansion",
+      "c99name": "SwiftSyntaxMacroExpansion",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_syntax//:SwiftSyntaxMacroExpansion.rspm",
+      "package_identity": "swift-syntax",
+      "product_memberships": [
+        "SwiftCompilerPlugin",
+        "SwiftCompilerPluginMessageHandling",
+        "SwiftSyntaxMacroExpansion",
+        "SwiftSyntaxMacrosTestSupport"
+      ]
+    },
+    {
+      "name": "SwiftSyntaxMacros",
+      "c99name": "SwiftSyntaxMacros",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_syntax//:SwiftSyntaxMacros.rspm",
+      "package_identity": "swift-syntax",
+      "product_memberships": [
+        "SwiftCompilerPlugin",
+        "SwiftCompilerPluginMessageHandling",
+        "SwiftSyntaxMacros",
+        "SwiftSyntaxMacroExpansion",
+        "SwiftSyntaxMacrosTestSupport"
+      ]
+    },
+    {
+      "name": "SwiftSyntaxMacrosTestSupport",
+      "c99name": "SwiftSyntaxMacrosTestSupport",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_syntax//:SwiftSyntaxMacrosTestSupport.rspm",
+      "package_identity": "swift-syntax",
+      "product_memberships": [
+        "SwiftSyntaxMacrosTestSupport"
+      ]
+    },
+    {
+      "name": "_SwiftSyntaxTestSupport",
+      "c99name": "_SwiftSyntaxTestSupport",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_syntax//:_SwiftSyntaxTestSupport.rspm",
+      "package_identity": "swift-syntax",
+      "product_memberships": [
+        "SwiftSyntaxMacrosTestSupport"
+      ]
+    },
+    {
+      "name": "BuilderMacro",
+      "c99name": "BuilderMacro",
+      "src_type": "swift",
+      "label": "@swiftpkg_swiftbuildermacro//:BuilderMacro.rspm",
+      "package_identity": "swiftbuildermacro",
+      "product_memberships": [
+        "BuilderMacro",
+        "BuilderMacroClient"
+      ]
+    },
+    {
+      "name": "BuilderMacroClient",
+      "c99name": "BuilderMacroClient",
+      "src_type": "swift",
+      "label": "@swiftpkg_swiftbuildermacro//:BuilderMacroClient.rspm",
+      "package_identity": "swiftbuildermacro",
+      "product_memberships": [
+        "BuilderMacroClient"
+      ]
+    },
+    {
+      "name": "BuilderMacroMacros",
+      "c99name": "BuilderMacroMacros",
+      "src_type": "swift",
+      "label": "@swiftpkg_swiftbuildermacro//:BuilderMacroMacros.rspm",
+      "package_identity": "swiftbuildermacro",
+      "product_memberships": [
+        "BuilderMacro",
+        "BuilderMacroClient"
+      ]
+    },
+    {
+      "name": "XCTestDynamicOverlay",
+      "c99name": "XCTestDynamicOverlay",
+      "src_type": "swift",
+      "label": "@swiftpkg_xctest_dynamic_overlay//:XCTestDynamicOverlay.rspm",
+      "package_identity": "xctest-dynamic-overlay",
+      "product_memberships": [
+        "XCTestDynamicOverlay"
+      ]
+    }
+  ],
+  "products": [
+    {
+      "identity": "swift-argument-parser",
+      "name": "ArgumentParser",
+      "type": "library",
+      "label": "@swiftpkg_swift_argument_parser//:ArgumentParser"
+    },
+    {
+      "identity": "swift-argument-parser",
+      "name": "GenerateManual",
+      "type": "plugin",
+      "label": "@swiftpkg_swift_argument_parser//:GenerateManual"
+    },
+    {
+      "identity": "swift-custom-dump",
+      "name": "CustomDump",
+      "type": "library",
+      "label": "@swiftpkg_swift_custom_dump//:CustomDump"
+    },
+    {
+      "identity": "swift-syntax",
+      "name": "SwiftBasicFormat",
+      "type": "library",
+      "label": "@swiftpkg_swift_syntax//:SwiftBasicFormat"
+    },
+    {
+      "identity": "swift-syntax",
+      "name": "SwiftCompilerPlugin",
+      "type": "library",
+      "label": "@swiftpkg_swift_syntax//:SwiftCompilerPlugin"
+    },
+    {
+      "identity": "swift-syntax",
+      "name": "SwiftCompilerPluginMessageHandling",
+      "type": "library",
+      "label": "@swiftpkg_swift_syntax//:SwiftCompilerPluginMessageHandling"
+    },
+    {
+      "identity": "swift-syntax",
+      "name": "SwiftDiagnostics",
+      "type": "library",
+      "label": "@swiftpkg_swift_syntax//:SwiftDiagnostics"
+    },
+    {
+      "identity": "swift-syntax",
+      "name": "SwiftIDEUtils",
+      "type": "library",
+      "label": "@swiftpkg_swift_syntax//:SwiftIDEUtils"
+    },
+    {
+      "identity": "swift-syntax",
+      "name": "SwiftOperators",
+      "type": "library",
+      "label": "@swiftpkg_swift_syntax//:SwiftOperators"
+    },
+    {
+      "identity": "swift-syntax",
+      "name": "SwiftParser",
+      "type": "library",
+      "label": "@swiftpkg_swift_syntax//:SwiftParser"
+    },
+    {
+      "identity": "swift-syntax",
+      "name": "SwiftParserDiagnostics",
+      "type": "library",
+      "label": "@swiftpkg_swift_syntax//:SwiftParserDiagnostics"
+    },
+    {
+      "identity": "swift-syntax",
+      "name": "SwiftRefactor",
+      "type": "library",
+      "label": "@swiftpkg_swift_syntax//:SwiftRefactor"
+    },
+    {
+      "identity": "swift-syntax",
+      "name": "SwiftSyntax",
+      "type": "library",
+      "label": "@swiftpkg_swift_syntax//:SwiftSyntax"
+    },
+    {
+      "identity": "swift-syntax",
+      "name": "SwiftSyntaxBuilder",
+      "type": "library",
+      "label": "@swiftpkg_swift_syntax//:SwiftSyntaxBuilder"
+    },
+    {
+      "identity": "swift-syntax",
+      "name": "SwiftSyntaxMacroExpansion",
+      "type": "library",
+      "label": "@swiftpkg_swift_syntax//:SwiftSyntaxMacroExpansion"
+    },
+    {
+      "identity": "swift-syntax",
+      "name": "SwiftSyntaxMacros",
+      "type": "library",
+      "label": "@swiftpkg_swift_syntax//:SwiftSyntaxMacros"
+    },
+    {
+      "identity": "swift-syntax",
+      "name": "SwiftSyntaxMacrosTestSupport",
+      "type": "library",
+      "label": "@swiftpkg_swift_syntax//:SwiftSyntaxMacrosTestSupport"
+    },
+    {
+      "identity": "swiftbuildermacro",
+      "name": "BuilderMacro",
+      "type": "library",
+      "label": "@swiftpkg_swiftbuildermacro//:BuilderMacro"
+    },
+    {
+      "identity": "swiftbuildermacro",
+      "name": "BuilderMacroClient",
+      "type": "executable",
+      "label": "@swiftpkg_swiftbuildermacro//:BuilderMacroClient"
+    },
+    {
+      "identity": "xctest-dynamic-overlay",
+      "name": "XCTestDynamicOverlay",
+      "type": "library",
+      "label": "@swiftpkg_xctest_dynamic_overlay//:XCTestDynamicOverlay"
+    }
+  ],
+  "packages": [
+    {
+      "name": "swiftpkg_swift_argument_parser",
+      "identity": "swift-argument-parser",
+      "remote": {
+        "commit": "46989693916f56d1186bd59ac15124caef896560",
+        "remote": "https://github.com/apple/swift-argument-parser.git",
+        "version": "1.3.1"
+      }
+    },
+    {
+      "name": "swiftpkg_swift_custom_dump",
+      "identity": "swift-custom-dump",
+      "remote": {
+        "commit": "f01efb26f3a192a0e88dcdb7c3c391ec2fc25d9c",
+        "remote": "https://github.com/pointfreeco/swift-custom-dump",
+        "version": "1.3.0"
+      }
+    },
+    {
+      "name": "swiftpkg_swift_syntax",
+      "identity": "swift-syntax",
+      "remote": {
+        "commit": "fa8f95c2d536d6620cc2f504ebe8a6167c9fc2dd",
+        "remote": "https://github.com/apple/swift-syntax.git",
+        "version": "510.0.1"
+      }
+    },
+    {
+      "name": "swiftpkg_swiftbuildermacro",
+      "identity": "swiftbuildermacro",
+      "remote": {
+        "commit": "14607b93c4f346b12f729cf6a72f8d72e6031b39",
+        "remote": "https://github.com/DJBen/SwiftBuilderMacro"
+      }
+    },
+    {
+      "name": "swiftpkg_xctest_dynamic_overlay",
+      "identity": "xctest-dynamic-overlay",
+      "remote": {
+        "commit": "6f30bdba373bbd7fbfe241dddd732651f2fbd1e2",
+        "remote": "https://github.com/pointfreeco/xctest-dynamic-overlay",
+        "version": "1.1.2"
+      }
+    }
+  ]
+}
