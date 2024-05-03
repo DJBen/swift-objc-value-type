@@ -6,6 +6,7 @@ swift_test(
     module_name = "SwiftObjcValueTypeMacroTests",
     deps = [
         "//Sources/SwiftObjcValueType",
+        "//Sources/SwiftObjcValueTypeMacro",
         "@swiftpkg_swift_syntax//:SwiftSyntaxMacrosTestSupport",
     ],
 )

@@ -1,47 +1,64 @@
-diff --git a/BazelSupport.md b/BazelSupport.md
-new file mode 100644
-index 0000000..c49f208
---- /dev/null
-+++ b/BazelSupport.md
-@@ -0,0 +1,9 @@
-+# Bazel support
-+
-+`Package.swift` is the source of truth.
-+
-+This project leverages [`rule_swift_package_manager`](https://github.com/cgrindel/rules_swift_package_manager) to automatically generate Bazel
-+build files from `Package.swift`. However it is imperfect.
-+
-+1. Test-only modules cannot be identified, so we need to insert `testonly = True`
-+to make compile
-diff --git a/Sources/SwiftObjcValueTypeMacro/BUILD.bazel b/Sources/SwiftObjcValueTypeMacro/BUILD.bazel
-index 65a16f8..4cb6ba6 100644
---- a/Sources/SwiftObjcValueTypeMacro/BUILD.bazel
-+++ b/Sources/SwiftObjcValueTypeMacro/BUILD.bazel
-@@ -1,6 +1,6 @@
--load("@rules_swift//swift:swift.bzl", "swift_binary")
-+load("@rules_swift//swift:swift.bzl", "swift_compiler_plugin")
- 
--swift_binary(
-+swift_compiler_plugin(
-     name = "SwiftObjcValueTypeMacro",
-     srcs = ["SwiftObjcValueTypeMacro.swift"],
-     module_name = "SwiftObjcValueTypeMacro",
-@@ -8,5 +8,6 @@ swift_binary(
+diff --git a/Tests/SwiftObjcValueTypeMacroTests/BUILD.bazel b/Tests/SwiftObjcValueTypeMacroTests/BUILD.bazel
+index beb21fe..57fb5e4 100644
+--- a/Tests/SwiftObjcValueTypeMacroTests/BUILD.bazel
++++ b/Tests/SwiftObjcValueTypeMacroTests/BUILD.bazel
+@@ -6,6 +6,7 @@ swift_test(
+     module_name = "SwiftObjcValueTypeMacroTests",
      deps = [
          "//Sources/SwiftObjcValueType",
-         "@swiftpkg_swift_syntax//:SwiftCompilerPlugin",
-+        "@swiftpkg_swift_syntax//:SwiftSyntaxMacros",
++        "//Sources/SwiftObjcValueTypeMacro",
+         "@swiftpkg_swift_syntax//:SwiftSyntaxMacrosTestSupport",
      ],
  )
-diff --git a/Sources/TestingSupport/BUILD.bazel b/Sources/TestingSupport/BUILD.bazel
-index 686342f..7bfc5f3 100644
---- a/Sources/TestingSupport/BUILD.bazel
-+++ b/Sources/TestingSupport/BUILD.bazel
-@@ -4,6 +4,7 @@ swift_library(
-     name = "TestingSupport",
-     srcs = ["AssertBuildResult.swift"],
-     module_name = "TestingSupport",
-+    testonly = True,
-     visibility = ["//visibility:public"],
-     deps = ["@swiftpkg_swift_syntax//:SwiftSyntaxMacrosTestSupport"],
- )
+diff --git a/bazel_fix.patch b/bazel_fix.patch
+index 5c45f02..e69de29 100644
+--- a/bazel_fix.patch
++++ b/bazel_fix.patch
+@@ -1,47 +0,0 @@
+-diff --git a/BazelSupport.md b/BazelSupport.md
+-new file mode 100644
+-index 0000000..c49f208
+---- /dev/null
+-+++ b/BazelSupport.md
+-@@ -0,0 +1,9 @@
+-+# Bazel support
+-+
+-+`Package.swift` is the source of truth.
+-+
+-+This project leverages [`rule_swift_package_manager`](https://github.com/cgrindel/rules_swift_package_manager) to automatically generate Bazel
+-+build files from `Package.swift`. However it is imperfect.
+-+
+-+1. Test-only modules cannot be identified, so we need to insert `testonly = True`
+-+to make compile
+-diff --git a/Sources/SwiftObjcValueTypeMacro/BUILD.bazel b/Sources/SwiftObjcValueTypeMacro/BUILD.bazel
+-index 65a16f8..4cb6ba6 100644
+---- a/Sources/SwiftObjcValueTypeMacro/BUILD.bazel
+-+++ b/Sources/SwiftObjcValueTypeMacro/BUILD.bazel
+-@@ -1,6 +1,6 @@
+--load("@rules_swift//swift:swift.bzl", "swift_binary")
+-+load("@rules_swift//swift:swift.bzl", "swift_compiler_plugin")
+- 
+--swift_binary(
+-+swift_compiler_plugin(
+-     name = "SwiftObjcValueTypeMacro",
+-     srcs = ["SwiftObjcValueTypeMacro.swift"],
+-     module_name = "SwiftObjcValueTypeMacro",
+-@@ -8,5 +8,6 @@ swift_binary(
+-     deps = [
+-         "//Sources/SwiftObjcValueType",
+-         "@swiftpkg_swift_syntax//:SwiftCompilerPlugin",
+-+        "@swiftpkg_swift_syntax//:SwiftSyntaxMacros",
+-     ],
+- )
+-diff --git a/Sources/TestingSupport/BUILD.bazel b/Sources/TestingSupport/BUILD.bazel
+-index 686342f..7bfc5f3 100644
+---- a/Sources/TestingSupport/BUILD.bazel
+-+++ b/Sources/TestingSupport/BUILD.bazel
+-@@ -4,6 +4,7 @@ swift_library(
+-     name = "TestingSupport",
+-     srcs = ["AssertBuildResult.swift"],
+-     module_name = "TestingSupport",
+-+    testonly = True,
+-     visibility = ["//visibility:public"],
+-     deps = ["@swiftpkg_swift_syntax//:SwiftSyntaxMacrosTestSupport"],
+- )
