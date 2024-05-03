@@ -1,0 +1,4 @@
+local_repository(
+    name = "swift_objc_value_type",
+    path = "../",
+)
