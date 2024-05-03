@@ -4,6 +4,7 @@ swift_library(
     name = "TestingSupport",
     srcs = ["AssertBuildResult.swift"],
     module_name = "TestingSupport",
+    testonly = True,
     visibility = ["//visibility:public"],
     deps = ["@swiftpkg_swift_syntax//:SwiftSyntaxMacrosTestSupport"],
 )
