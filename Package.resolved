@@ -30,9 +30,10 @@
     {
       "identity" : "swiftbuildermacro",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/DJBen/SwiftBuilderMacro",
+      "location" : "https://github.com/dziobaczy/SwiftBuilderMacro",
       "state" : {
-        "revision" : "14607b93c4f346b12f729cf6a72f8d72e6031b39"
+        "branch" : "main",
+        "revision" : "1cab8fe3da43721779f4865b253258f35cc448e5"
       }
     },
     {

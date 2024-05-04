@@ -515,8 +515,9 @@
       "name": "swiftpkg_swiftbuildermacro",
       "identity": "swiftbuildermacro",
       "remote": {
-        "commit": "14607b93c4f346b12f729cf6a72f8d72e6031b39",
-        "remote": "https://github.com/DJBen/SwiftBuilderMacro"
+        "commit": "1cab8fe3da43721779f4865b253258f35cc448e5",
+        "remote": "https://github.com/dziobaczy/SwiftBuilderMacro",
+        "branch": "main"
       }
     },
     {
