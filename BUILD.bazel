@@ -10,6 +10,9 @@ load("@rules_swift_package_manager//swiftpkg:defs.bzl", "swift_update_packages")
 # control to ignore it (i.e., add it to your `.gitignore`).
 # gazelle:exclude .build
 
+# Exclude generation under Integration folder
+# gazelle:exclude Integration
+
 # This declaration builds a Gazelle binary that incorporates all of the Gazelle
 # plugins for the languages that you use in your workspace. In this example, we
 # are only listing the Gazelle plugin for Swift from rules_swift_package_manager.
