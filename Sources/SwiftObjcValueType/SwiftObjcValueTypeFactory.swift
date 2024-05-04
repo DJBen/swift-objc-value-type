@@ -5,12 +5,8 @@ import SharedUtilities
 /// See swift foundation type mapping to objective-C here.
 /// https://developer.apple.com/documentation/swift/working-with-foundation-types
 public struct SwiftObjcValueTypeFactory {
-    private let builderFactory: BuilderFactory
-
     public init(
-        builderFactory: BuilderFactory = BuilderFactory()
     ) {
-        self.builderFactory = builderFactory
     }
 
     @CodeBlockItemListBuilder
@@ -250,7 +246,7 @@ public struct SwiftObjcValueTypeFactory {
 
         if shouldSynthesizeObjCBuilder {
             decls.append(
-                try builderFactory.objcBuilderExtensionDecl(
+                try objcBuilderExtensionDecl(
                     structDecl: structDecl
                 )
                 .with(\.leadingTrivia, .newlines(2))

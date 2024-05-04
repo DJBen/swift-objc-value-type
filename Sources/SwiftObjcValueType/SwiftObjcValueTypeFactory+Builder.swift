@@ -1,9 +1,7 @@
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
-public struct BuilderFactory {
-    public init() {}
-
+extension SwiftObjcValueTypeFactory {
     public func objcBuilderExtensionDecl(
         structDecl: StructDeclSyntax
     ) throws -> ExtensionDeclSyntax {
@@ -35,13 +33,11 @@ public struct BuilderFactory {
                 }
             },
             memberBlockBuilder: {
-                for member in structDecl.memberBlock.members {
-                    if let variableTypeDecl = member.decl.as(VariableDeclSyntax.self) {
-                        try objcVariableDecl(
-                            variableTypeDecl: variableTypeDecl
-                        )
-                        .with(\.leadingTrivia, .newlines(2))
-                    }
+                try structDecl.enumerateVariableDecls { variableTypeDecl in
+                    try objcVariableDecl(
+                        variableTypeDecl: variableTypeDecl
+                    )
+                    .with(\.leadingTrivia, .newlines(2))
                 }
 
                 DeclSyntax(
@@ -71,20 +67,16 @@ public struct BuilderFactory {
                         )
                     )
                 ) {
-                    for member in structDecl.memberBlock.members {
-                        if let variableTypeDecl = member.decl.as(VariableDeclSyntax.self) {
-                            for binding in variableTypeDecl.bindings {
-                                if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let typeAnnotation = binding.typeAnnotation, !typeAnnotation.type.is(OptionalTypeSyntax.self) {
-                                    let variableName = identifierPattern.identifier.trimmed.text
-                                    StmtSyntax(
-                                        """
-                                        guard let \(raw: variableName) = \(raw: variableName) else {
-                                            throw error(field: "\(raw: variableName)")
-                                        }
-                                        """
-                                    )
+                    structDecl.enumerateBindings { binding in
+                        if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let typeAnnotation = binding.typeAnnotation, !typeAnnotation.type.is(OptionalTypeSyntax.self) {
+                            let variableName = identifierPattern.identifier.trimmed.text
+                            StmtSyntax(
+                                """
+                                guard let \(raw: variableName) = \(raw: variableName) else {
+                                    throw error(field: "\(raw: variableName)")
                                 }
-                            }
+                                """
+                            )
                         }
                     }
 
@@ -95,20 +87,16 @@ public struct BuilderFactory {
                             ),
                             leftParen: .leftParenToken(),
                             arguments: LabeledExprListSyntax {
-                                for member in structDecl.memberBlock.members {
-                                    if let variableTypeDecl = member.decl.as(VariableDeclSyntax.self) {
-                                        for binding in variableTypeDecl.bindings {
-                                            if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let typeAnnotation = binding.typeAnnotation {
-                                                let variableName = identifierPattern.identifier.trimmed.text
+                                structDecl.enumerateBindings { binding in
+                                    if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let typeAnnotation = binding.typeAnnotation {
+                                        let variableName = identifierPattern.identifier.trimmed.text
 
-                                                LabeledExprSyntax(
-                                                    label: variableName,
-                                                    expression: typeAnnotation.unwrapedNSNumberForNonNullVariables(
-                                                        variableName: variableName
-                                                    )
-                                                )
-                                            }
-                                        }
+                                        LabeledExprSyntax(
+                                            label: variableName,
+                                            expression: typeAnnotation.unwrapedNSNumberForNonNullVariables(
+                                                variableName: variableName
+                                            )
+                                        )
                                     }
                                 }
                             },

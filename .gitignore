@@ -42,3 +42,4 @@ eclipse-*bin/
 # User-specific .bazelrc
 user.bazelrc
 
+Integration/bazel-*
