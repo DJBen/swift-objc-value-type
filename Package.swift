@@ -16,7 +16,7 @@ let package = Package(
     .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.3.1"),
     .package(url: "https://github.com/apple/swift-syntax.git", from: "510.0.1"),
     .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "1.3.0"),
-    .package(url: "https://github.com/DJBen/SwiftBuilderMacro", revision: "14607b93c4f346b12f729cf6a72f8d72e6031b39"),
+    .package(url: "https://github.com/dziobaczy/SwiftBuilderMacro", branch: "main"),
   ],
   targets: [
     .macro(

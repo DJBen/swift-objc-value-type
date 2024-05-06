@@ -183,6 +183,109 @@ final class SwiftObjcValueTypeTests: XCTestCase {
         )
     }
 
+    func testsValueClass_ignoreDerivedProperties() throws {
+        let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
+            codeBlocks: CodeBlockItemListSyntax {
+                "import Foundation"
+
+                "import CoreGraphics"
+
+                #"""
+                public struct Foo: Equatable {
+                    // public let rect: CGRect
+
+                    public let str: String
+                    public let optDouble: Double?
+                    public let isValid: Bool
+
+                    public var isNotValid: Bool {
+                        return !isValid
+                    }
+                }
+                """#
+            },
+            shouldSynthesizeNSCoding: false,
+            shouldSynthesizeNSCopying: false,
+            shouldSynthesizeObjCBuilder: true
+        )
+
+        assertBuildResult(
+            result,
+            #"""
+            import Foundation
+            import CoreGraphics
+
+            @objc(Foo)
+            public class FooClass: NSObject {
+
+                @objc public var str: String {
+                    wrapped.str
+                }
+
+                @objc public var optDouble: NSNumber? {
+                    wrapped.optDouble.map(NSNumber.init)
+                }
+
+                @objc public var isValid: Bool {
+                    wrapped.isValid
+                }
+
+                public let wrapped: Foo
+
+                @objc
+                public init(str: String, optDouble: NSNumber?, isValid: Bool) {
+                    self.wrapped = Foo(str: str, optDouble: optDouble.map(\.doubleValue), isValid: isValid)
+                }
+
+                public override func isEqual(_ object: Any?) -> Bool {
+                    if let other = object as? FooClass {
+                        return wrapped == other.wrapped
+                    }
+                    return false
+                }
+
+                @available(*, unavailable)
+                public override init() {
+                    fatalError()
+                }
+            }
+
+            extension FooClass {
+                @objc
+                public class FooBuilder: NSObject {
+
+                    @objc public var str: String?
+
+                    @objc public var optDouble: NSNumber?
+
+                    @objc public var isValid: NSNumber?
+
+                    private func error(field: String) -> Error {
+                        NSError(
+                            domain: "ValueType.Builder.NonnullFieldUnset",
+                            code: 1,
+                            userInfo: [NSLocalizedDescriptionKey: "Failed to build because nonnull field '\(field)' is unset"]
+                        )
+                    }
+
+                    @objc
+                    public func build() throws -> FooClass {
+                        guard let str = str else {
+                            throw error(field: "str")
+                        }
+                        guard let isValid = isValid else {
+                            throw error(field: "isValid")
+                        }
+
+                        return FooClass(str: str, optDouble: optDouble, isValid: isValid.boolValue)
+                    }
+                }
+            }
+
+            """#
+        )
+    }
+
     func testValueClass_customStringConvertible() throws {
         let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
             codeBlocks: CodeBlockItemListSyntax {

@@ -1,0 +1,24 @@
+load("@rules_swift//swift:swift.bzl", "swift_binary")
+
+swift_binary(
+    name = "SwiftObjcValueTypeExecutable",
+    srcs = [
+        "Commands/FileHandlingCommand.swift",
+        "Commands/GenerateValueTypeCommand.swift",
+        "Commands/MigrateRemodelCommand.swift",
+        "Commands/ParseRemodelCommand.swift",
+        "SwiftObjcValueTypeExecutable.swift",
+        "Utils/FileHandlerOutputStream.swift",
+        "Utils/SourceFileContentIterator.swift",
+        "Utils/StdinIterator.swift",
+    ],
+    module_name = "SwiftObjcValueTypeExecutable",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//Sources/Remodel",
+        "//Sources/SwiftObjcValueType",
+        "@swiftpkg_swift_argument_parser//:ArgumentParser",
+        "@swiftpkg_swift_custom_dump//:CustomDump",
+        "@swiftpkg_swift_syntax//:SwiftSyntaxMacroExpansion",
+    ],
+)
