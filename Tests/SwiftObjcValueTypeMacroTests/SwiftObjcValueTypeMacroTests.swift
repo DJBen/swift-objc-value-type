@@ -109,14 +109,41 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
             extension ValueClass {
                 @objc
                 public class ValueBuilder: NSObject {
+                    @objc public class func value() -> ValueBuilder {
+                        ValueBuilder()
+                    }
 
-                    @objc public var doubleValue: NSNumber?
+                    @objc public class func value(existingValue: ValueClass) -> ValueClass {
+                        ValueBuilder.value().withDoubleValue(existingValue.doubleValue).withOptInt(existingValue.optInt).withStringArray(existingValue.stringArray).withMap(existingValue.map).build()
+                    }
 
-                    @objc public var optInt: NSNumber?
+                    private var doubleValue: Double?
 
-                    @objc public var stringArray: [String]?
+                    @objc public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
+                        self.doubleValue = doubleValue
+                        return self
+                    }
 
-                    @objc public var map: [String: [String: Double]]?
+                    private var optInt: NSNumber?
+
+                    @objc public func withOptInt(_ optInt: NSNumber?) -> ValueBuilder {
+                        self.optInt = optInt
+                        return self
+                    }
+
+                    private var stringArray: [String]?
+
+                    @objc public func withStringArray(_ stringArray: [String]) -> ValueBuilder {
+                        self.stringArray = stringArray
+                        return self
+                    }
+
+                    private var map: [String: [String: Double]]?
+
+                    @objc public func withMap(_ map: [String: [String: Double]]) -> ValueBuilder {
+                        self.map = map
+                        return self
+                    }
 
                     private func error(field: String) -> Error {
                         NSError(
@@ -126,8 +153,12 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
                         )
                     }
 
+                    @objc func build() -> ValueClass {
+                        try! safeBuild()
+                    }
+
                     @objc
-                    public func build() throws -> ValueClass {
+                    public func safeBuild() throws -> ValueClass {
                         guard let doubleValue = doubleValue else {
                             throw error(field: "doubleValue")
                         }
@@ -138,7 +169,7 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
                             throw error(field: "map")
                         }
 
-                        return ValueClass(doubleValue: doubleValue.doubleValue, optInt: optInt, stringArray: stringArray, map: map)
+                        return ValueClass(doubleValue: doubleValue, optInt: optInt, stringArray: stringArray, map: map)
                     }
                 }
             }
