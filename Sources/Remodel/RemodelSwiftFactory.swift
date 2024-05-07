@@ -52,9 +52,26 @@ public class RemodelSwiftFactory {
 
     @CodeBlockItemListBuilder
     public func generate(
-        _ model: RMModelSyntax
+        _ model: RMModelSyntax,
+        imports: [String] = [],
+        existingPrefix: String = ""
     ) throws -> CodeBlockItemListSyntax {
+        let model: RMModelSyntax = {
+            let modelBuilder = RMModelSyntax.Builder(model)
+            let existingPrefix = existingPrefix.trimmingCharacters(in: .whitespaces)
+            if !existingPrefix.isEmpty && model.name.hasPrefix(existingPrefix) {
+                modelBuilder.name = String(model.name.dropFirst(existingPrefix.lengthOfBytes(using: .utf8)))
+            }
+            return try! modelBuilder.build()
+        }()
+
         try CodeBlockItemListSyntax {
+            for `import` in imports {
+                DeclSyntax(
+                    "import \(raw: `import`)"
+                )
+            }
+
             switch model.type {
             case .value:
                 for decl in try generateValue(model) { decl }

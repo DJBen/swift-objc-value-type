@@ -78,7 +78,12 @@ extension FileHandlingCommand {
     /// - Parameters:
     ///   - fileName: The file name. If missing, it assumes "Wrapper.swift".
     ///   - writeBlock: A closure in which the first argument is a sink object providing an interface to stream content.
-    func withFileHandler(_ fileName: String?, writeBlock: (TextOutputStreamableSink) throws -> Void) throws -> Void {
+    func withFileHandler(
+        _ filePath: String?,
+        fileNameTransform: (String) -> String,
+        extensionTransform: (String) -> String,
+        writeBlock: (TextOutputStreamableSink) throws -> Void
+    ) throws -> Void {
         guard let outputDir = fileArguments.outputDir else {
             try writeBlock(
                 FileStreamSink(stream: FileHandlerOutputStream(.standardOutput))
@@ -93,14 +98,13 @@ extension FileHandlingCommand {
         }
 
         let outputFileName: String
-        if let fileName = fileName {
+        if let filePath = filePath {
             // This file name is a relative path that gets passed in.
-            let url = URL(fileURLWithPath: fileName)
+            let url = URL(fileURLWithPath: filePath)
             let fileBaseName = url.deletingPathExtension().lastPathComponent
-            let fileExtension = url.pathExtension.isEmpty ? "swift" : url.pathExtension
 
-            // Append -Wrapper to the file name
-            outputFileName = "\(fileBaseName)Wrapper.\(fileExtension)"
+            // Apply file transform to the file name
+            outputFileName = "\(fileNameTransform(fileBaseName)).\(extensionTransform(url.pathExtension))"
         } else {
             // Default file name with -Wrapper appended
             outputFileName = "Wrapper.swift"

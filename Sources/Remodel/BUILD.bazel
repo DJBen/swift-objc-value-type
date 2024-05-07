@@ -9,5 +9,8 @@ swift_library(
     ],
     module_name = "Remodel",
     visibility = ["//visibility:public"],
-    deps = ["@swiftpkg_swift_syntax//:SwiftSyntaxBuilder"],
+    deps = [
+        "@swiftpkg_swift_syntax//:SwiftSyntaxBuilder",
+        "@swiftpkg_swiftbuildermacro//:BuilderMacro",
+    ],
 )

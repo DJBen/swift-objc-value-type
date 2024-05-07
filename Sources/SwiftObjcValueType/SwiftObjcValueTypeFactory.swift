@@ -13,13 +13,15 @@ public struct SwiftObjcValueTypeFactory {
     public func wrappingClassDecl(
         codeBlocks: CodeBlockItemListSyntax,
         referencedSiblingTypes: [String] = [],
+        prefix: String = "",
+        imports: [String] = [],
         shouldSynthesizeNSCoding: Bool = true,
         shouldSynthesizeNSCopying: Bool = true,
         shouldSynthesizeObjCBuilder: Bool = true
     ) throws -> CodeBlockItemListSyntax {
         for codeBlockItem in codeBlocks {
-            // Inherit import statements
-            if let importDecl = codeBlockItem.item.as(ImportDeclSyntax.self) {
+            // Inherit import statements, deduping with incoming ones
+            if let importDecl = codeBlockItem.item.as(ImportDeclSyntax.self), !importDecl.path.contains(where: { imports.contains($0.name.trimmed.text) }) {
                 importDecl
             }
         }
@@ -31,6 +33,8 @@ public struct SwiftObjcValueTypeFactory {
                     for decl in try wrappingClassDecl(
                         structDecl: structDecl,
                         referencedSiblingTypes: referencedSiblingTypes,
+                        prefix: prefix,
+                        imports: imports,
                         shouldSynthesizeEquatable: descriptor.inheritedTypes.contains("Equatable") || descriptor.inheritedTypes.contains("Hashable") ||
                         descriptor.inheritedTypes.contains("Identifiable"),
                         shouldSynthesizeHash: descriptor.inheritedTypes.contains("Hashable"),
@@ -56,6 +60,8 @@ public struct SwiftObjcValueTypeFactory {
 
     public func wrappingClassDeclInMacro(
         structDecl: StructDeclSyntax,
+        prefix: String,
+        imports: [String],
         shouldSynthesizeNSCoding: Bool,
         shouldSynthesizeNSCopying: Bool,
         shouldSynthesizeObjCBuilder: Bool
@@ -63,6 +69,8 @@ public struct SwiftObjcValueTypeFactory {
         try wrappingClassDecl(
             structDecl: structDecl,
             referencedSiblingTypes: [],
+            prefix: prefix,
+            imports: imports,
             shouldSynthesizeEquatable: structDecl.inheritedTypes.contains("Equatable") || structDecl.inheritedTypes.contains("Hashable") ||
             structDecl.inheritedTypes.contains("Identifiable"),
             shouldSynthesizeHash: structDecl.inheritedTypes.contains("Hashable"),
@@ -77,6 +85,8 @@ public struct SwiftObjcValueTypeFactory {
     public func wrappingClassDecl(
         structDecl: StructDeclSyntax,
         referencedSiblingTypes: [String],
+        prefix: String,
+        imports: [String],
         shouldSynthesizeEquatable: Bool,
         shouldSynthesizeHash: Bool,
         shouldSynthesizeNSCoding: Bool,
@@ -89,6 +99,15 @@ public struct SwiftObjcValueTypeFactory {
 
         var decls = [any DeclSyntaxProtocol]()
 
+        for (index, `import`) in imports.enumerated() {
+            decls.append(
+                DeclSyntax(
+                    "import \(raw: `import`)"
+                )
+                .with(\.trailingTrivia, index + 1 >= imports.count ? .newlines(2) : [])
+            )
+        }
+
         if shouldSynthesizeNSCoding {
             decls.append(contentsOf: nsCodingConstants(structDecl: structDecl))
         }
@@ -96,7 +115,7 @@ public struct SwiftObjcValueTypeFactory {
         decls.append(
             try ClassDeclSyntax(
                 attributes: AttributeListSyntax {
-                    .attribute("@objc(\(raw: structName))")
+                    .attribute("@objc(\(raw: prefix + structName))")
                 }.with(\.trailingTrivia, .newline),
                 modifiers: structDecl.modifiers.trimmed,
                 name: "\(raw: structName)Class",
@@ -247,7 +266,8 @@ public struct SwiftObjcValueTypeFactory {
         if shouldSynthesizeObjCBuilder {
             decls.append(
                 try objcBuilderExtensionDecl(
-                    structDecl: structDecl
+                    structDecl: structDecl,
+                    prefix: prefix
                 )
                 .with(\.leadingTrivia, .newlines(2))
                 .with(\.trailingTrivia, .newline)
