@@ -21,7 +21,7 @@ extension SwiftObjcValueTypeFactory {
     ) throws -> MemberBlockItemListSyntax {
         let structName = structDecl.name.trimmed.text
 
-        try ClassDeclSyntax(
+        ClassDeclSyntax(
             attributes: AttributeListSyntax {
                 .attribute("@objc")
             }.with(\.trailingTrivia, .newline),
@@ -33,11 +33,151 @@ extension SwiftObjcValueTypeFactory {
                 }
             },
             memberBlockBuilder: {
-                try structDecl.enumerateVariableDecls { variableTypeDecl in
-                    try objcVariableDecl(
-                        variableTypeDecl: variableTypeDecl
+
+                // @objc
+                // public class func foo() -> FooBuilder {
+                //     FooBuilder()
+                // }
+                FunctionDeclSyntax(
+                    attributes: AttributeListSyntax {
+                        "@objc"
+                    },
+                    modifiers: DeclModifierListSyntax {
+                        DeclModifierSyntax(name: .keyword(.public))
+                        DeclModifierSyntax(name: .keyword(.class))
+                    },
+                    name: .identifier(structName.lowercasingFirst),
+                    signature: FunctionSignatureSyntax(
+                        parameterClause: FunctionParameterClauseSyntax(
+                            leftParen: .leftParenToken(),
+                            parameters: FunctionParameterListSyntax {},
+                            rightParen: .rightParenToken()
+                        ),
+                        returnClause: ReturnClauseSyntax(
+                            arrow: .arrowToken(),
+                            type: IdentifierTypeSyntax(
+                                name: .identifier("\(structName)Builder")
+                            )
+                        )
                     )
-                    .with(\.leadingTrivia, .newlines(2))
+                ) {
+                    FunctionCallExprSyntax(
+                        calledExpression: DeclReferenceExprSyntax(
+                            baseName: .identifier("\(structName)Builder")
+                        ),
+                        leftParen: .leftParenToken(),
+                        arguments: LabeledExprListSyntax {},
+                        rightParen: .rightParenToken()
+                    )
+                }
+
+                // @objc class func value(existingValue: ValueClass) -> ValueClass {
+                //     ValueBuilder.value().withDoubleValue(...).with...().build()
+                // }
+                FunctionDeclSyntax(
+                    attributes: AttributeListSyntax {
+                        "@objc"
+                    },
+                    modifiers: DeclModifierListSyntax {
+                        DeclModifierSyntax(name: .keyword(.public))
+                        DeclModifierSyntax(name: .keyword(.class))
+                    },
+                    name: .identifier("\(structName.lowercasingFirst)"),
+                    signature: FunctionSignatureSyntax(
+                        parameterClause: FunctionParameterClauseSyntax(
+                            leftParen: .leftParenToken(),
+                            parameters: FunctionParameterListSyntax {
+                                FunctionParameterSyntax(
+                                    firstName: .identifier("existing\(structName)"),
+                                    type: IdentifierTypeSyntax(name: "\(raw: structName)Class")
+                                )
+                            },
+                            rightParen: .rightParenToken()
+                        ),
+                        returnClause: ReturnClauseSyntax(
+                            arrow: .arrowToken(),
+                            type: IdentifierTypeSyntax(
+                                name: .identifier("\(structName)Class")
+                            )
+                        )
+                    )
+                ) {
+                    FunctionCallExprSyntax(
+                        calledExpression: MemberAccessExprSyntax(
+                            base: DeclReferenceExprSyntax(
+                                baseName: .identifier("\(structName)Builder")
+                            ),
+                            period: .periodToken(),
+                            declName: DeclReferenceExprSyntax(
+                                baseName: .identifier(structName.lowercasingFirst)
+                            )
+                        ),
+                        leftParen: .leftParenToken(),
+                        arguments: LabeledExprListSyntax {},
+                        rightParen: .rightParenToken()
+                    )
+                    .withExistingParams(structDecl: structDecl)
+                }
+                .with(\.leadingTrivia, .newlines(2))
+
+                structDecl.enumerateBindings { binding in
+                    if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let typeAnnotation = binding.typeAnnotation {
+
+                        // private var str: String?
+                        VariableDeclSyntax(
+                            modifiers: DeclModifierListSyntax {
+                                DeclModifierSyntax(name: .keyword(.private))
+                            },
+                            bindingSpecifier: .keyword(.var)
+                        ) {
+                            if let typeAnnotation = binding.typeAnnotation {
+                                PatternBindingSyntax(
+                                    pattern: binding.pattern,
+                                    typeAnnotation: TypeAnnotationSyntax(type: typeAnnotation.type.asNSNumberIfOptionalNumeral.optionalized)
+                                )
+                            }
+                        }
+                        .with(\.leadingTrivia, .newlines(2))
+
+                        // @objc
+                        // public func withStr(_ str: String?) {
+                        //     self.str = str
+                        //     return self
+                        // }
+                        FunctionDeclSyntax(
+                            attributes: AttributeListSyntax {
+                                "@objc"
+                            },
+                            modifiers: DeclModifierListSyntax {
+                                DeclModifierSyntax(name: .keyword(.public))
+                            },
+                            name: .identifier("with\(identifierPattern.identifier.trimmed.text.uppercasingFirst)"),
+                            signature: FunctionSignatureSyntax(
+                                parameterClause: FunctionParameterClauseSyntax(
+                                    leftParen: .leftParenToken(),
+                                    parameters: FunctionParameterListSyntax {
+                                        FunctionParameterSyntax(
+                                            firstName: .wildcardToken(),
+                                            secondName: identifierPattern.identifier.trimmed,
+                                            type: typeAnnotation.type.asNSNumberIfOptionalNumeral
+                                        )
+                                    },
+                                    rightParen: .rightParenToken()
+                                ),
+                                returnClause: ReturnClauseSyntax(
+                                    arrow: .arrowToken(),
+                                    type: IdentifierTypeSyntax(
+                                        name: .identifier("\(structName)Builder")
+                                    )
+                                )
+                            )
+                        ) {
+                            "self.\(raw: identifierPattern.identifier.trimmed.text) = \(raw: identifierPattern.identifier.trimmed.text)"
+
+                            "return self"
+                        }
+                        .with(\.leadingTrivia, .newlines(2))
+                    }
                 }
 
                 DeclSyntax(
@@ -53,12 +193,21 @@ extension SwiftObjcValueTypeFactory {
                 )
                 .with(\.leadingTrivia, .newlines(2))
 
+                DeclSyntax(
+                    """
+                    @objc func build() -> \(raw: structName)Class {
+                        try! safeBuild()
+                    }
+                    """
+                )
+                .with(\.leadingTrivia, .newlines(2))
+
                 FunctionDeclSyntax(
                     attributes: AttributeListSyntax {
                         .attribute("@objc")
                     }.with(\.trailingTrivia, .newline),
                     modifiers: structDecl.modifiers.trimmed,
-                    name: "build",
+                    name: "safeBuild",
                     signature: FunctionSignatureSyntax(
                         parameterClause: FunctionParameterClauseSyntax {},
                         effectSpecifiers: FunctionEffectSpecifiersSyntax(throwsSpecifier: .keyword(.throws)),
@@ -88,13 +237,13 @@ extension SwiftObjcValueTypeFactory {
                             leftParen: .leftParenToken(),
                             arguments: LabeledExprListSyntax {
                                 structDecl.enumerateBindings { binding in
-                                    if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let typeAnnotation = binding.typeAnnotation {
+                                    if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self) {
                                         let variableName = identifierPattern.identifier.trimmed.text
 
                                         LabeledExprSyntax(
                                             label: variableName,
-                                            expression: typeAnnotation.unwrapedNSNumberForNonNullVariables(
-                                                variableName: variableName
+                                            expression: DeclReferenceExprSyntax(
+                                                baseName: .identifier(variableName)
                                             )
                                         )
                                     }
@@ -109,56 +258,59 @@ extension SwiftObjcValueTypeFactory {
             }
         )
     }
+}
 
-    @MemberBlockItemListBuilder
-    private func objcVariableDecl(
-        variableTypeDecl: VariableDeclSyntax
-    ) throws -> MemberBlockItemListSyntax {
-        VariableDeclSyntax(
-            attributes: AttributeListSyntax {
-                .attribute("@objc")
-            },
-            modifiers: variableTypeDecl.modifiers.trimmed,
-            bindingSpecifier: .keyword(.var)
-        ) {
-            for binding in variableTypeDecl.bindings {
-                if let typeAnnotation = binding.typeAnnotation {
+extension FunctionCallExprSyntax {
+    func withExistingParams(structDecl: StructDeclSyntax) -> FunctionCallExprSyntax {
+        let structName = structDecl.name.trimmed.text
 
-                    PatternBindingSyntax(
-                        pattern: binding.pattern,
-                        typeAnnotation: {
-                            if let optional = typeAnnotation.type.as(OptionalTypeSyntax.self) {
-                                if optional.wrappedType.isNSNumberBridged {
-                                    return TypeAnnotationSyntax(
-                                        type: OptionalTypeSyntax(
-                                            wrappedType: IdentifierTypeSyntax(name: "NSNumber")
-                                        )
-                                    )
-                                } else {
-                                    return TypeAnnotationSyntax(
-                                        type: optional
-                                    )
-                                }
-                            } else {
-                                if typeAnnotation.type.isNSNumberBridged {
-                                    return TypeAnnotationSyntax(
-                                        type: OptionalTypeSyntax(
-                                            wrappedType: IdentifierTypeSyntax(name: "NSNumber")
-                                        )
-                                    )
-                                } else {
-                                    return TypeAnnotationSyntax(
-                                        type: OptionalTypeSyntax(
-                                            wrappedType: typeAnnotation.type
-                                        )
-                                    )
-                                }
-                            }
-                        }()
-                    )
-                }
+        var expr = self
+        structDecl.enumerateBindings { binding in
+            if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self) {
+                let variableName = identifierPattern.identifier.trimmed.text
+                expr = expr.withExistingParams(variableName, structName: structName)
             }
         }
+        return expr.build()
+    }
+
+    // .withOptInt(existingValue.optInt
+    private func withExistingParams(_ param: String, structName: String) -> FunctionCallExprSyntax {
+        FunctionCallExprSyntax(
+            calledExpression: MemberAccessExprSyntax(
+                base: self,
+                period: .periodToken(),
+                declName: DeclReferenceExprSyntax(
+                    baseName: .identifier("with\(param.uppercasingFirst)")
+                )
+            ),
+            leftParen: .leftParenToken(),
+            arguments: LabeledExprListSyntax {
+                LabeledExprSyntax(
+                    expression: MemberAccessExprSyntax(
+                        base: DeclReferenceExprSyntax(baseName: .identifier("existing\(structName)")),
+                        period: .periodToken(),
+                        declName: DeclReferenceExprSyntax(baseName: .identifier(param))
+                    )
+                )
+            },
+            rightParen: .rightParenToken()
+        )
+    }
+
+    private func build() -> FunctionCallExprSyntax {
+        FunctionCallExprSyntax(
+            calledExpression: MemberAccessExprSyntax(
+                base: self,
+                period: .periodToken(),
+                declName: DeclReferenceExprSyntax(
+                    baseName: .identifier("build")
+                )
+            ),
+            leftParen: .leftParenToken(),
+            arguments: LabeledExprListSyntax {},
+            rightParen: .rightParenToken()
+        )
     }
 }
 

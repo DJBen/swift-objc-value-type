@@ -79,14 +79,41 @@ final class SwiftObjcValueTypeTests: XCTestCase {
     extension ValueClass {
         @objc
         public class ValueBuilder: NSObject {
+            @objc public class func value() -> ValueBuilder {
+                ValueBuilder()
+            }
 
-            @objc public var doubleValue: NSNumber?
+            @objc public class func value(existingValue: ValueClass) -> ValueClass {
+                ValueBuilder.value().withDoubleValue(existingValue.doubleValue).withOptInt(existingValue.optInt).withStringArray(existingValue.stringArray).withMap(existingValue.map).build()
+            }
 
-            @objc public var optInt: NSNumber?
+            private var doubleValue: Double?
 
-            @objc public var stringArray: [String]?
+            @objc public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
+                self.doubleValue = doubleValue
+                return self
+            }
 
-            @objc public var map: [String: [String: Double]]?
+            private var optInt: NSNumber?
+
+            @objc public func withOptInt(_ optInt: NSNumber?) -> ValueBuilder {
+                self.optInt = optInt
+                return self
+            }
+
+            private var stringArray: [String]?
+
+            @objc public func withStringArray(_ stringArray: [String]) -> ValueBuilder {
+                self.stringArray = stringArray
+                return self
+            }
+
+            private var map: [String: [String: Double]]?
+
+            @objc public func withMap(_ map: [String: [String: Double]]) -> ValueBuilder {
+                self.map = map
+                return self
+            }
 
             private func error(field: String) -> Error {
                 NSError(
@@ -96,8 +123,12 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 )
             }
 
+            @objc func build() -> ValueClass {
+                try! safeBuild()
+            }
+
             @objc
-            public func build() throws -> ValueClass {
+            public func safeBuild() throws -> ValueClass {
                 guard let doubleValue = doubleValue else {
                     throw error(field: "doubleValue")
                 }
@@ -108,7 +139,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     throw error(field: "map")
                 }
 
-                return ValueClass(doubleValue: doubleValue.doubleValue, optInt: optInt, stringArray: stringArray, map: map)
+                return ValueClass(doubleValue: doubleValue, optInt: optInt, stringArray: stringArray, map: map)
             }
         }
     }
@@ -253,12 +284,34 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             extension FooClass {
                 @objc
                 public class FooBuilder: NSObject {
+                    @objc public class func foo() -> FooBuilder {
+                        FooBuilder()
+                    }
 
-                    @objc public var str: String?
+                    @objc public class func foo(existingFoo: FooClass) -> FooClass {
+                        FooBuilder.foo().withStr(existingFoo.str).withOptDouble(existingFoo.optDouble).withIsValid(existingFoo.isValid).build()
+                    }
 
-                    @objc public var optDouble: NSNumber?
+                    private var str: String?
 
-                    @objc public var isValid: NSNumber?
+                    @objc public func withStr(_ str: String) -> FooBuilder {
+                        self.str = str
+                        return self
+                    }
+
+                    private var optDouble: NSNumber?
+
+                    @objc public func withOptDouble(_ optDouble: NSNumber?) -> FooBuilder {
+                        self.optDouble = optDouble
+                        return self
+                    }
+
+                    private var isValid: Bool?
+
+                    @objc public func withIsValid(_ isValid: Bool) -> FooBuilder {
+                        self.isValid = isValid
+                        return self
+                    }
 
                     private func error(field: String) -> Error {
                         NSError(
@@ -268,8 +321,12 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                         )
                     }
 
+                    @objc func build() -> FooClass {
+                        try! safeBuild()
+                    }
+
                     @objc
-                    public func build() throws -> FooClass {
+                    public func safeBuild() throws -> FooClass {
                         guard let str = str else {
                             throw error(field: "str")
                         }
@@ -277,7 +334,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                             throw error(field: "isValid")
                         }
 
-                        return FooClass(str: str, optDouble: optDouble, isValid: isValid.boolValue)
+                        return FooClass(str: str, optDouble: optDouble, isValid: isValid)
                     }
                 }
             }
@@ -723,10 +780,41 @@ public class ValueClass: NSObject, NSCopying, NSCoding {
 extension ValueClass {
     @objc
     public class ValueBuilder: NSObject {
-        @objc public var doubleValue: NSNumber?
-        @objc public var optInt: NSNumber?
-        @objc public var stringArray: [String]?
-        @objc public var map: [String: [String: Double]]?
+        @objc public class func value() -> ValueBuilder {
+            ValueBuilder()
+        }
+
+        @objc public class func value(existingValue: ValueClass) -> ValueClass {
+            ValueBuilder.value().withDoubleValue(existingValue.doubleValue).withOptInt(existingValue.optInt).withStringArray(existingValue.stringArray).withMap(existingValue.map).build()
+        }
+
+        private var doubleValue: Double?
+
+        @objc public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
+            self.doubleValue = doubleValue
+            return self
+        }
+
+        private var optInt: NSNumber?
+
+        @objc public func withOptInt(_ optInt: NSNumber?) -> ValueBuilder {
+            self.optInt = optInt
+            return self
+        }
+
+        private var stringArray: [String]?
+
+        @objc public func withStringArray(_ stringArray: [String]) -> ValueBuilder {
+            self.stringArray = stringArray
+            return self
+        }
+
+        private var map: [String: [String: Double]]?
+
+        @objc public func withMap(_ map: [String: [String: Double]]) -> ValueBuilder {
+            self.map = map
+            return self
+        }
 
         private func error(field: String) -> Error {
             NSError(
@@ -736,8 +824,12 @@ extension ValueClass {
             )
         }
 
+        @objc func build() -> ValueClass {
+            try! safeBuild()
+        }
+
         @objc
-        public func build() throws -> ValueClass {
+        public func safeBuild() throws -> ValueClass {
             guard let doubleValue = doubleValue else {
                 throw error(field: "doubleValue")
             }
@@ -748,7 +840,7 @@ extension ValueClass {
                 throw error(field: "map")
             }
 
-            return ValueClass(doubleValue: doubleValue.doubleValue, optInt: optInt, stringArray: stringArray, map: map)
+            return ValueClass(doubleValue: doubleValue, optInt: optInt, stringArray: stringArray, map: map)
         }
     }
 }

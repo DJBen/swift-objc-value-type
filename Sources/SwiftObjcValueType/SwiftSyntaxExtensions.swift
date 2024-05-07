@@ -28,6 +28,13 @@ extension TypeSyntaxProtocol {
         }
     }
 
+    var optionalized: OptionalTypeSyntax {
+        if let optional = self.as(OptionalTypeSyntax.self) {
+            return optional
+        }
+        return OptionalTypeSyntax(wrappedType: self)
+    }
+
     var nsCodableDecodingFunction: TokenSyntax {
         if let identifierType = self.as(IdentifierTypeSyntax.self) {
             switch identifierType.name.trimmed.text {
@@ -247,6 +254,12 @@ extension StructDeclSyntax {
     func enumerateBindings(
         @CodeBlockItemListBuilder memberBlockItem: (PatternBindingSyntax) throws -> CodeBlockItemListSyntax
     ) rethrows -> CodeBlockItemListSyntax {
+        try enumerateBindingsGeneric(memberBlockItem: memberBlockItem)
+    }
+
+    func enumerateBindings(
+        @MemberBlockItemListBuilder memberBlockItem: (PatternBindingSyntax) throws -> MemberBlockItemListSyntax
+    ) rethrows -> MemberBlockItemListSyntax {
         try enumerateBindingsGeneric(memberBlockItem: memberBlockItem)
     }
 
