@@ -61,7 +61,7 @@ public class ValueObjc: NSObject, NSCopying {
         return false
     }
 
-    private init(wrapped: Value) {
+    public init(wrapped: Value) {
         self.wrapped = wrapped
     }
 }

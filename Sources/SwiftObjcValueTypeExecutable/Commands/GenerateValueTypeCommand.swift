@@ -37,7 +37,7 @@ struct GenerateValueTypeCommand: ParsableCommand, FileHandlingCommand {
         for (filePath, tree) in sourceFiles {
             let generatedCodeBlocks = try SwiftObjcValueTypeFactory().wrappingClassDecl(
                 codeBlocks: tree.statements,
-                referencedSiblingTypes: preprocessor.referencedSiblingTypes, 
+                referencedSwiftTypes: preprocessor.referencedSwiftTypes, 
                 prefix: genArguments.prefix,
                 imports: genArguments.imports,
                 shouldSynthesizeNSCopying: genArguments.shouldSynthesizeNSCopying,

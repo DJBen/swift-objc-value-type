@@ -73,7 +73,7 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
                     return false
                 }
 
-                private init(wrapped: Value) {
+                public init(wrapped: Value) {
                     self.wrapped = wrapped
                 }
 

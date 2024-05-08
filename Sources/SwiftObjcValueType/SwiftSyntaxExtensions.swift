@@ -7,6 +7,22 @@ extension TypeSyntaxProtocol {
     var isNSNumberBridged: Bool {
         asNSNumberBridged() != nil
     }
+    
+    func aliasingToObjcIfSiblingSwiftType(_ referencedSwiftTypes: [String]) -> any TypeSyntaxProtocol {
+        if let identifierType = self.as(IdentifierTypeSyntax.self), referencedSwiftTypes.contains(identifierType.trimmed.name.text) {
+            return IdentifierTypeSyntax(name: .identifier("\(identifierType.trimmed.name.text)Objc"))
+        } else {
+            return self
+        }
+    }
+
+    func isSiblingSwiftType(_ referencedSwiftTypes: [String]) -> Bool {
+        if let identifierType = self.as(IdentifierTypeSyntax.self), referencedSwiftTypes.contains(identifierType.trimmed.name.text) {
+            return true
+        } else {
+            return false
+        }
+    }
 
     func asNSNumberBridged() -> IdentifierTypeSyntax? {
         if let identifierType = self.as(IdentifierTypeSyntax.self) {
@@ -115,6 +131,47 @@ extension DeclReferenceExprSyntax {
 }
 
 extension ExprSyntaxProtocol {
+    // Append `.wrapped`.
+    func appendingWrappedIfSwiftType(
+        type: some TypeSyntaxProtocol,
+        referencedSwiftTypes: [String]
+    ) -> any ExprSyntaxProtocol {
+        if type.isSiblingSwiftType(referencedSwiftTypes) {
+            return MemberAccessExprSyntax(
+                base: self,
+                period: .periodToken(),
+                declName: DeclReferenceExprSyntax(baseName: .identifier("wrapped"))
+            )
+        } else {
+            return self
+        }
+    }
+
+    /// Wrapping the expr with `<Type>Objc(wrapped: <expr>)`
+    func wrappingWithObjcInitializerIfSwiftType(
+        type: some TypeSyntaxProtocol,
+        referencedSwiftTypes: [String]
+    ) -> any ExprSyntaxProtocol {
+        if type.isSiblingSwiftType(referencedSwiftTypes) {
+            return FunctionCallExprSyntax(
+                calledExpression: DeclReferenceExprSyntax(
+                    baseName: type.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes).as(IdentifierTypeSyntax.self)!.name
+                ),
+                leftParen: .leftParenToken(),
+                arguments: LabeledExprListSyntax {
+                    LabeledExprSyntax(
+                        label: .identifier("wrapped"),
+                        colon: .colonToken(),
+                        expression: self
+                    )
+                },
+                rightParen: .rightParenToken()
+            )
+        } else {
+            return self
+        }
+    }
+
     /// Append a `.map(NSNumber.init)` to an identifier if it is a numeral
     /// - Parameter identifierType: The identifier type.
     /// - Returns: A function expression call of `.map(NSNumber.init)`.
@@ -193,6 +250,14 @@ extension EnumDeclSyntax {
         @SwitchCaseListBuilder caseElementBlock: (EnumCaseElementSyntax) throws -> SwitchCaseListSyntax
     ) rethrows -> SwitchCaseListSyntax {
         try enumerateCaseElementsGeneric(caseElementBlock: caseElementBlock)
+    }
+}
+
+extension DeclModifierListSyntax {
+    var isPublic: Bool {
+        return contains {
+            $0.name.keyword == .public
+        }
     }
 }
 

@@ -42,11 +42,11 @@ public class SourcePreprocessor {
         }
     }
     
-    /// Returns all struct types that are referenced within the source as properties.
+    /// Returns all Swift types that are referenced within the source as properties.
     ///
-    /// This is used to hint the alias of the objc wrapper type.
-    /// - Returns: a list of struct types that are declared and referenced within the source.
-    public var referencedSiblingTypes: [String] {
+    /// This is used to alias the type in objc wrapper.
+    /// - Returns: a list of Swift types that are referenced within the source as properties.
+    public var referencedSwiftTypes: [String] {
         referencedTypes.compactMap { type -> String? in
             if let identifier = type.as(IdentifierTypeSyntax.self) {
                 if containerTypes.contains(identifier.trimmed.name.text) {

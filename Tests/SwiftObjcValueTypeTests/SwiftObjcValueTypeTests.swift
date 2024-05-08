@@ -43,7 +43,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             return false
         }
 
-        private init(wrapped: Value) {
+        public init(wrapped: Value) {
             self.wrapped = wrapped
         }
 
@@ -197,7 +197,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     return false
                 }
 
-                private init(wrapped: Value) {
+                public init(wrapped: Value) {
                     self.wrapped = wrapped
                 }
 
@@ -343,6 +343,136 @@ final class SwiftObjcValueTypeTests: XCTestCase {
         )
     }
 
+    // If referencing any Swift types that also has objc wrapper, the generated
+    // objc wrapper should use the aliased -Objc type in references.
+    func testValueObjc_aliasedSwiftTypes() throws {
+        let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
+            codeBlocks: CodeBlockItemListSyntax {
+                #"""
+                public struct Value: CustomStringConvertible {
+                    public let doubleValue: Double
+
+                    public let ref: Value2
+                }
+
+                """#
+            },
+            referencedSwiftTypes: ["Value2"],
+            shouldSynthesizeNSCoding: true,
+            shouldSynthesizeNSCopying: true,
+            shouldSynthesizeObjCBuilder: true
+        )
+
+        assertBuildResult(
+            result,
+            #"""
+            private let kDoubleValueKey = "DOUBLE_VALUE"
+            private let kRefKey = "REF"
+
+            @objc(Value)
+            public class ValueObjc: NSObject, NSCopying, NSCoding {
+
+                @objc public var doubleValue: Double {
+                    wrapped.doubleValue
+                }
+
+                @objc public var ref: Value2Objc {
+                    Value2Objc(wrapped: wrapped.ref)
+                }
+
+                public let wrapped: Value
+
+                @objc
+                public init(doubleValue: Double, ref: Value2Objc) {
+                    self.wrapped = Value(doubleValue: doubleValue, ref: ref.wrapped)
+                }
+
+                public init(wrapped: Value) {
+                    self.wrapped = wrapped
+                }
+
+                public func copy(with zone: NSZone? = nil) -> Any {
+                    return ValueObjc(wrapped: wrapped)
+                }
+
+                public func encode(with coder: NSCoder) {
+                    coder.encode(doubleValue, forKey: kDoubleValueKey)
+                    coder.encode(ref, forKey: kRefKey)
+                }
+
+                public required convenience init?(coder: NSCoder) {
+                    let doubleValue = coder.decodeDouble(forKey: kDoubleValueKey)
+                    guard let ref = coder.decodeObject(forKey: kRefKey) as? Value2Objc else {
+                        return nil
+                    }
+                    self.init(doubleValue: doubleValue, ref: ref)
+                }
+
+                public override var description: String {
+                    return wrapped.description
+                }
+
+                @available(*, unavailable)
+                public override init() {
+                    fatalError()
+                }
+            }
+
+            extension ValueObjc {
+                @objc
+                public class ValueBuilder: NSObject {
+                    @objc public class func value() -> ValueBuilder {
+                        ValueBuilder()
+                    }
+
+                    @objc public class func value(existingValue: ValueObjc) -> ValueObjc {
+                        ValueBuilder.value().withDoubleValue(existingValue.doubleValue).withRef(existingValue.ref).build()
+                    }
+
+                    private var doubleValue: Double?
+
+                    @objc public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
+                        self.doubleValue = doubleValue
+                        return self
+                    }
+
+                    private var ref: Value2Objc?
+
+                    @objc public func withRef(_ ref: Value2Objc) -> ValueBuilder {
+                        self.ref = ref
+                        return self
+                    }
+
+                    private func error(field: String) -> Error {
+                        NSError(
+                            domain: "ValueType.Builder.NonnullFieldUnset",
+                            code: 1,
+                            userInfo: [NSLocalizedDescriptionKey: "Failed to build because nonnull field '\(field)' is unset"]
+                        )
+                    }
+
+                    @objc func build() -> ValueObjc {
+                        try! safeBuild()
+                    }
+
+                    @objc
+                    public func safeBuild() throws -> ValueObjc {
+                        guard let doubleValue = doubleValue else {
+                            throw error(field: "doubleValue")
+                        }
+                        guard let ref = ref else {
+                            throw error(field: "ref")
+                        }
+
+                        return ValueObjc(doubleValue: doubleValue, ref: ref)
+                    }
+                }
+            }
+
+            """#
+        )
+    }
+
     func testValueObjc_customStringConvertible() throws {
         let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
             codeBlocks: CodeBlockItemListSyntax {
@@ -478,7 +608,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     return false
                 }
 
-                private init(wrapped: Value) {
+                public init(wrapped: Value) {
                     self.wrapped = wrapped
                 }
 
@@ -655,7 +785,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     fatalError()
                 }
 
-                private init(wrapped: SaveUpdates) {
+                public init(wrapped: SaveUpdates) {
                     self.wrapped = wrapped
                 }
 
@@ -767,7 +897,7 @@ public class SaveUpdatesObjc: NSObject, NSCopying, NSCoding {
         fatalError()
     }
 
-    private init(wrapped: SaveUpdates) {
+    public init(wrapped: SaveUpdates) {
         self.wrapped = wrapped
     }
 
@@ -905,7 +1035,7 @@ public class ValueObjc: NSObject, NSCopying, NSCoding {
         return false
     }
 
-    private init(wrapped: Value) {
+    public init(wrapped: Value) {
         self.wrapped = wrapped
     }
 

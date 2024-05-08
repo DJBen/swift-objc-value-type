@@ -4,6 +4,7 @@ import SwiftSyntaxBuilder
 extension SwiftObjcValueTypeFactory {
     public func objcBuilderExtensionDecl(
         structDecl: StructDeclSyntax,
+        referencedSwiftTypes: [String],
         prefix: String
     ) throws -> ExtensionDeclSyntax {
         let structName = structDecl.name.trimmed.text
@@ -15,6 +16,7 @@ extension SwiftObjcValueTypeFactory {
         ) {
             try objcBuilderDecl(
                 structDecl: structDecl,
+                referencedSwiftTypes: referencedSwiftTypes,
                 prefix: prefix
             )
         }
@@ -22,6 +24,7 @@ extension SwiftObjcValueTypeFactory {
 
     @MemberBlockItemListBuilder public func objcBuilderDecl(
         structDecl: StructDeclSyntax,
+        referencedSwiftTypes: [String],
         prefix: String
     ) throws -> MemberBlockItemListSyntax {
         let structName = structDecl.name.trimmed.text
@@ -142,13 +145,13 @@ extension SwiftObjcValueTypeFactory {
                             if let typeAnnotation = binding.typeAnnotation {
                                 PatternBindingSyntax(
                                     pattern: binding.pattern,
-                                    typeAnnotation: TypeAnnotationSyntax(type: typeAnnotation.type.asNSNumberIfOptionalNumeral.optionalized)
+                                    typeAnnotation: TypeAnnotationSyntax(type: typeAnnotation.type.asNSNumberIfOptionalNumeral.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes).optionalized)
                                 )
                             }
                         }
                         .with(\.leadingTrivia, .newlines(2))
 
-                        // @objc
+                        // @objc @discardableResult
                         // public func withStr(_ str: String?) {
                         //     self.str = str
                         //     return self
@@ -156,6 +159,7 @@ extension SwiftObjcValueTypeFactory {
                         FunctionDeclSyntax(
                             attributes: AttributeListSyntax {
                                 "@objc"
+                                "@discardableResult"
                             },
                             modifiers: DeclModifierListSyntax {
                                 DeclModifierSyntax(name: .keyword(.public))
@@ -168,7 +172,7 @@ extension SwiftObjcValueTypeFactory {
                                         FunctionParameterSyntax(
                                             firstName: .wildcardToken(),
                                             secondName: identifierPattern.identifier.trimmed,
-                                            type: typeAnnotation.type.asNSNumberIfOptionalNumeral
+                                            type: typeAnnotation.type.asNSNumberIfOptionalNumeral.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes)
                                         )
                                     },
                                     rightParen: .rightParenToken()
@@ -204,7 +208,7 @@ extension SwiftObjcValueTypeFactory {
 
                 DeclSyntax(
                     """
-                    @objc func build() -> \(raw: structName)Objc {
+                    @objc \(raw: structDecl.modifiers.isPublic ? "public " : "")func build() -> \(raw: structName)Objc {
                         try! safeBuild()
                     }
                     """
