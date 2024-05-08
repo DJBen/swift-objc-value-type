@@ -42,7 +42,7 @@ public class SourcePreprocessor {
         }
     }
     
-    /// Returns all struct types that are referenced within the source's structs as properties.
+    /// Returns all struct types that are referenced within the source as properties.
     ///
     /// This is used to hint the alias of the objc wrapper type.
     /// - Returns: a list of struct types that are declared and referenced within the source.

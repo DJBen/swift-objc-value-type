@@ -97,6 +97,7 @@ public enum RMPropertyNullability {
 }
 
 public struct RMPropertySyntax: Equatable {
+    @ThrowingBuilder
     public struct StructValue: Equatable {
         public let comments: [String]
         public let nullability: RMPropertyNullability?
@@ -111,6 +112,7 @@ public struct RMPropertySyntax: Equatable {
         }
     }
 
+    @ThrowingBuilder
     public struct AdtValue: Equatable {
         public let comments: [String]
         public let name: String

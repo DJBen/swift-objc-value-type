@@ -118,7 +118,7 @@ public struct SwiftObjcValueTypeFactory {
                     .attribute("@objc(\(raw: prefix + structName))")
                 }.with(\.trailingTrivia, .newline),
                 modifiers: structDecl.modifiers.trimmed,
-                name: "\(raw: structName)Class",
+                name: "\(raw: structName)Objc",
                 inheritanceClause: InheritanceClauseSyntax {
                     InheritedTypeListSyntax {
                         InheritedTypeSyntax(type: IdentifierTypeSyntax(name: "NSObject"))
@@ -332,7 +332,7 @@ public struct SwiftObjcValueTypeFactory {
                     .attribute("@objc(\(raw: enumName))")
                 }.with(\.trailingTrivia, .newline),
                 modifiers: enumDecl.modifiers.trimmed,
-                name: "\(raw: enumName)Class",
+                name: "\(raw: enumName)Objc",
                 inheritanceClause: InheritanceClauseSyntax {
                     InheritedTypeListSyntax {
                         InheritedTypeSyntax(type: IdentifierTypeSyntax(name: "NSObject"))
@@ -413,14 +413,14 @@ public struct SwiftObjcValueTypeFactory {
                                             }
                                         ),
                                         returnClause: ReturnClauseSyntax(
-                                            type: IdentifierTypeSyntax(name: .identifier("\(enumName)Class"))
+                                            type: IdentifierTypeSyntax(name: .identifier("\(enumName)Objc"))
                                         )
                                     )
                                 ) {
                                     ReturnStmtSyntax(
                                         expression: FunctionCallExprSyntax(
                                             calledExpression: DeclReferenceExprSyntax(
-                                                baseName: .identifier("\(enumName)Class")),
+                                                baseName: .identifier("\(enumName)Objc")),
                                             leftParen: .leftParenToken(),
                                             rightParen: .rightParenToken()
                                         ) {
@@ -751,7 +751,7 @@ public struct SwiftObjcValueTypeFactory {
         ) {
             StmtSyntax(
                 """
-                if let other = object as? \(raw: containerName)Class {
+                if let other = object as? \(raw: containerName)Objc {
                     return wrapped == other.wrapped
                 }
                 """
@@ -804,7 +804,7 @@ public struct SwiftObjcValueTypeFactory {
         ) {
             StmtSyntax(
                 """
-                return \(raw: containerName)Class(wrapped: wrapped)
+                return \(raw: containerName)Objc(wrapped: wrapped)
                 """
             )
         }

@@ -193,6 +193,8 @@ final class RemodelSwiftFactoryTests: XCTestCase {
           NSString *subtitle
           # The type of media represented.
           MediaType(NSInteger) type
+
+          NSNumber *number
         }
         """
 
@@ -223,11 +225,14 @@ final class RemodelSwiftFactoryTests: XCTestCase {
                 /// The type of media represented.
                 public let type: MediaType
 
-                public init(id: String, title: String?, subtitle: String?, type: MediaType) {
+                public let number: NSNumber
+
+                public init(id: String, title: String?, subtitle: String?, type: MediaType, number: NSNumber) {
                     self.id = id
                     self.title = title
                     self.subtitle = subtitle
                     self.type = type
+                    self.number = number
                 }
             }
 
@@ -255,6 +260,7 @@ final class RemodelSwiftFactoryTests: XCTestCase {
             # second case
             case2 {
                 BOOL hello
+                NSNumber *number
             }
         }
         """
@@ -262,7 +268,8 @@ final class RemodelSwiftFactoryTests: XCTestCase {
         let parser = RemodelValueObjectParser()
 
         let result = try factory.generate(
-            try parser.parse(type: .adtValue, source: source)!
+            try parser.parse(type: .adtValue, source: source)!,
+            existingPrefix: "SC"
         )
 
         assertBuildResult(
@@ -280,7 +287,7 @@ final class RemodelSwiftFactoryTests: XCTestCase {
                 case case1(string: String?, someInt: Int32)
 
                 /// second case
-                case case2(hello: Bool)
+                case case2(hello: Bool, number: NSNumber?)
             }
 
             """

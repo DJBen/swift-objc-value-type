@@ -41,7 +41,7 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
             private let kMapKey = "MAP"
             
             @objc(Value)
-            public class ValueClass: NSObject, NSCopying, NSCoding {
+            public class ValueObjc: NSObject, NSCopying, NSCoding {
 
                 @objc public var doubleValue: Double {
                     wrapped.doubleValue
@@ -67,7 +67,7 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
                 }
 
                 public override func isEqual(_ object: Any?) -> Bool {
-                    if let other = object as? ValueClass {
+                    if let other = object as? ValueObjc {
                         return wrapped == other.wrapped
                     }
                     return false
@@ -78,7 +78,7 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
                 }
 
                 public func copy(with zone: NSZone? = nil) -> Any {
-                    return ValueClass(wrapped: wrapped)
+                    return ValueObjc(wrapped: wrapped)
                 }
 
                 public func encode(with coder: NSCoder) {
@@ -106,14 +106,14 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
                 }
             }
 
-            extension ValueClass {
+            extension ValueObjc {
                 @objc
                 public class ValueBuilder: NSObject {
                     @objc public class func value() -> ValueBuilder {
                         ValueBuilder()
                     }
 
-                    @objc public class func value(existingValue: ValueClass) -> ValueClass {
+                    @objc public class func value(existingValue: ValueObjc) -> ValueObjc {
                         ValueBuilder.value().withDoubleValue(existingValue.doubleValue).withOptInt(existingValue.optInt).withStringArray(existingValue.stringArray).withMap(existingValue.map).build()
                     }
 
@@ -153,12 +153,12 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
                         )
                     }
 
-                    @objc func build() -> ValueClass {
+                    @objc func build() -> ValueObjc {
                         try! safeBuild()
                     }
 
                     @objc
-                    public func safeBuild() throws -> ValueClass {
+                    public func safeBuild() throws -> ValueObjc {
                         guard let doubleValue = doubleValue else {
                             throw error(field: "doubleValue")
                         }
@@ -169,7 +169,7 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
                             throw error(field: "map")
                         }
 
-                        return ValueClass(doubleValue: doubleValue, optInt: optInt, stringArray: stringArray, map: map)
+                        return ValueObjc(doubleValue: doubleValue, optInt: optInt, stringArray: stringArray, map: map)
                     }
                 }
             }

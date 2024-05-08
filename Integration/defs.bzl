@@ -21,7 +21,7 @@ def swift_objc_wrapper_library(
             name = src.replace(".swift", "_objc_wrapper"),
             srcs = [src],
             outs = [generated_src],
-            cmd = "./$(location @swift_objc_value_type//Sources/SwiftObjcValueTypeExecutable) gen $(SRCS) --output-dir $(@D)" +
+            cmd = "./$(location @swift_objc_value_type//Sources/SwiftObjcValueTypeExecutable) gen $(SRCS) --output-dir $(RULEDIR)" +
                   # " --struct-configs '$(struct_configs)'" +
                   # " --exclude-structs %s" % exclude_types_str +
                   " --imports %s" % imports_str +
@@ -58,19 +58,19 @@ def swift_objc_wrapper_library_from_remodel(
         name = name + "_migrate_remodel",
         srcs = srcs,
         outs = migrated_srcs,
-        cmd = "./$(location @swift_objc_value_type//Sources/SwiftObjcValueTypeExecutable) migrate-remodel $(SRCS) --output-dir $(@D)" +
+        cmd = "./$(location @swift_objc_value_type//Sources/SwiftObjcValueTypeExecutable) migrate-remodel $(SRCS) --output-dir $(RULEDIR)" +
             " --imports %s" % imports_str +
-            " --existing-prefix '%s'" % prefix,
+            " --existing-prefix \"%s\"" % prefix + " -v",
         tools = ["@swift_objc_value_type//Sources/SwiftObjcValueTypeExecutable"],
     )
 
     native.genrule(
         name = name + "_objc_wrapper",
-        srcs = migrated_srcs,
+        srcs = [":" + name + "_migrate_remodel"],
         outs = generated_srcs,
-        cmd = "./$(location @swift_objc_value_type//Sources/SwiftObjcValueTypeExecutable) gen $(@D) --output-dir $(@D)" +
+        cmd = "./$(location @swift_objc_value_type//Sources/SwiftObjcValueTypeExecutable) gen $(SRCS) --output-dir $(RULEDIR)" +
                 " --imports %s" % imports_str +
-                " --prefix '%s'" % prefix,
+                " --prefix \"%s\"" % prefix + " -v",
         tools = ["@swift_objc_value_type//Sources/SwiftObjcValueTypeExecutable"],
     )
 

@@ -29,7 +29,7 @@ Press `Ctrl+D` to signal end-of-file, and value class should be generated!
 
 ```swift
 @objc(Value)
-public class ValueClass: NSObject, NSCopying {
+public class ValueObjc: NSObject, NSCopying {
 
     @objc public var doubleValue: Double {
         wrapped.doubleValue
@@ -55,7 +55,7 @@ public class ValueClass: NSObject, NSCopying {
     }
 
     public override func isEqual(_ object: Any?) -> Bool {
-        if let other = object as? ValueClass {
+        if let other = object as? ValueObjc {
             return wrapped == other.wrapped
         }
         return false
@@ -66,7 +66,7 @@ public class ValueClass: NSObject, NSCopying {
     }
 }
 
-extension ValueClass {
+extension ValueObjc {
     @objc
     public class ValueBuilder: NSObject {
 
@@ -87,7 +87,7 @@ extension ValueClass {
         }
 
         @objc
-        public func build() throws -> ValueClass {
+        public func build() throws -> ValueObjc {
             guard let doubleValue = doubleValue else {
                 throw error(field: "doubleValue")
             }
@@ -98,7 +98,7 @@ extension ValueClass {
                 throw error(field: "map")
             }
 
-            return ValueClass(doubleValue: doubleValue.doubleValue, optInt: optInt, stringArray: stringArray, map: map)
+            return ValueObjc(doubleValue: doubleValue.doubleValue, optInt: optInt, stringArray: stringArray, map: map)
         }
     }
 }
