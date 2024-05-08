@@ -57,6 +57,7 @@ let package = Package(
       name: "Remodel",
       dependencies: [
         "SharedUtilities",
+        .product(name: "BuilderMacro", package: "SwiftBuilderMacro"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
         .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
       ]

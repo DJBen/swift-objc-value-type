@@ -3,8 +3,8 @@ load("@rules_swift//swift:swift.bzl", "swift_library")
 def swift_objc_wrapper_library(
     name,
     srcs,
-    struct_configs = None,
-    exclude_structs = [],
+    prefix = "",
+    exclude_types = [],
     imports = [],
     **kwargs
 ):
@@ -13,8 +13,9 @@ def swift_objc_wrapper_library(
         generated_src = src.replace(".swift", "Wrapper.swift")
         generated_srcs.append(generated_src)
 
-        exclude_structs_json = json.encode(exclude_structs)
-        imports_json = json.encode(imports)
+        updated_imports = imports + ["Foundation"] if "Foundation" not in imports else imports
+        imports_str = " ".join(updated_imports)
+        exclude_types_str = " ".join(exclude_types)
 
         native.genrule(
             name = src.replace(".swift", "_objc_wrapper"),
@@ -22,13 +23,59 @@ def swift_objc_wrapper_library(
             outs = [generated_src],
             cmd = "./$(location @swift_objc_value_type//Sources/SwiftObjcValueTypeExecutable) gen $(SRCS) --output-dir $(@D)" +
                   # " --struct-configs '$(struct_configs)'" +
-                  " --exclude-structs '%s'" % exclude_structs_json +
-                  " --imports '%s'" % imports_json,
+                  # " --exclude-structs %s" % exclude_types_str +
+                  " --imports %s" % imports_str +
+                  " --prefix '%s'" % prefix,
             tools = ["@swift_objc_value_type//Sources/SwiftObjcValueTypeExecutable"],
         )
 
     swift_library(
         name = name,
         srcs = srcs + generated_srcs,
+        **kwargs
+    )
+
+def swift_objc_wrapper_library_from_remodel(
+    name,
+    srcs,
+    prefix = "",
+    imports = [],
+    **kwargs
+):
+    migrated_srcs = []
+    generated_srcs = []
+    for src in srcs:
+        migrated_src = src.replace(".value", ".swift").replace(".adtValue", ".swift").replace(".adtvalue", ".swift")
+        migrated_srcs.append(migrated_src)
+
+        generated_src = migrated_src.replace(".swift", "Wrapper.swift")
+        generated_srcs.append(generated_src)
+
+    updated_imports = imports + ["Foundation"] if "Foundation" not in imports else imports
+    imports_str = " ".join(updated_imports)
+
+    native.genrule(
+        name = name + "_migrate_remodel",
+        srcs = srcs,
+        outs = migrated_srcs,
+        cmd = "./$(location @swift_objc_value_type//Sources/SwiftObjcValueTypeExecutable) migrate-remodel $(SRCS) --output-dir $(@D)" +
+            " --imports %s" % imports_str +
+            " --existing-prefix '%s'" % prefix,
+        tools = ["@swift_objc_value_type//Sources/SwiftObjcValueTypeExecutable"],
+    )
+
+    native.genrule(
+        name = name + "_objc_wrapper",
+        srcs = migrated_srcs,
+        outs = generated_srcs,
+        cmd = "./$(location @swift_objc_value_type//Sources/SwiftObjcValueTypeExecutable) gen $(@D) --output-dir $(@D)" +
+                " --imports %s" % imports_str +
+                " --prefix '%s'" % prefix,
+        tools = ["@swift_objc_value_type//Sources/SwiftObjcValueTypeExecutable"],
+    )
+
+    swift_library(
+        name = name,
+        srcs = migrated_srcs + generated_srcs,
         **kwargs
     )

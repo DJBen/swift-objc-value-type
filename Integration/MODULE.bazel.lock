@@ -2732,7 +2732,7 @@
       "general": {
         "bzlTransitiveDigest": "6l2zsx0cqTtMqy8Iqgd0Dh9ePjYCUdvPDGPecHxDGrw=",
         "recordedFileInputs": {
-          "@@swift_objc_value_type~//swift_deps_index.json": "c5ec20cdf1fb4089fa53c6d5819b4be8027b9e30ba6b99e5eb0df6a00e876f8c"
+          "@@swift_objc_value_type~//swift_deps_index.json": "279d6c9868a58ef91c269ef7dbd01a090829777f3c37fcef751e1d890f022e1a"
         },
         "recordedDirentsInputs": {},
         "envVariables": {},
@@ -2799,8 +2799,8 @@
             "ruleClassName": "swift_package",
             "attributes": {
               "bazel_package_name": "swiftpkg_swiftbuildermacro",
-              "commit": "14607b93c4f346b12f729cf6a72f8d72e6031b39",
-              "remote": "https://github.com/DJBen/SwiftBuilderMacro",
+              "commit": "1cab8fe3da43721779f4865b253258f35cc448e5",
+              "remote": "https://github.com/dziobaczy/SwiftBuilderMacro",
               "dependencies_index": "@@swift_objc_value_type~//:swift_deps_index.json",
               "init_submodules": false,
               "recursive_init_submodules": false,

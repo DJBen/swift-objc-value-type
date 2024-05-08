@@ -19,7 +19,7 @@ struct MigrateRemodelCommand: ParsableCommand, FileHandlingCommand {
     var fileArguments: FileHandlingArguments
 
     @OptionGroup
-    var RemodelArguments: RemodelArguments
+    var remodelArguments: RemodelArguments
 
     @Flag(
         name: [.long],
@@ -48,7 +48,7 @@ struct MigrateRemodelCommand: ParsableCommand, FileHandlingCommand {
                 } else {
                     throw RemodelError.unableToInferRemodelType
                 }
-            } else if let type = RemodelArguments.type {
+            } else if let type = remodelArguments.type {
                 remodelType = type
             } else {
                 throw RemodelError.unableToInferRemodelType
@@ -63,8 +63,18 @@ struct MigrateRemodelCommand: ParsableCommand, FileHandlingCommand {
                 return
             }
             do {
-                try withFileHandler(sourceFile.fileName) { sink in
-                    try sink.stream(try remodelSwiftFactory.generate(ast).formatted())
+                try withFileHandler(
+                    sourceFile.fileName,
+                    fileNameTransform: { $0 },
+                    extensionTransform: { _ in "swift" }
+                ) { sink in
+                    try sink.stream(
+                        try remodelSwiftFactory.generate(
+                            ast,
+                            imports: remodelArguments.imports,
+                            existingPrefix: remodelArguments.existingPrefix
+                        ).formatted()
+                    )
                 }
             } catch let error as RemodelValueObjectParser.ParseError {
                 switch error {
@@ -100,4 +110,17 @@ struct RemodelArguments: ParsableArguments {
         }
     )
     var type: RemodelType?
+
+    @Option(
+        name: [.long],
+        parsing: .upToNextOption,
+        help: "Additional modules to import"
+    )
+    var imports: [String] = []
+
+    @Option(
+        name: [.long],
+        help: "An existing prefix to remove if exists."
+    )
+    var existingPrefix: String = ""
 }

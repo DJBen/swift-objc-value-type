@@ -3,7 +3,8 @@ import SwiftSyntaxBuilder
 
 extension SwiftObjcValueTypeFactory {
     public func objcBuilderExtensionDecl(
-        structDecl: StructDeclSyntax
+        structDecl: StructDeclSyntax,
+        prefix: String
     ) throws -> ExtensionDeclSyntax {
         let structName = structDecl.name.trimmed.text
 
@@ -12,18 +13,26 @@ extension SwiftObjcValueTypeFactory {
                 name: .identifier("\(structName)Class")
             )
         ) {
-            try objcBuilderDecl(structDecl: structDecl)
+            try objcBuilderDecl(
+                structDecl: structDecl,
+                prefix: prefix
+            )
         }
     }
 
     @MemberBlockItemListBuilder public func objcBuilderDecl(
-        structDecl: StructDeclSyntax
+        structDecl: StructDeclSyntax,
+        prefix: String
     ) throws -> MemberBlockItemListSyntax {
         let structName = structDecl.name.trimmed.text
 
         ClassDeclSyntax(
             attributes: AttributeListSyntax {
-                .attribute("@objc")
+                if prefix.isEmpty {
+                    .attribute("@objc")
+                } else {
+                    .attribute("@objc(\(raw: prefix + structName)Builder)")
+                }
             }.with(\.trailingTrivia, .newline),
             modifiers: structDecl.modifiers.trimmed,
             name: "\(raw: structName)Builder",

@@ -34,15 +34,21 @@ struct GenerateValueTypeCommand: ParsableCommand, FileHandlingCommand {
             }
         }
 
-        for (fileName, tree) in sourceFiles {
+        for (filePath, tree) in sourceFiles {
             let generatedCodeBlocks = try SwiftObjcValueTypeFactory().wrappingClassDecl(
                 codeBlocks: tree.statements,
-                referencedSiblingTypes: preprocessor.referencedSiblingTypes,
+                referencedSiblingTypes: preprocessor.referencedSiblingTypes, 
+                prefix: genArguments.prefix,
+                imports: genArguments.imports,
                 shouldSynthesizeNSCopying: genArguments.shouldSynthesizeNSCopying,
                 shouldSynthesizeObjCBuilder: genArguments.shouldSynthesizeObjCBuilder
             )
 
-            try withFileHandler(fileName) { sink in
+            try withFileHandler(
+                filePath,
+                fileNameTransform: { "\($0)Wrapper" },
+                extensionTransform: { _ in "swift" }
+            ) { sink in
                 try sink.stream(generatedCodeBlocks.formatted())
             }
         }
@@ -57,8 +63,14 @@ enum JSONParsingError: Error {
 struct GenerateValueTypeArguments: ParsableArguments {
     @Option(
         name: [.long],
+        help: "A prefix for the generated objc type; defaults to empty."
+    )
+    var prefix: String = ""
+
+    @Option(
+        name: [.long],
         parsing: .upToNextOption,
-        help: "Additional modules to import; useful if you are compiling the generated files into a separate module, and thus needing to import the API module in which the protocols reside."
+        help: "Additional modules to import"
     )
     var imports: [String] = []
 

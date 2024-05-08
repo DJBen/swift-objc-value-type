@@ -1,3 +1,5 @@
+import BuilderMacro
+
 // https://engineering.fb.com/2016/04/13/ios/building-and-managing-ios-model-objects-with-remodel/
 public enum RemodelType: Equatable, Hashable, Codable {
     /**
@@ -44,6 +46,7 @@ public enum RemodelType: Equatable, Hashable, Codable {
     case interface
 }
 
+@ThrowingBuilder
 public struct RMModelSyntax: Equatable {
     public let comments: [String]
     public let typeDecls: [RMTypeDeclSyntax]
