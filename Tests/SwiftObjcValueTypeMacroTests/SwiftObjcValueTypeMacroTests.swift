@@ -119,28 +119,28 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
 
                     private var doubleValue: Double?
 
-                    @objc public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
+                    @objc @discardableResult public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
                         self.doubleValue = doubleValue
                         return self
                     }
 
                     private var optInt: NSNumber?
 
-                    @objc public func withOptInt(_ optInt: NSNumber?) -> ValueBuilder {
+                    @objc @discardableResult public func withOptInt(_ optInt: NSNumber?) -> ValueBuilder {
                         self.optInt = optInt
                         return self
                     }
 
                     private var stringArray: [String]?
 
-                    @objc public func withStringArray(_ stringArray: [String]) -> ValueBuilder {
+                    @objc @discardableResult public func withStringArray(_ stringArray: [String]) -> ValueBuilder {
                         self.stringArray = stringArray
                         return self
                     }
 
                     private var map: [String: [String: Double]]?
 
-                    @objc public func withMap(_ map: [String: [String: Double]]) -> ValueBuilder {
+                    @objc @discardableResult public func withMap(_ map: [String: [String: Double]]) -> ValueBuilder {
                         self.map = map
                         return self
                     }
@@ -153,7 +153,7 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
                         )
                     }
 
-                    @objc func build() -> ValueObjc {
+                    @objc public func build() -> ValueObjc {
                         try! safeBuild()
                     }
 

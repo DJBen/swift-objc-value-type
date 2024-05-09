@@ -89,28 +89,28 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
             private var doubleValue: Double?
 
-            @objc public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
+            @objc @discardableResult public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
                 self.doubleValue = doubleValue
                 return self
             }
 
             private var optInt: NSNumber?
 
-            @objc public func withOptInt(_ optInt: NSNumber?) -> ValueBuilder {
+            @objc @discardableResult public func withOptInt(_ optInt: NSNumber?) -> ValueBuilder {
                 self.optInt = optInt
                 return self
             }
 
             private var stringArray: [String]?
 
-            @objc public func withStringArray(_ stringArray: [String]) -> ValueBuilder {
+            @objc @discardableResult public func withStringArray(_ stringArray: [String]) -> ValueBuilder {
                 self.stringArray = stringArray
                 return self
             }
 
             private var map: [String: [String: Double]]?
 
-            @objc public func withMap(_ map: [String: [String: Double]]) -> ValueBuilder {
+            @objc @discardableResult public func withMap(_ map: [String: [String: Double]]) -> ValueBuilder {
                 self.map = map
                 return self
             }
@@ -123,7 +123,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 )
             }
 
-            @objc func build() -> ValueObjc {
+            @objc public func build() -> ValueObjc {
                 try! safeBuild()
             }
 
@@ -294,21 +294,21 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
                     private var str: String?
 
-                    @objc public func withStr(_ str: String) -> FooBuilder {
+                    @objc @discardableResult public func withStr(_ str: String) -> FooBuilder {
                         self.str = str
                         return self
                     }
 
                     private var optDouble: NSNumber?
 
-                    @objc public func withOptDouble(_ optDouble: NSNumber?) -> FooBuilder {
+                    @objc @discardableResult public func withOptDouble(_ optDouble: NSNumber?) -> FooBuilder {
                         self.optDouble = optDouble
                         return self
                     }
 
                     private var isValid: Bool?
 
-                    @objc public func withIsValid(_ isValid: Bool) -> FooBuilder {
+                    @objc @discardableResult public func withIsValid(_ isValid: Bool) -> FooBuilder {
                         self.isValid = isValid
                         return self
                     }
@@ -321,7 +321,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                         )
                     }
 
-                    @objc func build() -> FooObjc {
+                    @objc public func build() -> FooObjc {
                         try! safeBuild()
                     }
 
@@ -431,14 +431,14 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
                     private var doubleValue: Double?
 
-                    @objc public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
+                    @objc @discardableResult public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
                         self.doubleValue = doubleValue
                         return self
                     }
 
                     private var ref: Value2Objc?
 
-                    @objc public func withRef(_ ref: Value2Objc) -> ValueBuilder {
+                    @objc @discardableResult public func withRef(_ ref: Value2Objc) -> ValueBuilder {
                         self.ref = ref
                         return self
                     }
@@ -451,7 +451,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                         )
                     }
 
-                    @objc func build() -> ValueObjc {
+                    @objc public func build() -> ValueObjc {
                         try! safeBuild()
                     }
 
@@ -654,28 +654,28 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
                     private var doubleValue: Double?
 
-                    @objc public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
+                    @objc @discardableResult public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
                         self.doubleValue = doubleValue
                         return self
                     }
 
                     private var optInt: NSNumber?
 
-                    @objc public func withOptInt(_ optInt: NSNumber?) -> ValueBuilder {
+                    @objc @discardableResult public func withOptInt(_ optInt: NSNumber?) -> ValueBuilder {
                         self.optInt = optInt
                         return self
                     }
 
                     private var stringArray: [String]?
 
-                    @objc public func withStringArray(_ stringArray: [String]) -> ValueBuilder {
+                    @objc @discardableResult public func withStringArray(_ stringArray: [String]) -> ValueBuilder {
                         self.stringArray = stringArray
                         return self
                     }
 
                     private var map: [String: [String: Double]]?
 
-                    @objc public func withMap(_ map: [String: [String: Double]]) -> ValueBuilder {
+                    @objc @discardableResult public func withMap(_ map: [String: [String: Double]]) -> ValueBuilder {
                         self.map = map
                         return self
                     }
@@ -688,7 +688,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                         )
                     }
 
-                    @objc func build() -> ValueObjc {
+                    @objc public func build() -> ValueObjc {
                         try! safeBuild()
                     }
 
@@ -1085,28 +1085,28 @@ extension ValueObjc {
 
         private var doubleValue: Double?
 
-        @objc public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
+        @objc @discardableResult public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
             self.doubleValue = doubleValue
             return self
         }
 
         private var optInt: NSNumber?
 
-        @objc public func withOptInt(_ optInt: NSNumber?) -> ValueBuilder {
+        @objc @discardableResult public func withOptInt(_ optInt: NSNumber?) -> ValueBuilder {
             self.optInt = optInt
             return self
         }
 
         private var stringArray: [String]?
 
-        @objc public func withStringArray(_ stringArray: [String]) -> ValueBuilder {
+        @objc @discardableResult public func withStringArray(_ stringArray: [String]) -> ValueBuilder {
             self.stringArray = stringArray
             return self
         }
 
         private var map: [String: [String: Double]]?
 
-        @objc public func withMap(_ map: [String: [String: Double]]) -> ValueBuilder {
+        @objc @discardableResult public func withMap(_ map: [String: [String: Double]]) -> ValueBuilder {
             self.map = map
             return self
         }
@@ -1119,7 +1119,7 @@ extension ValueObjc {
             )
         }
 
-        @objc func build() -> ValueObjc {
+        @objc public func build() -> ValueObjc {
             try! safeBuild()
         }
 
