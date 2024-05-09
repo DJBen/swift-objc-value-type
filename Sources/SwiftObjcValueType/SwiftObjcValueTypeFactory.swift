@@ -12,7 +12,7 @@ public struct SwiftObjcValueTypeFactory {
     @CodeBlockItemListBuilder
     public func wrappingClassDecl(
         codeBlocks: CodeBlockItemListSyntax,
-        referencedSiblingTypes: [String] = [],
+        referencedSwiftTypes: [String] = [],
         prefix: String = "",
         imports: [String] = [],
         shouldSynthesizeNSCoding: Bool = true,
@@ -32,7 +32,7 @@ public struct SwiftObjcValueTypeFactory {
                 case .structDecl(let structDecl):
                     for decl in try wrappingClassDecl(
                         structDecl: structDecl,
-                        referencedSiblingTypes: referencedSiblingTypes,
+                        referencedSwiftTypes: referencedSwiftTypes,
                         prefix: prefix,
                         imports: imports,
                         shouldSynthesizeEquatable: descriptor.inheritedTypes.contains("Equatable") || descriptor.inheritedTypes.contains("Hashable") ||
@@ -47,7 +47,7 @@ public struct SwiftObjcValueTypeFactory {
                 case .enumDecl(let enumDecl):
                     for decl in try wrappingClassDecl(
                         enumDecl: enumDecl,
-                        referencedSiblingTypes: referencedSiblingTypes,
+                        referencedSwiftTypes: referencedSwiftTypes,
                         shouldSynthesizeEquatable: descriptor.inheritedTypes.contains("Equatable") || descriptor.inheritedTypes.contains("Hashable") ||
                         descriptor.inheritedTypes.contains("Identifiable"),
                         shouldSynthesizeNSCoding: shouldSynthesizeNSCoding,
@@ -68,7 +68,7 @@ public struct SwiftObjcValueTypeFactory {
     ) throws -> [any DeclSyntaxProtocol] {
         try wrappingClassDecl(
             structDecl: structDecl,
-            referencedSiblingTypes: [],
+            referencedSwiftTypes: [],
             prefix: prefix,
             imports: imports,
             shouldSynthesizeEquatable: structDecl.inheritedTypes.contains("Equatable") || structDecl.inheritedTypes.contains("Hashable") ||
@@ -84,7 +84,7 @@ public struct SwiftObjcValueTypeFactory {
 
     public func wrappingClassDecl(
         structDecl: StructDeclSyntax,
-        referencedSiblingTypes: [String],
+        referencedSwiftTypes: [String],
         prefix: String,
         imports: [String],
         shouldSynthesizeEquatable: Bool,
@@ -118,7 +118,7 @@ public struct SwiftObjcValueTypeFactory {
                     .attribute("@objc(\(raw: prefix + structName))")
                 }.with(\.trailingTrivia, .newline),
                 modifiers: structDecl.modifiers.trimmed,
-                name: "\(raw: structName)Class",
+                name: "\(raw: structName)Objc",
                 inheritanceClause: InheritanceClauseSyntax {
                     InheritedTypeListSyntax {
                         InheritedTypeSyntax(type: IdentifierTypeSyntax(name: "NSObject"))
@@ -135,7 +135,8 @@ public struct SwiftObjcValueTypeFactory {
                 memberBlockBuilder: {
                     try structDecl.enumerateVariableDecls { variableTypeDecl in
                         try objcVariableDecl(
-                            variableTypeDecl: variableTypeDecl
+                            variableTypeDecl: variableTypeDecl,
+                            referencedSwiftTypes: referencedSwiftTypes
                         )
                         .with(\.leadingTrivia, .newlines(2))
                     }
@@ -156,19 +157,10 @@ public struct SwiftObjcValueTypeFactory {
                                     structDecl.enumerateBindings { binding in
                                         if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let typeAnnotation = binding.typeAnnotation {
                                             let variableName = identifierPattern.identifier.trimmed.text
-                                            let type: any TypeSyntaxProtocol = {
-                                                if let optional = typeAnnotation.type.as(OptionalTypeSyntax.self), optional.wrappedType.isNSNumberBridged {
-                                                    return OptionalTypeSyntax(
-                                                        wrappedType: IdentifierTypeSyntax(name: "NSNumber")
-                                                    )
-                                                } else {
-                                                    return typeAnnotation.type.trimmed
-                                                }
-                                            }()
 
                                             FunctionParameterSyntax(
                                                 firstName: .identifier(variableName),
-                                                type: type
+                                                type: typeAnnotation.type.asNSNumberIfOptionalNumeral.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes)
                                             )
                                         }
                                     }
@@ -200,6 +192,10 @@ public struct SwiftObjcValueTypeFactory {
                                                 baseName: .identifier(variableName)
                                             )
                                             .mappingNSNumberToNumeralValue(type: typeAnnotation.type)
+                                            .appendingWrappedIfSwiftType(
+                                                type: typeAnnotation.type,
+                                                referencedSwiftTypes: referencedSwiftTypes
+                                            )
                                         )
                                     }
                                 }
@@ -233,7 +229,8 @@ public struct SwiftObjcValueTypeFactory {
 
                     if shouldSynthesizeNSCoding {
                         try nsCodingConformances(
-                            structDecl: structDecl
+                            structDecl: structDecl,
+                            referencedSwiftTypes: referencedSwiftTypes
                         )
                         .with(\.leadingTrivia, .newlines(2))
                     }
@@ -267,6 +264,7 @@ public struct SwiftObjcValueTypeFactory {
             decls.append(
                 try objcBuilderExtensionDecl(
                     structDecl: structDecl,
+                    referencedSwiftTypes: referencedSwiftTypes,
                     prefix: prefix
                 )
                 .with(\.leadingTrivia, .newlines(2))
@@ -279,7 +277,7 @@ public struct SwiftObjcValueTypeFactory {
 
     public func wrappingClassDecl(
         enumDecl: EnumDeclSyntax,
-        referencedSiblingTypes: [String],
+        referencedSwiftTypes: [String],
         shouldSynthesizeEquatable: Bool,
         shouldSynthesizeNSCoding: Bool,
         shouldSynthesizeNSCopying: Bool
@@ -332,7 +330,7 @@ public struct SwiftObjcValueTypeFactory {
                     .attribute("@objc(\(raw: enumName))")
                 }.with(\.trailingTrivia, .newline),
                 modifiers: enumDecl.modifiers.trimmed,
-                name: "\(raw: enumName)Class",
+                name: "\(raw: enumName)Objc",
                 inheritanceClause: InheritanceClauseSyntax {
                     InheritedTypeListSyntax {
                         InheritedTypeSyntax(type: IdentifierTypeSyntax(name: "NSObject"))
@@ -371,7 +369,8 @@ public struct SwiftObjcValueTypeFactory {
 
                     if shouldSynthesizeNSCoding {
                         try nsCodingConformances(
-                            enumDecl: enumDecl
+                            enumDecl: enumDecl,
+                            referencedSwiftTypes: referencedSwiftTypes
                         )
                         .with(\.leadingTrivia, .newlines(2))
                     }
@@ -413,14 +412,14 @@ public struct SwiftObjcValueTypeFactory {
                                             }
                                         ),
                                         returnClause: ReturnClauseSyntax(
-                                            type: IdentifierTypeSyntax(name: .identifier("\(enumName)Class"))
+                                            type: IdentifierTypeSyntax(name: .identifier("\(enumName)Objc"))
                                         )
                                     )
                                 ) {
                                     ReturnStmtSyntax(
                                         expression: FunctionCallExprSyntax(
                                             calledExpression: DeclReferenceExprSyntax(
-                                                baseName: .identifier("\(enumName)Class")),
+                                                baseName: .identifier("\(enumName)Objc")),
                                             leftParen: .leftParenToken(),
                                             rightParen: .rightParenToken()
                                         ) {
@@ -599,7 +598,8 @@ public struct SwiftObjcValueTypeFactory {
 
     @MemberBlockItemListBuilder
     private func objcVariableDecl(
-        variableTypeDecl: VariableDeclSyntax
+        variableTypeDecl: VariableDeclSyntax,
+        referencedSwiftTypes: [String]
     ) throws -> MemberBlockItemListSyntax {
         VariableDeclSyntax(
             attributes: AttributeListSyntax {
@@ -613,17 +613,9 @@ public struct SwiftObjcValueTypeFactory {
 
                     PatternBindingSyntax(
                         pattern: binding.pattern,
-                        typeAnnotation: {
-                            if let optional = typeAnnotation.type.as(OptionalTypeSyntax.self), optional.wrappedType.isNSNumberBridged {
-                                return TypeAnnotationSyntax(
-                                    type: OptionalTypeSyntax(
-                                        wrappedType: IdentifierTypeSyntax(name: "NSNumber")
-                                    )
-                                )
-                            } else {
-                                return typeAnnotation
-                            }
-                        }(),
+                        typeAnnotation: TypeAnnotationSyntax(
+                            type: typeAnnotation.type.asNSNumberIfOptionalNumeral.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes)
+                        ),
                         accessorBlock: AccessorBlockSyntax(
                             accessors: .getter(
                                 CodeBlockItemListSyntax {
@@ -636,6 +628,10 @@ public struct SwiftObjcValueTypeFactory {
                                         )
                                     )
                                     .mappingNumeralValueToNSNumber(type: typeAnnotation.type)
+                                    .wrappingWithObjcInitializerIfSwiftType(
+                                        type: typeAnnotation.type,
+                                        referencedSwiftTypes: referencedSwiftTypes
+                                    )
                                 }
                             )
                         )
@@ -751,7 +747,7 @@ public struct SwiftObjcValueTypeFactory {
         ) {
             StmtSyntax(
                 """
-                if let other = object as? \(raw: containerName)Class {
+                if let other = object as? \(raw: containerName)Objc {
                     return wrapped == other.wrapped
                 }
                 """
@@ -761,12 +757,12 @@ public struct SwiftObjcValueTypeFactory {
         }
     }
 
-    private func internalWrappedInitializer(
+    private func wrappedInitializer(
         containerName: String
     ) -> DeclSyntax {
         DeclSyntax(
             """
-            private init(wrapped: \(raw: containerName)) {
+            public init(wrapped: \(raw: containerName)) {
                 self.wrapped = wrapped
             }
             """
@@ -778,7 +774,7 @@ public struct SwiftObjcValueTypeFactory {
         containerName: String,
         modifiers: DeclModifierListSyntax
     ) throws -> MemberBlockItemListSyntax {
-        internalWrappedInitializer(containerName: containerName)
+        wrappedInitializer(containerName: containerName)
 
         FunctionDeclSyntax(
             modifiers: DeclModifierListSyntax {
@@ -804,7 +800,7 @@ public struct SwiftObjcValueTypeFactory {
         ) {
             StmtSyntax(
                 """
-                return \(raw: containerName)Class(wrapped: wrapped)
+                return \(raw: containerName)Objc(wrapped: wrapped)
                 """
             )
         }

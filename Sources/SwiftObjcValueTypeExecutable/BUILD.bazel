@@ -17,6 +17,7 @@ swift_binary(
     deps = [
         "//Sources/Remodel",
         "//Sources/SwiftObjcValueType",
+        "@swiftpkg_pathkit//:PathKit",
         "@swiftpkg_swift_argument_parser//:ArgumentParser",
         "@swiftpkg_swift_custom_dump//:CustomDump",
         "@swiftpkg_swift_syntax//:SwiftSyntaxMacroExpansion",

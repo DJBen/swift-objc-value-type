@@ -31,11 +31,25 @@ to make compile.
 1. `swift_compiler_plugin` rules cannot be correctly generated, instead they are
 mistakenly generated as `swift_library`.
 
-The necessary fix to make compilation successful has been dumped to `bazel_fix.patch`
-file. In order to apply, run
+As a result, it will erroneously produce such change
+```
+diff --git a/Tests/SwiftObjcValueTypeMacroTests/BUILD.bazel b/Tests/SwiftObjcValueTypeMacroTests/BUILD.bazel
+index 57fb5e4..beb21fe 100644
+--- a/Tests/SwiftObjcValueTypeMacroTests/BUILD.bazel
++++ b/Tests/SwiftObjcValueTypeMacroTests/BUILD.bazel
+@@ -6,7 +6,6 @@ swift_test(
+     module_name = "SwiftObjcValueTypeMacroTests",
+     deps = [
+         "//Sources/SwiftObjcValueType",
+-        "//Sources/SwiftObjcValueTypeMacro",
+         "@swiftpkg_swift_syntax//:SwiftSyntaxMacrosTestSupport",
+     ],
+ )
+```
 
+Revert that change to ensure test compiles.
 ```bash
-git apply bazel_fix.patch
+git checkout -- Tests/SwiftObjcValueTypeMacroTests/BUILD.bazel
 ```
 
 Note: if you see those error messages, you can safely ignore them:

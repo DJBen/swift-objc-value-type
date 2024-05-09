@@ -250,7 +250,8 @@ extension SwiftObjcValueTypeFactory {
 
     @MemberBlockItemListBuilder
     func nsCodingConformances(
-        enumDecl: EnumDeclSyntax
+        enumDecl: EnumDeclSyntax,
+        referencedSwiftTypes: [String]
     ) throws -> MemberBlockItemListSyntax {
         FunctionDeclSyntax(
             modifiers: DeclModifierListSyntax {
@@ -367,7 +368,7 @@ extension SwiftObjcValueTypeFactory {
                         let params = caseElement.parameterClause?.parameters ?? []
                         for (index, caseParam) in params.enumerated() {
                             decodeCall(
-                                type: caseParam.type,
+                                type: caseParam.type.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes),
                                 identifierPattern: IdentifierPatternSyntax(
                                     identifier: .identifier(caseParam.properName(index: index).trimmed.text)
                                 ),
@@ -434,7 +435,8 @@ extension SwiftObjcValueTypeFactory {
 
     @MemberBlockItemListBuilder
     func nsCodingConformances(
-        structDecl: StructDeclSyntax
+        structDecl: StructDeclSyntax,
+        referencedSwiftTypes: [String]
     ) throws -> MemberBlockItemListSyntax {
         FunctionDeclSyntax(
             modifiers: DeclModifierListSyntax {
@@ -499,7 +501,7 @@ extension SwiftObjcValueTypeFactory {
                     // - let <variable> = coder.decode<Object|Bool|...>(forKey: <key>)
                     // - guard let <variable> = coder.decode<...>(forKey: <key>) as? <type> else { return nil }
                     decodeCall(
-                        type: typeAnnotation.type,
+                        type: typeAnnotation.type.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes),
                         identifierPattern: identifierPattern
                     )
                 }

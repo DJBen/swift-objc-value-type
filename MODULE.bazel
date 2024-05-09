@@ -18,6 +18,7 @@ swift_deps.from_file(
 )
 use_repo(
     swift_deps,
+    "swiftpkg_pathkit",
     "swiftpkg_swift_argument_parser",
     "swiftpkg_swift_custom_dump",
     "swiftpkg_swift_syntax",

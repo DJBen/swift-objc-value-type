@@ -4,17 +4,19 @@ import SwiftSyntaxBuilder
 extension SwiftObjcValueTypeFactory {
     public func objcBuilderExtensionDecl(
         structDecl: StructDeclSyntax,
+        referencedSwiftTypes: [String],
         prefix: String
     ) throws -> ExtensionDeclSyntax {
         let structName = structDecl.name.trimmed.text
 
         return try ExtensionDeclSyntax(
             extendedType: IdentifierTypeSyntax(
-                name: .identifier("\(structName)Class")
+                name: .identifier("\(structName)Objc")
             )
         ) {
             try objcBuilderDecl(
                 structDecl: structDecl,
+                referencedSwiftTypes: referencedSwiftTypes,
                 prefix: prefix
             )
         }
@@ -22,6 +24,7 @@ extension SwiftObjcValueTypeFactory {
 
     @MemberBlockItemListBuilder public func objcBuilderDecl(
         structDecl: StructDeclSyntax,
+        referencedSwiftTypes: [String],
         prefix: String
     ) throws -> MemberBlockItemListSyntax {
         let structName = structDecl.name.trimmed.text
@@ -80,7 +83,7 @@ extension SwiftObjcValueTypeFactory {
                     )
                 }
 
-                // @objc class func value(existingValue: ValueClass) -> ValueClass {
+                // @objc class func value(existingValue: ValueObjc) -> ValueObjc {
                 //     ValueBuilder.value().withDoubleValue(...).with...().build()
                 // }
                 FunctionDeclSyntax(
@@ -98,7 +101,7 @@ extension SwiftObjcValueTypeFactory {
                             parameters: FunctionParameterListSyntax {
                                 FunctionParameterSyntax(
                                     firstName: .identifier("existing\(structName)"),
-                                    type: IdentifierTypeSyntax(name: "\(raw: structName)Class")
+                                    type: IdentifierTypeSyntax(name: "\(raw: structName)Objc")
                                 )
                             },
                             rightParen: .rightParenToken()
@@ -106,7 +109,7 @@ extension SwiftObjcValueTypeFactory {
                         returnClause: ReturnClauseSyntax(
                             arrow: .arrowToken(),
                             type: IdentifierTypeSyntax(
-                                name: .identifier("\(structName)Class")
+                                name: .identifier("\(structName)Objc")
                             )
                         )
                     )
@@ -142,13 +145,13 @@ extension SwiftObjcValueTypeFactory {
                             if let typeAnnotation = binding.typeAnnotation {
                                 PatternBindingSyntax(
                                     pattern: binding.pattern,
-                                    typeAnnotation: TypeAnnotationSyntax(type: typeAnnotation.type.asNSNumberIfOptionalNumeral.optionalized)
+                                    typeAnnotation: TypeAnnotationSyntax(type: typeAnnotation.type.asNSNumberIfOptionalNumeral.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes).optionalized)
                                 )
                             }
                         }
                         .with(\.leadingTrivia, .newlines(2))
 
-                        // @objc
+                        // @objc @discardableResult
                         // public func withStr(_ str: String?) {
                         //     self.str = str
                         //     return self
@@ -156,6 +159,7 @@ extension SwiftObjcValueTypeFactory {
                         FunctionDeclSyntax(
                             attributes: AttributeListSyntax {
                                 "@objc"
+                                "@discardableResult"
                             },
                             modifiers: DeclModifierListSyntax {
                                 DeclModifierSyntax(name: .keyword(.public))
@@ -168,7 +172,7 @@ extension SwiftObjcValueTypeFactory {
                                         FunctionParameterSyntax(
                                             firstName: .wildcardToken(),
                                             secondName: identifierPattern.identifier.trimmed,
-                                            type: typeAnnotation.type.asNSNumberIfOptionalNumeral
+                                            type: typeAnnotation.type.asNSNumberIfOptionalNumeral.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes)
                                         )
                                     },
                                     rightParen: .rightParenToken()
@@ -204,7 +208,7 @@ extension SwiftObjcValueTypeFactory {
 
                 DeclSyntax(
                     """
-                    @objc func build() -> \(raw: structName)Class {
+                    @objc \(raw: structDecl.modifiers.isPublic ? "public " : "")func build() -> \(raw: structName)Objc {
                         try! safeBuild()
                     }
                     """
@@ -221,7 +225,7 @@ extension SwiftObjcValueTypeFactory {
                         parameterClause: FunctionParameterClauseSyntax {},
                         effectSpecifiers: FunctionEffectSpecifiersSyntax(throwsSpecifier: .keyword(.throws)),
                         returnClause: ReturnClauseSyntax(
-                            type: IdentifierTypeSyntax(name: "\(raw: structName)Class")
+                            type: IdentifierTypeSyntax(name: "\(raw: structName)Objc")
                         )
                     )
                 ) {
@@ -241,7 +245,7 @@ extension SwiftObjcValueTypeFactory {
                     ReturnStmtSyntax(
                         expression: FunctionCallExprSyntax(
                             calledExpression: DeclReferenceExprSyntax(
-                                baseName: .identifier("\(structName)Class")
+                                baseName: .identifier("\(structName)Objc")
                             ),
                             leftParen: .leftParenToken(),
                             arguments: LabeledExprListSyntax {

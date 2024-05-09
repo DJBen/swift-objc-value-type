@@ -56,13 +56,35 @@ public class RemodelSwiftFactory {
         imports: [String] = [],
         existingPrefix: String = ""
     ) throws -> CodeBlockItemListSyntax {
-        let model: RMModelSyntax = {
+        let model: RMModelSyntax = try {
             let modelBuilder = RMModelSyntax.Builder(model)
             let existingPrefix = existingPrefix.trimmingCharacters(in: .whitespaces)
-            if !existingPrefix.isEmpty && model.name.hasPrefix(existingPrefix) {
-                modelBuilder.name = String(model.name.dropFirst(existingPrefix.lengthOfBytes(using: .utf8)))
+            if !existingPrefix.isEmpty {
+                if model.name.hasPrefix(existingPrefix) {
+                    modelBuilder.name = String(model.name.dropFirst(existingPrefix.count))
+                }
+                modelBuilder.properties = try model.properties.map { property -> RMPropertySyntax in
+                    switch property.value {
+                    case .value(let structValue):
+                        let builder = RMPropertySyntax.StructValue.Builder(structValue)
+                        if structValue.type.hasPrefix(existingPrefix) {
+                            builder.type = builder.type.map { String($0.dropFirst(existingPrefix.count)) }
+                        }
+                        return RMPropertySyntax(.value(try builder.build()))
+                    case .adt(let adtValue):
+                        let builder = RMPropertySyntax.AdtValue.Builder(adtValue)
+                        builder.innerValues = try adtValue.innerValues.map { innerValue in
+                            let innerBuilder = RMPropertySyntax.StructValue.Builder(innerValue)
+                            if innerValue.type.hasPrefix(existingPrefix) {
+                                innerBuilder.type = String(innerValue.type.dropFirst(existingPrefix.count))
+                            }
+                            return try innerBuilder.build()
+                        }
+                        return RMPropertySyntax(.adt(try builder.build()))
+                    }
+                }
             }
-            return try! modelBuilder.build()
+            return try modelBuilder.build()
         }()
 
         try CodeBlockItemListSyntax {

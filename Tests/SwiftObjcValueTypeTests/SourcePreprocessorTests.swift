@@ -4,7 +4,7 @@ import TestingSupport
 @testable import SwiftObjcValueType
 
 final class SourcePreprocessorTests: XCTestCase {
-    func testValueClass_baseCase() throws {
+    func testValueObjc_baseCase() throws {
 
         let sourcePreprocessor = SourcePreprocessor()
         sourcePreprocessor.addSource(
@@ -50,7 +50,7 @@ final class SourcePreprocessorTests: XCTestCase {
         )
 
         XCTAssertEqual(
-            Set(sourcePreprocessor.referencedSiblingTypes),
+            Set(sourcePreprocessor.referencedSwiftTypes),
             Set(["Value2", "Value3"])
         )
     }

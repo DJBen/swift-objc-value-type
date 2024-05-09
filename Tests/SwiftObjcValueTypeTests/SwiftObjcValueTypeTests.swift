@@ -11,7 +11,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
     private let kMapKey = "MAP"
 
     @objc(Value)
-    public class ValueClass: NSObject, NSCopying, NSCoding {
+    public class ValueObjc: NSObject, NSCopying, NSCoding {
 
         @objc public var doubleValue: Double {
             wrapped.doubleValue
@@ -37,18 +37,18 @@ final class SwiftObjcValueTypeTests: XCTestCase {
         }
 
         public override func isEqual(_ object: Any?) -> Bool {
-            if let other = object as? ValueClass {
+            if let other = object as? ValueObjc {
                 return wrapped == other.wrapped
             }
             return false
         }
 
-        private init(wrapped: Value) {
+        public init(wrapped: Value) {
             self.wrapped = wrapped
         }
 
         public func copy(with zone: NSZone? = nil) -> Any {
-            return ValueClass(wrapped: wrapped)
+            return ValueObjc(wrapped: wrapped)
         }
 
         public func encode(with coder: NSCoder) {
@@ -76,41 +76,41 @@ final class SwiftObjcValueTypeTests: XCTestCase {
         }
     }
 
-    extension ValueClass {
+    extension ValueObjc {
         @objc
         public class ValueBuilder: NSObject {
             @objc public class func value() -> ValueBuilder {
                 ValueBuilder()
             }
 
-            @objc public class func value(existingValue: ValueClass) -> ValueClass {
+            @objc public class func value(existingValue: ValueObjc) -> ValueObjc {
                 ValueBuilder.value().withDoubleValue(existingValue.doubleValue).withOptInt(existingValue.optInt).withStringArray(existingValue.stringArray).withMap(existingValue.map).build()
             }
 
             private var doubleValue: Double?
 
-            @objc public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
+            @objc @discardableResult public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
                 self.doubleValue = doubleValue
                 return self
             }
 
             private var optInt: NSNumber?
 
-            @objc public func withOptInt(_ optInt: NSNumber?) -> ValueBuilder {
+            @objc @discardableResult public func withOptInt(_ optInt: NSNumber?) -> ValueBuilder {
                 self.optInt = optInt
                 return self
             }
 
             private var stringArray: [String]?
 
-            @objc public func withStringArray(_ stringArray: [String]) -> ValueBuilder {
+            @objc @discardableResult public func withStringArray(_ stringArray: [String]) -> ValueBuilder {
                 self.stringArray = stringArray
                 return self
             }
 
             private var map: [String: [String: Double]]?
 
-            @objc public func withMap(_ map: [String: [String: Double]]) -> ValueBuilder {
+            @objc @discardableResult public func withMap(_ map: [String: [String: Double]]) -> ValueBuilder {
                 self.map = map
                 return self
             }
@@ -123,12 +123,12 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 )
             }
 
-            @objc func build() -> ValueClass {
+            @objc public func build() -> ValueObjc {
                 try! safeBuild()
             }
 
             @objc
-            public func safeBuild() throws -> ValueClass {
+            public func safeBuild() throws -> ValueObjc {
                 guard let doubleValue = doubleValue else {
                     throw error(field: "doubleValue")
                 }
@@ -139,14 +139,14 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     throw error(field: "map")
                 }
 
-                return ValueClass(doubleValue: doubleValue, optInt: optInt, stringArray: stringArray, map: map)
+                return ValueObjc(doubleValue: doubleValue, optInt: optInt, stringArray: stringArray, map: map)
             }
         }
     }
 
     """#
 
-    func testValueClass_hashable() throws {
+    func testValueObjc_hashable() throws {
         let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
             codeBlocks: CodeBlockItemListSyntax {
                 #"""
@@ -167,7 +167,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
 
             @objc(Value)
-            public class ValueClass: NSObject, NSCopying {
+            public class ValueObjc: NSObject, NSCopying {
 
                 @objc public var doubleValue: Double {
                     wrapped.doubleValue
@@ -191,18 +191,18 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
 
                 public override func isEqual(_ object: Any?) -> Bool {
-                    if let other = object as? ValueClass {
+                    if let other = object as? ValueObjc {
                         return wrapped == other.wrapped
                     }
                     return false
                 }
 
-                private init(wrapped: Value) {
+                public init(wrapped: Value) {
                     self.wrapped = wrapped
                 }
 
                 public func copy(with zone: NSZone? = nil) -> Any {
-                    return ValueClass(wrapped: wrapped)
+                    return ValueObjc(wrapped: wrapped)
                 }
 
                 @available(*, unavailable)
@@ -214,7 +214,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
         )
     }
 
-    func testsValueClass_ignoreDerivedProperties() throws {
+    func testsValueObjc_ignoreDerivedProperties() throws {
         let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
             codeBlocks: CodeBlockItemListSyntax {
                 "import Foundation"
@@ -247,7 +247,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             import CoreGraphics
 
             @objc(Foo)
-            public class FooClass: NSObject {
+            public class FooObjc: NSObject {
 
                 @objc public var str: String {
                     wrapped.str
@@ -269,7 +269,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
 
                 public override func isEqual(_ object: Any?) -> Bool {
-                    if let other = object as? FooClass {
+                    if let other = object as? FooObjc {
                         return wrapped == other.wrapped
                     }
                     return false
@@ -281,34 +281,34 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
             }
 
-            extension FooClass {
+            extension FooObjc {
                 @objc
                 public class FooBuilder: NSObject {
                     @objc public class func foo() -> FooBuilder {
                         FooBuilder()
                     }
 
-                    @objc public class func foo(existingFoo: FooClass) -> FooClass {
+                    @objc public class func foo(existingFoo: FooObjc) -> FooObjc {
                         FooBuilder.foo().withStr(existingFoo.str).withOptDouble(existingFoo.optDouble).withIsValid(existingFoo.isValid).build()
                     }
 
                     private var str: String?
 
-                    @objc public func withStr(_ str: String) -> FooBuilder {
+                    @objc @discardableResult public func withStr(_ str: String) -> FooBuilder {
                         self.str = str
                         return self
                     }
 
                     private var optDouble: NSNumber?
 
-                    @objc public func withOptDouble(_ optDouble: NSNumber?) -> FooBuilder {
+                    @objc @discardableResult public func withOptDouble(_ optDouble: NSNumber?) -> FooBuilder {
                         self.optDouble = optDouble
                         return self
                     }
 
                     private var isValid: Bool?
 
-                    @objc public func withIsValid(_ isValid: Bool) -> FooBuilder {
+                    @objc @discardableResult public func withIsValid(_ isValid: Bool) -> FooBuilder {
                         self.isValid = isValid
                         return self
                     }
@@ -321,12 +321,12 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                         )
                     }
 
-                    @objc func build() -> FooClass {
+                    @objc public func build() -> FooObjc {
                         try! safeBuild()
                     }
 
                     @objc
-                    public func safeBuild() throws -> FooClass {
+                    public func safeBuild() throws -> FooObjc {
                         guard let str = str else {
                             throw error(field: "str")
                         }
@@ -334,7 +334,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                             throw error(field: "isValid")
                         }
 
-                        return FooClass(str: str, optDouble: optDouble, isValid: isValid)
+                        return FooObjc(str: str, optDouble: optDouble, isValid: isValid)
                     }
                 }
             }
@@ -343,7 +343,137 @@ final class SwiftObjcValueTypeTests: XCTestCase {
         )
     }
 
-    func testValueClass_customStringConvertible() throws {
+    // If referencing any Swift types that also has objc wrapper, the generated
+    // objc wrapper should use the aliased -Objc type in references.
+    func testValueObjc_aliasedSwiftTypes() throws {
+        let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
+            codeBlocks: CodeBlockItemListSyntax {
+                #"""
+                public struct Value: CustomStringConvertible {
+                    public let doubleValue: Double
+
+                    public let ref: Value2
+                }
+
+                """#
+            },
+            referencedSwiftTypes: ["Value2"],
+            shouldSynthesizeNSCoding: true,
+            shouldSynthesizeNSCopying: true,
+            shouldSynthesizeObjCBuilder: true
+        )
+
+        assertBuildResult(
+            result,
+            #"""
+            private let kDoubleValueKey = "DOUBLE_VALUE"
+            private let kRefKey = "REF"
+
+            @objc(Value)
+            public class ValueObjc: NSObject, NSCopying, NSCoding {
+
+                @objc public var doubleValue: Double {
+                    wrapped.doubleValue
+                }
+
+                @objc public var ref: Value2Objc {
+                    Value2Objc(wrapped: wrapped.ref)
+                }
+
+                public let wrapped: Value
+
+                @objc
+                public init(doubleValue: Double, ref: Value2Objc) {
+                    self.wrapped = Value(doubleValue: doubleValue, ref: ref.wrapped)
+                }
+
+                public init(wrapped: Value) {
+                    self.wrapped = wrapped
+                }
+
+                public func copy(with zone: NSZone? = nil) -> Any {
+                    return ValueObjc(wrapped: wrapped)
+                }
+
+                public func encode(with coder: NSCoder) {
+                    coder.encode(doubleValue, forKey: kDoubleValueKey)
+                    coder.encode(ref, forKey: kRefKey)
+                }
+
+                public required convenience init?(coder: NSCoder) {
+                    let doubleValue = coder.decodeDouble(forKey: kDoubleValueKey)
+                    guard let ref = coder.decodeObject(forKey: kRefKey) as? Value2Objc else {
+                        return nil
+                    }
+                    self.init(doubleValue: doubleValue, ref: ref)
+                }
+
+                public override var description: String {
+                    return wrapped.description
+                }
+
+                @available(*, unavailable)
+                public override init() {
+                    fatalError()
+                }
+            }
+
+            extension ValueObjc {
+                @objc
+                public class ValueBuilder: NSObject {
+                    @objc public class func value() -> ValueBuilder {
+                        ValueBuilder()
+                    }
+
+                    @objc public class func value(existingValue: ValueObjc) -> ValueObjc {
+                        ValueBuilder.value().withDoubleValue(existingValue.doubleValue).withRef(existingValue.ref).build()
+                    }
+
+                    private var doubleValue: Double?
+
+                    @objc @discardableResult public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
+                        self.doubleValue = doubleValue
+                        return self
+                    }
+
+                    private var ref: Value2Objc?
+
+                    @objc @discardableResult public func withRef(_ ref: Value2Objc) -> ValueBuilder {
+                        self.ref = ref
+                        return self
+                    }
+
+                    private func error(field: String) -> Error {
+                        NSError(
+                            domain: "ValueType.Builder.NonnullFieldUnset",
+                            code: 1,
+                            userInfo: [NSLocalizedDescriptionKey: "Failed to build because nonnull field '\(field)' is unset"]
+                        )
+                    }
+
+                    @objc public func build() -> ValueObjc {
+                        try! safeBuild()
+                    }
+
+                    @objc
+                    public func safeBuild() throws -> ValueObjc {
+                        guard let doubleValue = doubleValue else {
+                            throw error(field: "doubleValue")
+                        }
+                        guard let ref = ref else {
+                            throw error(field: "ref")
+                        }
+
+                        return ValueObjc(doubleValue: doubleValue, ref: ref)
+                    }
+                }
+            }
+
+            """#
+        )
+    }
+
+    func testValueObjc_customStringConvertible() throws {
         let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
             codeBlocks: CodeBlockItemListSyntax {
                 #"""
@@ -368,7 +498,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
 
             @objc(Value)
-            public class ValueClass: NSObject {
+            public class ValueObjc: NSObject {
 
                 @objc public var doubleValue: Double {
                     wrapped.doubleValue
@@ -394,7 +524,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
         )
     }
 
-    func testValueClass_baseCase() throws {
+    func testValueObjc_baseCase() throws {
         let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
             codeBlocks: CodeBlockItemListSyntax {
                 #"""
@@ -418,7 +548,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
         )
     }
 
-    func testValueClass_prefix() throws {
+    func testValueObjc_prefix() throws {
         let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
             codeBlocks: CodeBlockItemListSyntax {
                 #"""
@@ -446,7 +576,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             private let kMapKey = "MAP"
 
             @objc(XYValue)
-            public class ValueClass: NSObject, NSCopying, NSCoding {
+            public class ValueObjc: NSObject, NSCopying, NSCoding {
 
                 @objc public var doubleValue: Double {
                     wrapped.doubleValue
@@ -472,18 +602,18 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
 
                 public override func isEqual(_ object: Any?) -> Bool {
-                    if let other = object as? ValueClass {
+                    if let other = object as? ValueObjc {
                         return wrapped == other.wrapped
                     }
                     return false
                 }
 
-                private init(wrapped: Value) {
+                public init(wrapped: Value) {
                     self.wrapped = wrapped
                 }
 
                 public func copy(with zone: NSZone? = nil) -> Any {
-                    return ValueClass(wrapped: wrapped)
+                    return ValueObjc(wrapped: wrapped)
                 }
 
                 public func encode(with coder: NSCoder) {
@@ -511,41 +641,41 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
             }
 
-            extension ValueClass {
+            extension ValueObjc {
                 @objc(XYValueBuilder)
                 public class ValueBuilder: NSObject {
                     @objc public class func value() -> ValueBuilder {
                         ValueBuilder()
                     }
 
-                    @objc public class func value(existingValue: ValueClass) -> ValueClass {
+                    @objc public class func value(existingValue: ValueObjc) -> ValueObjc {
                         ValueBuilder.value().withDoubleValue(existingValue.doubleValue).withOptInt(existingValue.optInt).withStringArray(existingValue.stringArray).withMap(existingValue.map).build()
                     }
 
                     private var doubleValue: Double?
 
-                    @objc public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
+                    @objc @discardableResult public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
                         self.doubleValue = doubleValue
                         return self
                     }
 
                     private var optInt: NSNumber?
 
-                    @objc public func withOptInt(_ optInt: NSNumber?) -> ValueBuilder {
+                    @objc @discardableResult public func withOptInt(_ optInt: NSNumber?) -> ValueBuilder {
                         self.optInt = optInt
                         return self
                     }
 
                     private var stringArray: [String]?
 
-                    @objc public func withStringArray(_ stringArray: [String]) -> ValueBuilder {
+                    @objc @discardableResult public func withStringArray(_ stringArray: [String]) -> ValueBuilder {
                         self.stringArray = stringArray
                         return self
                     }
 
                     private var map: [String: [String: Double]]?
 
-                    @objc public func withMap(_ map: [String: [String: Double]]) -> ValueBuilder {
+                    @objc @discardableResult public func withMap(_ map: [String: [String: Double]]) -> ValueBuilder {
                         self.map = map
                         return self
                     }
@@ -558,12 +688,12 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                         )
                     }
 
-                    @objc func build() -> ValueClass {
+                    @objc public func build() -> ValueObjc {
                         try! safeBuild()
                     }
 
                     @objc
-                    public func safeBuild() throws -> ValueClass {
+                    public func safeBuild() throws -> ValueObjc {
                         guard let doubleValue = doubleValue else {
                             throw error(field: "doubleValue")
                         }
@@ -574,7 +704,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                             throw error(field: "map")
                         }
 
-                        return ValueClass(doubleValue: doubleValue, optInt: optInt, stringArray: stringArray, map: map)
+                        return ValueObjc(doubleValue: doubleValue, optInt: optInt, stringArray: stringArray, map: map)
                     }
                 }
             }
@@ -583,7 +713,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
         )
     }
 
-    func testValueClass_conformancesInExtension() throws {
+    func testValueObjc_conformancesInExtension() throws {
         let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
             codeBlocks: CodeBlockItemListSyntax {
                 #"""
@@ -646,7 +776,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             public typealias SaveUpdatesSaveFailedMatchHandler = (_ error: Error?) -> Void
 
             @objc(SaveUpdates)
-            public class SaveUpdatesClass: NSObject, NSCopying {
+            public class SaveUpdatesObjc: NSObject, NSCopying {
                 
                 public let wrapped: SaveUpdates
 
@@ -655,12 +785,12 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     fatalError()
                 }
 
-                private init(wrapped: SaveUpdates) {
+                public init(wrapped: SaveUpdates) {
                     self.wrapped = wrapped
                 }
 
                 public func copy(with zone: NSZone? = nil) -> Any {
-                    return SaveUpdatesClass(wrapped: wrapped)
+                    return SaveUpdatesObjc(wrapped: wrapped)
                 }
 
                 public func encode(with coder: NSCoder) {
@@ -703,18 +833,18 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
 
                 @objc
-                public class func saveBegan(savingToAlpha: Bool) -> SaveUpdatesClass {
-                    return SaveUpdatesClass(wrapped: .saveBegan(savingToAlpha: savingToAlpha))
+                public class func saveBegan(savingToAlpha: Bool) -> SaveUpdatesObjc {
+                    return SaveUpdatesObjc(wrapped: .saveBegan(savingToAlpha: savingToAlpha))
                 }
 
                 @objc
-                public class func saveSucceeded(savedToAlpha: Bool, savedToBeta: Bool, optFloat: NSNumber?, displayName: String?) -> SaveUpdatesClass {
-                    return SaveUpdatesClass(wrapped: .saveSucceeded(savedToAlpha: savedToAlpha, savedToBeta: savedToBeta, optFloat: optFloat.map(\.floatValue), displayName: displayName))
+                public class func saveSucceeded(savedToAlpha: Bool, savedToBeta: Bool, optFloat: NSNumber?, displayName: String?) -> SaveUpdatesObjc {
+                    return SaveUpdatesObjc(wrapped: .saveSucceeded(savedToAlpha: savedToAlpha, savedToBeta: savedToBeta, optFloat: optFloat.map(\.floatValue), displayName: displayName))
                 }
 
                 @objc
-                public class func saveFailed(error: Error?) -> SaveUpdatesClass {
-                    return SaveUpdatesClass(wrapped: .saveFailed(error: error))
+                public class func saveFailed(error: Error?) -> SaveUpdatesObjc {
+                    return SaveUpdatesObjc(wrapped: .saveFailed(error: error))
                 }
 
                 @objc
@@ -758,7 +888,7 @@ private let kSaveSucceededDisplayNameKey = "SAVE_SUCCEEDED_DISPLAY_NAME"
 private let kSaveFailedErrorKey = "SAVE_FAILED_ERROR"
 
 @objc(SaveUpdates)
-public class SaveUpdatesClass: NSObject, NSCopying, NSCoding {
+public class SaveUpdatesObjc: NSObject, NSCopying, NSCoding {
 
     public let wrapped: SaveUpdates
 
@@ -767,12 +897,12 @@ public class SaveUpdatesClass: NSObject, NSCopying, NSCoding {
         fatalError()
     }
 
-    private init(wrapped: SaveUpdates) {
+    public init(wrapped: SaveUpdates) {
         self.wrapped = wrapped
     }
 
     public func copy(with zone: NSZone? = nil) -> Any {
-        return SaveUpdatesClass(wrapped: wrapped)
+        return SaveUpdatesObjc(wrapped: wrapped)
     }
 
     public func encode(with coder: NSCoder) {
@@ -815,18 +945,18 @@ public class SaveUpdatesClass: NSObject, NSCopying, NSCoding {
     }
 
     @objc
-    public class func saveBegan(savingToAlpha: Bool) -> SaveUpdatesClass {
-        return SaveUpdatesClass(wrapped: .saveBegan(savingToAlpha: savingToAlpha))
+    public class func saveBegan(savingToAlpha: Bool) -> SaveUpdatesObjc {
+        return SaveUpdatesObjc(wrapped: .saveBegan(savingToAlpha: savingToAlpha))
     }
 
     @objc
-    public class func saveSucceeded(savedToAlpha: Bool, savedToBeta: Bool, optFloat: NSNumber?, displayName: String?) -> SaveUpdatesClass {
-        return SaveUpdatesClass(wrapped: .saveSucceeded(savedToAlpha: savedToAlpha, savedToBeta: savedToBeta, optFloat: optFloat.map(\.floatValue), displayName: displayName))
+    public class func saveSucceeded(savedToAlpha: Bool, savedToBeta: Bool, optFloat: NSNumber?, displayName: String?) -> SaveUpdatesObjc {
+        return SaveUpdatesObjc(wrapped: .saveSucceeded(savedToAlpha: savedToAlpha, savedToBeta: savedToBeta, optFloat: optFloat.map(\.floatValue), displayName: displayName))
     }
 
     @objc
-    public class func saveFailed(error: Error?) -> SaveUpdatesClass {
-        return SaveUpdatesClass(wrapped: .saveFailed(error: error))
+    public class func saveFailed(error: Error?) -> SaveUpdatesObjc {
+        return SaveUpdatesObjc(wrapped: .saveFailed(error: error))
     }
 
     @objc
@@ -863,7 +993,7 @@ private let kMapKey = "MAP"
 
 // Auto generated:
 @objc(Value)
-public class ValueClass: NSObject, NSCopying, NSCoding {
+public class ValueObjc: NSObject, NSCopying, NSCoding {
     @objc public var doubleValue: Double {
         wrapped.doubleValue
     }
@@ -899,18 +1029,18 @@ public class ValueClass: NSObject, NSCopying, NSCoding {
     }
 
     public override func isEqual(_ object: Any?) -> Bool {
-        if let other = object as? ValueClass {
+        if let other = object as? ValueObjc {
             return wrapped == other.wrapped
         }
         return false
     }
 
-    private init(wrapped: Value) {
+    public init(wrapped: Value) {
         self.wrapped = wrapped
     }
 
     public func copy(with zone: NSZone? = nil) -> Any {
-        return ValueClass(wrapped: wrapped)
+        return ValueObjc(wrapped: wrapped)
     }
 
     public override var description: String {
@@ -942,41 +1072,41 @@ public class ValueClass: NSObject, NSCopying, NSCoding {
     }
 }
 
-extension ValueClass {
+extension ValueObjc {
     @objc
     public class ValueBuilder: NSObject {
         @objc public class func value() -> ValueBuilder {
             ValueBuilder()
         }
 
-        @objc public class func value(existingValue: ValueClass) -> ValueClass {
+        @objc public class func value(existingValue: ValueObjc) -> ValueObjc {
             ValueBuilder.value().withDoubleValue(existingValue.doubleValue).withOptInt(existingValue.optInt).withStringArray(existingValue.stringArray).withMap(existingValue.map).build()
         }
 
         private var doubleValue: Double?
 
-        @objc public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
+        @objc @discardableResult public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
             self.doubleValue = doubleValue
             return self
         }
 
         private var optInt: NSNumber?
 
-        @objc public func withOptInt(_ optInt: NSNumber?) -> ValueBuilder {
+        @objc @discardableResult public func withOptInt(_ optInt: NSNumber?) -> ValueBuilder {
             self.optInt = optInt
             return self
         }
 
         private var stringArray: [String]?
 
-        @objc public func withStringArray(_ stringArray: [String]) -> ValueBuilder {
+        @objc @discardableResult public func withStringArray(_ stringArray: [String]) -> ValueBuilder {
             self.stringArray = stringArray
             return self
         }
 
         private var map: [String: [String: Double]]?
 
-        @objc public func withMap(_ map: [String: [String: Double]]) -> ValueBuilder {
+        @objc @discardableResult public func withMap(_ map: [String: [String: Double]]) -> ValueBuilder {
             self.map = map
             return self
         }
@@ -989,12 +1119,12 @@ extension ValueClass {
             )
         }
 
-        @objc func build() -> ValueClass {
+        @objc public func build() -> ValueObjc {
             try! safeBuild()
         }
 
         @objc
-        public func safeBuild() throws -> ValueClass {
+        public func safeBuild() throws -> ValueObjc {
             guard let doubleValue = doubleValue else {
                 throw error(field: "doubleValue")
             }
@@ -1005,7 +1135,7 @@ extension ValueClass {
                 throw error(field: "map")
             }
 
-            return ValueClass(doubleValue: doubleValue, optInt: optInt, stringArray: stringArray, map: map)
+            return ValueObjc(doubleValue: doubleValue, optInt: optInt, stringArray: stringArray, map: map)
         }
     }
 }

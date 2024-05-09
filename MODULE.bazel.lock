@@ -1,6 +1,6 @@
 {
   "lockFileVersion": 6,
-  "moduleFileHash": "2ef7401fc7fa059c2623568eb88e7bf12e5fc171b0fc47875259994765cd57fb",
+  "moduleFileHash": "ee4334f57e26a941a11ed17cce879ddadf73049dadb9ddd9e1481182e21dfc1e",
   "flags": {
     "cmdRegistries": [
       "https://bcr.bazel.build/"
@@ -34,6 +34,7 @@
             "column": 27
           },
           "imports": {
+            "swiftpkg_pathkit": "swiftpkg_pathkit",
             "swiftpkg_swift_argument_parser": "swiftpkg_swift_argument_parser",
             "swiftpkg_swift_custom_dump": "swiftpkg_swift_custom_dump",
             "swiftpkg_swift_syntax": "swiftpkg_swift_syntax",
