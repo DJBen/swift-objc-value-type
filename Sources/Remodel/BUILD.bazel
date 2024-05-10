@@ -10,6 +10,7 @@ swift_library(
     module_name = "Remodel",
     visibility = ["//visibility:public"],
     deps = [
+        "//Sources/SharedUtilities",
         "@swiftpkg_swift_syntax//:SwiftSyntaxBuilder",
         "@swiftpkg_swiftbuildermacro//:BuilderMacro",
     ],

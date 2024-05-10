@@ -1,4 +1,5 @@
 import Foundation
+import SharedUtilities
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
@@ -7,27 +8,27 @@ extension TypeSyntaxProtocol {
     var isNSNumberBridged: Bool {
         asNSNumberBridged() != nil
     }
-    
+
     func aliasingToObjcIfSiblingSwiftType(_ referencedSwiftTypes: [String]) -> any TypeSyntaxProtocol {
-        if let identifierType = self.as(IdentifierTypeSyntax.self), referencedSwiftTypes.contains(identifierType.trimmed.name.text) {
-            return IdentifierTypeSyntax(name: .identifier("\(identifierType.trimmed.name.text)Objc"))
-        } else {
-            return self
+        return mapTypeName { prevName in
+            if referencedSwiftTypes.contains(prevName) {
+                return "\(prevName)Objc"
+            } else {
+                return prevName
+            }
         }
     }
 
     func isSiblingSwiftType(_ referencedSwiftTypes: [String]) -> Bool {
-        if let identifierType = self.as(IdentifierTypeSyntax.self), referencedSwiftTypes.contains(identifierType.trimmed.name.text) {
-            return true
-        } else {
-            return false
+        conainsTypeName { prevName in
+            return referencedSwiftTypes.contains(prevName)
         }
     }
 
     func asNSNumberBridged() -> IdentifierTypeSyntax? {
         if let identifierType = self.as(IdentifierTypeSyntax.self) {
             switch identifierType.name.trimmed.text {
-            case "Int8", "UInt8", "Int16", "UInt16", "Int32", "UInt32", "Int64", "UInt64", "Float", "Double", "Bool", "Int", "UInt":
+            case "Int8", "UInt8", "Int16", "UInt16", "Int32", "UInt32", "Int64", "UInt64", "Float", "CGFloat", "Double", "Bool", "Int", "UInt":
                 return identifierType
             default:
                 return nil
@@ -62,7 +63,7 @@ extension TypeSyntaxProtocol {
                 return .identifier("decodeInt64")
             case "Float":
                 return .identifier("decodeFloat")
-            case "Double":
+            case "CGFloat", "Double":
                 return .identifier("decodeDouble")
             case "Bool":
                 return .identifier("decodeBool")
@@ -81,6 +82,46 @@ extension TypeSyntaxProtocol {
             return optionalType.wrappedType
         } else {
             return self
+        }
+    }
+
+    /// Whether this property can be expressed as a primitive in Objective-C.
+    var isObjcPrimitiveNumeral: Bool {
+        if let identifierType = self.as(IdentifierTypeSyntax.self) {
+            switch identifierType.name.trimmed.text {
+            case "Int", "UInt8", "Int8", "Int16", "UInt16", "Int32", "UInt32", "Int64", "UInt64", "Float", "CFGloat", "Double", "Bool":
+                return true
+            default:
+                return false
+            }
+        } else {
+            return false
+        }
+    }
+
+    var isBool: Bool {
+        if let identifierType = self.as(IdentifierTypeSyntax.self) {
+            switch identifierType.name.trimmed.text {
+            case "Bool":
+                return true
+            default:
+                return false
+            }
+        } else {
+            return false
+        }
+    }
+
+    var isSignedInt: Bool {
+        if let identifierType = self.as(IdentifierTypeSyntax.self) {
+            switch identifierType.name.trimmed.text {
+            case "Int", "Int8", "Int16", "Int32", "Int64":
+                return true
+            default:
+                return false
+            }
+        } else {
+            return false
         }
     }
 }
@@ -131,27 +172,153 @@ extension DeclReferenceExprSyntax {
 }
 
 extension ExprSyntaxProtocol {
-    // Append `.wrapped`.
-    func appendingWrappedIfSwiftType(
+    func convertingToObjcType(
         type: some TypeSyntaxProtocol,
         referencedSwiftTypes: [String]
     ) -> any ExprSyntaxProtocol {
-        if type.isSiblingSwiftType(referencedSwiftTypes) {
-            return MemberAccessExprSyntax(
-                base: self,
-                period: .periodToken(),
-                declName: DeclReferenceExprSyntax(baseName: .identifier("wrapped"))
+        var argIndex = 0
+        return convertingToObjcType(
+            type: type,
+            referencedSwiftTypes: referencedSwiftTypes,
+            nextArgIndex: {
+                let currentArgIndex = argIndex
+                argIndex += 1
+                return currentArgIndex
+            }
+        )
+    }
+
+    /// Otherwise it will recursively probe into each subcomponent of the type.
+    private func convertingToObjcType(
+        type: some TypeSyntaxProtocol,
+        referencedSwiftTypes: [String],
+        temporaryDeclReferenceExpr: DeclReferenceExprSyntax? = nil,
+        needsUnwrapRoot: Bool = false,
+        nextArgIndex: () -> Int
+    ) -> any ExprSyntaxProtocol {
+        guard type.isSiblingSwiftType(referencedSwiftTypes) else {
+            return self
+        }
+
+        if let identifierType = type.as(IdentifierTypeSyntax.self) {
+            // TODO: Add Set<>, and Array<>, Dictionary<> support
+
+            // Wrapping the expr with `<Type>Objc(<expr>)`.
+            return FunctionCallExprSyntax(
+                calledExpression: DeclReferenceExprSyntax(
+                    baseName: identifierType.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes).as(IdentifierTypeSyntax.self)!.name
+                ),
+                leftParen: .leftParenToken(),
+                arguments: LabeledExprListSyntax {
+                    LabeledExprSyntax(
+                        expression: ExprSyntax(temporaryDeclReferenceExpr) ?? (needsUnwrapRoot ? ExprSyntax(OptionalChainingExprSyntax(expression: self)) : ExprSyntax(self))
+                    )
+                },
+                rightParen: .rightParenToken()
             )
+        } else if let optionalTypeSyntax = type.as(OptionalTypeSyntax.self) {
+            if optionalTypeSyntax.wrappedType.is(IdentifierTypeSyntax.self) {
+                // Do not modify if its a terminal optional.
+                return self
+            } else {
+                // Append `?`
+                return convertingToObjcType(
+                    type: optionalTypeSyntax.wrappedType,
+                    referencedSwiftTypes: referencedSwiftTypes,
+                    needsUnwrapRoot: true,
+                    nextArgIndex: nextArgIndex
+                )
+            }
+        } else if let arrayTypeSyntax = type.as(ArrayTypeSyntax.self) {
+            // Append `.map({ e in ... })`
+            return FunctionCallExprSyntax(
+                calledExpression: MemberAccessExprSyntax(
+                    base: ExprSyntax(temporaryDeclReferenceExpr) ?? (needsUnwrapRoot ? ExprSyntax(OptionalChainingExprSyntax(expression: self)) : ExprSyntax(self)),
+                    period: .periodToken(),
+                    declName: DeclReferenceExprSyntax(baseName: .identifier("map"))
+                ),
+                leftParen: .leftParenToken(),
+                arguments: LabeledExprListSyntax {
+                    let argIndex = nextArgIndex()
+                    LabeledExprSyntax(
+                        expression: ClosureExprSyntax(
+                            leftBrace: .leftBraceToken(),
+                            signature: ClosureSignatureSyntax(
+                                parameterClause: .simpleInput(
+                                    ClosureShorthandParameterListSyntax {
+                                        ClosureShorthandParameterSyntax(
+                                            name: .identifier("a\(argIndex)")
+                                        )
+                                    }
+                                ),
+                                inKeyword: .keyword(.in)
+                            ),
+                            statements: CodeBlockItemListSyntax {
+                                convertingToObjcType(
+                                    type: arrayTypeSyntax.element,
+                                    referencedSwiftTypes: referencedSwiftTypes,
+                                    temporaryDeclReferenceExpr: DeclReferenceExprSyntax(baseName: .identifier("a\(argIndex)")),
+                                    needsUnwrapRoot: needsUnwrapRoot,
+                                    nextArgIndex: nextArgIndex
+                                )
+                            }
+                        )
+                    )
+                },
+                rightParen: .rightParenToken()
+            )
+        } else if let _ = type.as(TupleTypeSyntax.self) {
+            fatalError("Tuple is not supported")
+        } else if let dictTypeSyntax = type.as(DictionaryTypeSyntax.self) {
+            if dictTypeSyntax.key.isSiblingSwiftType(referencedSwiftTypes) {
+                fatalError("Value type as a dictionary key is currently not supported due to possible performance impact; it is advised to write a @objc class type manually or use Foundation types as key")
+            } else {
+                let argIndex = nextArgIndex()
+
+                // Append `.mapValues({ e in ... })`
+                return FunctionCallExprSyntax(
+                    calledExpression: MemberAccessExprSyntax(
+                        base: self,
+                        period: .periodToken(),
+                        declName: DeclReferenceExprSyntax(baseName: .identifier("mapValues"))
+                    ),
+                    leftParen: .leftParenToken(),
+                    arguments: LabeledExprListSyntax {
+                        LabeledExprSyntax(
+                            expression: ClosureExprSyntax(
+                                leftBrace: .leftBraceToken(),
+                                signature: ClosureSignatureSyntax(
+                                    parameterClause: .simpleInput(
+                                        ClosureShorthandParameterListSyntax {
+                                            ClosureShorthandParameterSyntax(
+                                                name: .identifier("a\(argIndex)")
+                                            )
+                                        }
+                                    ),
+                                    inKeyword: .keyword(.in)
+                                ),
+                                statements: CodeBlockItemListSyntax {
+                                    convertingToObjcType(
+                                        type: dictTypeSyntax.value,
+                                        referencedSwiftTypes: referencedSwiftTypes,
+                                        temporaryDeclReferenceExpr: DeclReferenceExprSyntax(baseName: .identifier("a\(argIndex)")),
+                                        needsUnwrapRoot: needsUnwrapRoot,
+                                        nextArgIndex: nextArgIndex
+                                    )
+                                }
+                            )
+                        )
+                    },
+                    rightParen: .rightParenToken()
+                )
+            }
+        } else if let _ = type.as(FunctionTypeSyntax.self) {
+            // Unsupported
+            fatalError("Value type as an argument in function type is not supported; function args should be value type anyway")
         } else {
             return self
         }
-    }
 
-    /// Wrapping the expr with `<Type>Objc(wrapped: <expr>)`
-    func wrappingWithObjcInitializerIfSwiftType(
-        type: some TypeSyntaxProtocol,
-        referencedSwiftTypes: [String]
-    ) -> any ExprSyntaxProtocol {
         if type.isSiblingSwiftType(referencedSwiftTypes) {
             return FunctionCallExprSyntax(
                 calledExpression: DeclReferenceExprSyntax(
@@ -218,7 +385,7 @@ extension EnumDeclSyntax {
         } ?? []
     }
 
-    func enumerateCaseElements(
+    func forEachCaseElement(
         caseElementBlock: (EnumCaseElementSyntax) throws -> Void
     ) rethrows {
         for member in memberBlock.members {
@@ -230,26 +397,74 @@ extension EnumDeclSyntax {
         }
     }
 
-    private func enumerateCaseElementsGeneric<T: SyntaxCollection>(
+    func enumerateCaseElement(
+        caseElementBlock: (Int, EnumCaseElementSyntax) throws -> Void
+    ) rethrows {
+        for member in memberBlock.members {
+            if let caseDecl = member.decl.as(EnumCaseDeclSyntax.self) {
+                for (index, caseElement) in caseDecl.elements.enumerated() {
+                    try caseElementBlock(index, caseElement)
+                }
+            }
+        }
+    }
+
+    private func forEachCaseElementGeneric<T: SyntaxCollection>(
         caseElementBlock: (EnumCaseElementSyntax) throws -> T
     ) rethrows -> T {
         var collection = T()
-        try enumerateCaseElements { caseElement in
+        try forEachCaseElement { caseElement in
             collection.append(contentsOf: try caseElementBlock(caseElement))
         }
         return collection
     }
 
-    func enumerateCaseElements(
-        @FunctionParameterListBuilder caseElementBlock: (EnumCaseElementSyntax) throws -> FunctionParameterListSyntax
-    ) rethrows -> FunctionParameterListSyntax {
-        try enumerateCaseElementsGeneric(caseElementBlock: caseElementBlock)
+    private func enumerateCaseElementGeneric<T: SyntaxCollection>(
+        caseElementBlock: (Int, EnumCaseElementSyntax) throws -> T
+    ) rethrows -> T {
+        var collection = T()
+        try enumerateCaseElement { index, caseElement in
+            collection.append(contentsOf: try caseElementBlock(index, caseElement))
+        }
+        return collection
     }
 
-    func enumerateCaseElements(
+    func forEachCaseElement(
+        @FunctionParameterListBuilder caseElementBlock: (EnumCaseElementSyntax) throws -> FunctionParameterListSyntax
+    ) rethrows -> FunctionParameterListSyntax {
+        try forEachCaseElementGeneric(caseElementBlock: caseElementBlock)
+    }
+
+    func forEachCaseElement(
         @SwitchCaseListBuilder caseElementBlock: (EnumCaseElementSyntax) throws -> SwitchCaseListSyntax
     ) rethrows -> SwitchCaseListSyntax {
-        try enumerateCaseElementsGeneric(caseElementBlock: caseElementBlock)
+        try forEachCaseElementGeneric(caseElementBlock: caseElementBlock)
+    }
+
+    func forEachCaseElement(
+        @LabeledExprListBuilder caseElementBlock: (EnumCaseElementSyntax) throws -> LabeledExprListSyntax
+    ) rethrows -> LabeledExprListSyntax {
+        try forEachCaseElementGeneric(caseElementBlock: caseElementBlock)
+    }
+
+    func enumerateCaseElement(
+        @ExprListBuilder caseElementBlock: (Int, EnumCaseElementSyntax) throws -> ExprListSyntax
+    ) rethrows -> ExprListSyntax {
+        try enumerateCaseElementGeneric(caseElementBlock: caseElementBlock)
+    }
+
+    func forEachCaseElement(
+        @ArrayElementListBuilder caseElementBlock: (EnumCaseElementSyntax) throws -> ArrayElementListSyntax
+    ) rethrows -> ArrayElementListSyntax {
+        try forEachCaseElementGeneric(caseElementBlock: caseElementBlock)
+    }
+
+    var caseCount: Int {
+        var count = 0
+        forEachCaseElement { _ in
+            count += 1
+        }
+        return count
     }
 }
 
@@ -286,97 +501,147 @@ extension StructDeclSyntax {
         visibilityModifiers.first.map { $0.trimmed.name.text + " " } ?? ""
     }
 
-    func enumerateVariableDecls(
+    func forEachVariableDecl(
         @MemberBlockItemListBuilder memberBlockItem: (VariableDeclSyntax) throws -> MemberBlockItemListSyntax
     ) rethrows -> MemberBlockItemListSyntax {
-        try enumerateVariableDeclsGeneric(memberBlockItem: memberBlockItem)
+        try forEachVariableDeclGeneric(memberBlockItem: memberBlockItem)
     }
 
-    func enumerateVariableDecls(
+    func forEachVariableDecl(
         @FunctionParameterListBuilder memberBlockItem: (VariableDeclSyntax) throws -> FunctionParameterListSyntax
     ) rethrows -> FunctionParameterListSyntax {
-        try enumerateVariableDeclsGeneric(memberBlockItem: memberBlockItem)
+        try forEachVariableDeclGeneric(memberBlockItem: memberBlockItem)
     }
 
-    func enumerateVariableDecls(
+    func forEachVariableDecl(
         @LabeledExprListBuilder memberBlockItem: (VariableDeclSyntax) throws -> LabeledExprListSyntax
     ) rethrows -> LabeledExprListSyntax {
-        try enumerateVariableDeclsGeneric(memberBlockItem: memberBlockItem)
+        try forEachVariableDeclGeneric(memberBlockItem: memberBlockItem)
     }
 
-    func enumerateVariableDecls(
+    func forEachVariableDecl(
         @CodeBlockItemListBuilder memberBlockItem: (VariableDeclSyntax) throws -> CodeBlockItemListSyntax
     ) rethrows -> CodeBlockItemListSyntax {
-        try enumerateVariableDeclsGeneric(memberBlockItem: memberBlockItem)
+        try forEachVariableDeclGeneric(memberBlockItem: memberBlockItem)
     }
 
-    func enumerateBindings(
+    func forEachBinding(
         @FunctionParameterListBuilder memberBlockItem: (PatternBindingSyntax) throws -> FunctionParameterListSyntax
     ) rethrows -> FunctionParameterListSyntax {
-        try enumerateBindingsGeneric(memberBlockItem: memberBlockItem)
+        try forEachBindingGeneric(memberBlockItem: memberBlockItem)
     }
 
-    func enumerateBindings(
+    func forEachBinding(
+        @ArrayElementListBuilder memberBlockItem: (PatternBindingSyntax) throws -> ArrayElementListSyntax
+    ) rethrows -> ArrayElementListSyntax {
+        try forEachBindingGeneric(memberBlockItem: memberBlockItem)
+    }
+
+    func forEachBinding(
         @CodeBlockItemListBuilder memberBlockItem: (PatternBindingSyntax) throws -> CodeBlockItemListSyntax
     ) rethrows -> CodeBlockItemListSyntax {
-        try enumerateBindingsGeneric(memberBlockItem: memberBlockItem)
+        try forEachBindingGeneric(memberBlockItem: memberBlockItem)
     }
 
-    func enumerateBindings(
+    func forEachBinding(
         @MemberBlockItemListBuilder memberBlockItem: (PatternBindingSyntax) throws -> MemberBlockItemListSyntax
     ) rethrows -> MemberBlockItemListSyntax {
-        try enumerateBindingsGeneric(memberBlockItem: memberBlockItem)
+        try forEachBindingGeneric(memberBlockItem: memberBlockItem)
     }
 
-    func enumerateBindings(
+    func forEachBinding(
         @LabeledExprListBuilder memberBlockItem: (PatternBindingSyntax) throws -> LabeledExprListSyntax
     ) rethrows -> LabeledExprListSyntax {
-        try enumerateBindingsGeneric(memberBlockItem: memberBlockItem)
+        try forEachBindingGeneric(memberBlockItem: memberBlockItem)
     }
 
-    func enumerateBindings(
+    func forEachBinding(
+        @ExprListBuilder memberBlockItem: (PatternBindingSyntax) throws -> ExprListSyntax
+    ) rethrows -> ExprListSyntax {
+        try forEachBindingGeneric(memberBlockItem: memberBlockItem)
+    }
+
+    func enumerateBinding(
+        @ExprListBuilder memberBlockItem: (Int, PatternBindingSyntax) throws -> ExprListSyntax
+    ) rethrows -> ExprListSyntax {
+        try enumerateBindingGeneric(memberBlockItem: memberBlockItem)
+    }
+
+    func forEachBinding(
         memberBlockItem: (PatternBindingSyntax) throws -> Void
     ) rethrows {
-        try enumerateVariableDecls { variableDeclSyntax in
+        try enumerateBinding { try memberBlockItem($1) }
+    }
+
+    func enumerateBinding(
+        memberBlockItem: (Int, PatternBindingSyntax) throws -> Void
+    ) rethrows {
+        try enumerateVariableDecl { index, variableDeclSyntax in
             for binding in variableDeclSyntax.bindings where !binding.isDerived {
-                try memberBlockItem(binding)
+                try memberBlockItem(index, binding)
             }
         }
     }
 
-    func enumerateVariableDecls(
+    func forEachVariableDecl(
         memberBlockItem: (VariableDeclSyntax) throws -> Void
     ) rethrows {
-        for member in memberBlock.members {
+        try enumerateVariableDecl { try memberBlockItem($1) }
+    }
+
+    func enumerateVariableDecl(
+        memberBlockItem: (Int, VariableDeclSyntax) throws -> Void
+    ) rethrows {
+        for (index, member) in memberBlock.members.enumerated() {
             if let variableTypeDecl = member.decl.as(VariableDeclSyntax.self) {
                 // If all bindings are derived values, skip this variable
                 if !variableTypeDecl.bindings.allSatisfy(\.isDerived) {
-                    try memberBlockItem(variableTypeDecl)
+                    try memberBlockItem(index, variableTypeDecl)
                 }
             }
         }
     }
 
-    private func enumerateVariableDeclsGeneric<T: SyntaxCollection>(
+    private func forEachVariableDeclGeneric<T: SyntaxCollection>(
         memberBlockItem: (VariableDeclSyntax) throws -> T
     ) rethrows -> T {
+        try enumerateVariableDeclGeneric { try memberBlockItem($1) }
+    }
+
+    private func enumerateVariableDeclGeneric<T: SyntaxCollection>(
+        memberBlockItem: (Int, VariableDeclSyntax) throws -> T
+    ) rethrows -> T {
         var collection = T()
-        try enumerateVariableDecls { variableDeclSyntax in
-            collection.append(contentsOf: try memberBlockItem(variableDeclSyntax))
+        try enumerateVariableDecl { index, variableDeclSyntax in
+            collection.append(contentsOf: try memberBlockItem(index, variableDeclSyntax))
         }
         return collection
     }
 
-    private func enumerateBindingsGeneric<T: SyntaxCollection>(
+    private func forEachBindingGeneric<T: SyntaxCollection>(
         memberBlockItem: (PatternBindingSyntax) throws -> T
+    ) rethrows -> T {
+        try enumerateBindingGeneric { try memberBlockItem($1) }
+    }
+
+    private func enumerateBindingGeneric<T: SyntaxCollection>(
+        memberBlockItem: (Int, PatternBindingSyntax) throws -> T
     ) rethrows -> T {
         var collection = T()
 
-        try enumerateBindings { binding in
-            collection.append(contentsOf: try memberBlockItem(binding))
+        try enumerateBinding { index, binding in
+            collection.append(contentsOf: try memberBlockItem(index, binding))
         }
 
         return collection
+    }
+
+    var bindingsCount: Int {
+        var count = 0
+        forEachBinding { _ in
+            count += 1
+        }
+        return count
     }
 }
 

@@ -28,6 +28,7 @@ public enum SwiftObjcValueTypeMacro: PeerMacro {
                 structDecl: structDecl,
                 prefix: "",
                 imports: [],
+                externalHashFunc: nil,
                 shouldSynthesizeNSCoding: true,
                 shouldSynthesizeNSCopying: true,
                 shouldSynthesizeObjCBuilder: true

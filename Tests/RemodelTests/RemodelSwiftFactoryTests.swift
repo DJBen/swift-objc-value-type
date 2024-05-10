@@ -364,4 +364,42 @@ final class RemodelSwiftFactoryTests: XCTestCase {
             """
         )
     }
+
+    func testFactory_value_existingPrefix() throws {
+        let factory = RemodelSwiftFactory()
+
+        let source = """
+        NestedValue {
+            NSArray<PYQHello *> *arr
+            NSDictionary<PYQYes *, PYQBar *> *dict
+        }
+        """
+
+        let parser = RemodelValueObjectParser()
+
+        let result = try factory.generate(
+            try parser.parse(type: .value, source: source)!,
+            existingPrefix: "PYQ"
+        )
+
+        assertBuildResult(
+            result,
+            """
+
+            
+            public struct NestedValue {
+
+                public let arr: [Hello]?
+
+                public let dict: [Yes: Bar]?
+
+                public init(arr: [Hello]?, dict: [Yes: Bar]?) {
+                    self.arr = arr
+                    self.dict = dict
+                }
+            }
+
+            """
+        )
+    }
 }

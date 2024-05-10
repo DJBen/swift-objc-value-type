@@ -132,7 +132,7 @@ extension SwiftObjcValueTypeFactory {
                 }
                 .with(\.leadingTrivia, .newlines(2))
 
-                structDecl.enumerateBindings { binding in
+                structDecl.forEachBinding { binding in
                     if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let typeAnnotation = binding.typeAnnotation {
 
                         // private var str: String?
@@ -229,7 +229,7 @@ extension SwiftObjcValueTypeFactory {
                         )
                     )
                 ) {
-                    structDecl.enumerateBindings { binding in
+                    structDecl.forEachBinding { binding in
                         if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let typeAnnotation = binding.typeAnnotation, !typeAnnotation.type.is(OptionalTypeSyntax.self) {
                             let variableName = identifierPattern.identifier.trimmed.text
                             StmtSyntax(
@@ -249,7 +249,7 @@ extension SwiftObjcValueTypeFactory {
                             ),
                             leftParen: .leftParenToken(),
                             arguments: LabeledExprListSyntax {
-                                structDecl.enumerateBindings { binding in
+                                structDecl.forEachBinding { binding in
                                     if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self) {
                                         let variableName = identifierPattern.identifier.trimmed.text
 
@@ -278,7 +278,7 @@ extension FunctionCallExprSyntax {
         let structName = structDecl.name.trimmed.text
 
         var expr = self
-        structDecl.enumerateBindings { binding in
+        structDecl.forEachBinding { binding in
             if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self) {
                 let variableName = identifierPattern.identifier.trimmed.text
                 expr = expr.withExistingParams(variableName, structName: structName)

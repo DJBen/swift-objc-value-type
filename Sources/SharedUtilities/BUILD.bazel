@@ -2,7 +2,11 @@ load("@rules_swift//swift:swift.bzl", "swift_library")
 
 swift_library(
     name = "SharedUtilities",
-    srcs = ["StringExtensions.swift"],
+    srcs = [
+        "StringExtensions.swift",
+        "SwiftSyntaxExtensions.swift",
+    ],
     module_name = "SharedUtilities",
     visibility = ["//visibility:public"],
+    deps = ["@swiftpkg_swift_syntax//:SwiftSyntaxBuilder"],
 )

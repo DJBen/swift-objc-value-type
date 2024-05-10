@@ -41,7 +41,7 @@ extension SwiftObjcValueTypeFactory {
     ) -> [VariableDeclSyntax] {
         var decls = [VariableDeclSyntax]()
 
-        structDecl.enumerateBindings { binding in
+        structDecl.forEachBinding { binding in
             if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self) {
                 decls.append(nsCodingConstant(name: identifierPattern.identifier.trimmed.text))
             }
@@ -86,7 +86,7 @@ extension SwiftObjcValueTypeFactory {
 
         // For each enum parameter in each enum case,
         // generate a key of "ENUM_CASE_NAME_PARAM_NAME"
-        enumDecl.enumerateCaseElements { caseElement in
+        enumDecl.forEachCaseElement { caseElement in
             let params = caseElement.parameterClause?.parameters ?? []
             for (index, caseParam) in params.enumerated() {               
                 decls.append(
@@ -274,7 +274,7 @@ extension SwiftObjcValueTypeFactory {
             SwitchExprSyntax(
                 subject: DeclReferenceExprSyntax(baseName: .identifier("wrapped"))
             ) {
-                enumDecl.enumerateCaseElements { caseElement in
+                enumDecl.forEachCaseElement { caseElement in
                     SwitchCaseSyntax(
                         label: .case(switchCaseLabel(caseElement: caseElement))
                     ) {
@@ -338,7 +338,7 @@ extension SwiftObjcValueTypeFactory {
             SwitchExprSyntax(
                 subject: DeclReferenceExprSyntax(baseName: .identifier("codedSubtype"))
             ) {
-                enumDecl.enumerateCaseElements { caseElement in
+                enumDecl.forEachCaseElement { caseElement in
                     let caseName = caseElement.name.trimmed.text.uppercasingFirst
 
                     SwitchCaseSyntax(
@@ -456,7 +456,7 @@ extension SwiftObjcValueTypeFactory {
                 }
             )
         ) {
-            structDecl.enumerateBindings { binding in
+            structDecl.forEachBinding { binding in
                 if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let typeAnnotation = binding.typeAnnotation {
                     coderEncodeCall(
                         type: typeAnnotation.type,
@@ -493,7 +493,7 @@ extension SwiftObjcValueTypeFactory {
                     return nil
                 }
             */
-            structDecl.enumerateBindings { binding in
+            structDecl.forEachBinding { binding in
                 if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let typeAnnotation = binding.typeAnnotation {
 
                     // Declare decoded variable as one of them based on whether it
@@ -520,7 +520,7 @@ extension SwiftObjcValueTypeFactory {
                 ),
                 leftParen: .leftParenToken(),
                 arguments: LabeledExprListSyntax {
-                    structDecl.enumerateBindings { binding in
+                    structDecl.forEachBinding { binding in
                         if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self) {
                             LabeledExprSyntax(
                                 label: identifierPattern.identifier,
