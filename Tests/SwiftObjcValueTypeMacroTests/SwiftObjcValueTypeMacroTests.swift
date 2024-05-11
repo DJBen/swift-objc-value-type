@@ -33,52 +33,48 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
             }
 
             private let kDoubleValueKey = "DOUBLE_VALUE"
-            
+
             private let kOptIntKey = "OPT_INT"
-            
+
             private let kStringArrayKey = "STRING_ARRAY"
-            
+
             private let kMapKey = "MAP"
-            
+
             @objc(Value)
             public class ValueObjc: NSObject, NSCopying, NSCoding {
 
-                @objc public var doubleValue: Double {
-                    wrapped.doubleValue
-                }
+                @objc public let doubleValue: Double
 
-                @objc public var optInt: NSNumber? {
-                    wrapped.optInt.map(NSNumber.init)
-                }
+                @objc public let optInt: NSNumber?
 
-                @objc public var stringArray: [String] {
-                    wrapped.stringArray
-                }
+                @objc public let stringArray: [String]
 
-                @objc public var map: [String: [String: Double]] {
-                    wrapped.map
-                }
-
-                public let wrapped: Value
+                @objc public let map: [String: [String: Double]]
 
                 @objc
                 public init(doubleValue: Double, optInt: NSNumber?, stringArray: [String], map: [String: [String: Double]]) {
-                    self.wrapped = Value(doubleValue: doubleValue, optInt: optInt.map(\.int64Value), stringArray: stringArray, map: map)
+                    self.doubleValue = doubleValue
+                    self.optInt = optInt
+                    self.stringArray = stringArray
+                    self.map = map
+                }
+
+                public init(_ original: Value) {
+                    self.doubleValue = original.doubleValue
+                    self.optInt = original.optInt.map(NSNumber.init)
+                    self.stringArray = original.stringArray
+                    self.map = original.map
                 }
 
                 public override func isEqual(_ object: Any?) -> Bool {
-                    if let other = object as? ValueObjc {
-                        return wrapped == other.wrapped
+                    guard let other = object as? ValueObjc else {
+                        return false
                     }
-                    return false
-                }
-
-                public init(wrapped: Value) {
-                    self.wrapped = wrapped
+                    return doubleValue == other.doubleValue && optInt?.isEqual(other.optInt) == true && stringArray.isEqual(other.stringArray) && map.isEqual(other.map)
                 }
 
                 public func copy(with zone: NSZone? = nil) -> Any {
-                    return ValueObjc(wrapped: wrapped)
+                    ValueObjc(doubleValue: doubleValue, optInt: optInt, stringArray: stringArray, map: map)
                 }
 
                 public func encode(with coder: NSCoder) {

@@ -430,6 +430,12 @@ extension EnumDeclSyntax {
     }
 
     func forEachCaseElement(
+        @MemberBlockItemListBuilder caseElementBlock: (EnumCaseElementSyntax) throws -> MemberBlockItemListSyntax
+    ) rethrows -> MemberBlockItemListSyntax {
+        try forEachCaseElementGeneric(caseElementBlock: caseElementBlock)
+    }
+
+    func forEachCaseElement(
         @FunctionParameterListBuilder caseElementBlock: (EnumCaseElementSyntax) throws -> FunctionParameterListSyntax
     ) rethrows -> FunctionParameterListSyntax {
         try forEachCaseElementGeneric(caseElementBlock: caseElementBlock)

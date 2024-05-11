@@ -49,6 +49,7 @@ public struct SwiftObjcValueTypeFactory {
                 case .enumDecl(let enumDecl):
                     for decl in try wrappingClassDecl(
                         enumDecl: enumDecl,
+                        imports: imports,
                         referencedSwiftTypes: referencedSwiftTypes,
                         shouldSynthesizeEquatable: descriptor.inheritedTypes.contains("Equatable") || descriptor.inheritedTypes.contains("Hashable") ||
                         descriptor.inheritedTypes.contains("Identifiable"),
@@ -86,7 +87,7 @@ public struct SwiftObjcValueTypeFactory {
         )
     }
 
-    public func wrappingClassDecl(
+    private func wrappingClassDecl(
         structDecl: StructDeclSyntax,
         referencedSwiftTypes: [String],
         prefix: String,
@@ -228,8 +229,9 @@ public struct SwiftObjcValueTypeFactory {
         return decls
     }
 
-    public func wrappingClassDecl(
+    private func wrappingClassDecl(
         enumDecl: EnumDeclSyntax,
+        imports: [String],
         referencedSwiftTypes: [String],
         shouldSynthesizeEquatable: Bool,
         shouldSynthesizeNSCoding: Bool,
@@ -237,6 +239,15 @@ public struct SwiftObjcValueTypeFactory {
     ) throws -> [any DeclSyntaxProtocol] {
         var decls = [any DeclSyntaxProtocol]()
         let enumName = enumDecl.name.trimmed.text
+
+        for (index, `import`) in imports.enumerated() {
+            decls.append(
+                DeclSyntax(
+                    "import \(raw: `import`)"
+                )
+                .with(\.trailingTrivia, index + 1 >= imports.count ? .newlines(2) : [])
+            )
+        }
 
         if shouldSynthesizeNSCoding {
             decls.append(contentsOf: nsCodingConstants(enumDecl: enumDecl))
@@ -294,8 +305,8 @@ public struct SwiftObjcValueTypeFactory {
                     }
                 },
                 memberBlockBuilder: {
-                    DeclSyntax(
-                        "public let wrapped: \(raw: enumName)"
+                    try objcEnumPrivateVariablesDecl(
+                        enumDecl: enumDecl, referencedSwiftTypes: referencedSwiftTypes
                     )
                     .with(\.leadingTrivia, .newlines(2))
 
@@ -653,6 +664,34 @@ public struct SwiftObjcValueTypeFactory {
                             referencedSwiftTypes: referencedSwiftTypes
                         )
                     }
+                }
+            }
+        }
+    }
+
+    @MemberBlockItemListBuilder
+    private func objcEnumPrivateVariablesDecl(
+        enumDecl: EnumDeclSyntax,
+        referencedSwiftTypes: [String]
+    ) throws -> MemberBlockItemListSyntax {
+        enumDecl.forEachCaseElement { caseElement in
+            let caseName = caseElement.name.trimmed.text.uppercasingFirst
+            let params = caseElement.parameterClause?.parameters ?? []
+            for (index, caseParam) in params.enumerated() {
+                VariableDeclSyntax(
+                    modifiers: DeclModifierListSyntax {
+                        DeclModifierSyntax(name: .keyword(.private))
+                    },
+                    bindingSpecifier: .keyword(.let)
+                ) {
+                    PatternBindingSyntax(
+                        pattern: IdentifierPatternSyntax(
+                            identifier: .identifier(caseName.lowercasingFirst + caseParam.properName(index: index).trimmed.text.uppercasingFirst)
+                        ),
+                        typeAnnotation: TypeAnnotationSyntax(
+                            type: caseParam.type.asNSNumberIfOptionalNumeral.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes)
+                        )
+                    )
                 }
             }
         }

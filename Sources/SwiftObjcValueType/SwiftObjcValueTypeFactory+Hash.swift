@@ -118,29 +118,29 @@ extension SwiftObjcValueTypeFactory {
             )
         }
 
-    if externalHashFunc == nil {
-        DeclSyntax(
-        #"""
+        if externalHashFunc == nil {
+            DeclSyntax(
+            #"""
 
 
-        private func hashImpl(_ subhashes: UnsafePointer<UInt>, _ length: Int) -> UInt {
-            var result = subhashes[0]
-            for i in 1..<length {
-                var base = (UInt64(result) << 32) | UInt64(subhashes[i])
-                base = (~base) &+ (base << 18)
-                base ^= (base >> 31)
-                base &*= 21
-                base ^= (base >> 11)
-                base &+= (base << 6)
-                base ^= (base >> 22)
-                result = UInt(base)
+            private func hashImpl(_ subhashes: UnsafePointer<UInt>, _ length: Int) -> UInt {
+                var result = subhashes[0]
+                for i in 1..<length {
+                    var base = (UInt64(result) << 32) | UInt64(subhashes[i])
+                    base = (~base) &+ (base << 18)
+                    base ^= (base >> 31)
+                    base &*= 21
+                    base ^= (base >> 11)
+                    base &+= (base << 6)
+                    base ^= (base >> 22)
+                    result = UInt(base)
+                }
+                return result
             }
-            return result
+            """#
+            )
+            .with(\.leadingTrivia, .newlines(2))
         }
-        """#
-        )
-        .with(\.leadingTrivia, .newlines(2))
-    }
     }
 
     @MemberBlockItemListBuilder

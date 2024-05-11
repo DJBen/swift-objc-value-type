@@ -79,7 +79,7 @@ extension SwiftObjcValueTypeFactory {
             )
         ) {
             FunctionCallExprSyntax(
-                calledExpression: DeclReferenceExprSyntax(baseName: enumDecl.name.trimmed),
+                calledExpression: DeclReferenceExprSyntax(baseName: .identifier("\(enumDecl.name.trimmed.text)Objc")),
                 leftParen: .leftParenToken(),
                 rightParen: .rightParenToken()
             ) {
@@ -90,10 +90,10 @@ extension SwiftObjcValueTypeFactory {
                         let params = caseElement.parameterClause?.parameters ?? []
                         for (index, caseParam) in params.enumerated() {
                             LabeledExprSyntax(
-                                label: .identifier(caseName + caseParam.properName(index: index).trimmed.text.uppercasingFirst),
+                                label: .identifier(caseName.lowercasingFirst + caseParam.properName(index: index).trimmed.text.uppercasingFirst),
                                 colon: .colonToken(),
                                 expression: DeclReferenceExprSyntax(
-                                    baseName: .identifier(caseName + caseParam.properName(index: index).trimmed.text.uppercasingFirst)
+                                    baseName: .identifier(caseName.lowercasingFirst + caseParam.properName(index: index).trimmed.text.uppercasingFirst)
                                 )
                             )
                         }
