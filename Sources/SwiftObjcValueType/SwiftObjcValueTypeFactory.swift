@@ -253,39 +253,54 @@ public struct SwiftObjcValueTypeFactory {
             decls.append(contentsOf: nsCodingConstants(enumDecl: enumDecl))
         }
 
-        for member in enumDecl.memberBlock.members {
-            if let caseDecl = member.decl.as(EnumCaseDeclSyntax.self) {
-                for caseElement in caseDecl.elements {
-                    decls.append(
-                        TypeAliasDeclSyntax(
-                            modifiers: DeclModifierListSyntax {
-                                // Inherit visibility modifiers
-                                enumDecl.modifiers.trimmed
-                            },
-                            name: .identifier("\(enumName)\(caseElement.name.trimmed.text.uppercasingFirst)MatchHandler"),
-                            initializer: TypeInitializerClauseSyntax(
-                                equal: .equalToken(),
-                                value: FunctionTypeSyntax(
-                                    parameters: TupleTypeElementListSyntax {
-                                        for (index, caseParam) in (caseElement.parameterClause?.parameters ?? []).enumerated() {
-                                            TupleTypeElementSyntax(
-                                                firstName: .wildcardToken(),
-                                                secondName: caseParam.properName(index: index),
-                                                colon: .colonToken(),
-                                                type: caseParam.type.asNSNumberIfOptionalNumeral
-                                            )
-                                        }
-                                    },
-                                    returnClause: ReturnClauseSyntax(
-                                        type: IdentifierTypeSyntax(name: .identifier("Void"))
-                                    )
-                                )
-                            )
-                        )
-                        .with(\.leadingTrivia, .newlines(2))
-                    )
+        decls.append(
+            EnumDeclSyntax(
+                modifiers: DeclModifierListSyntax {
+                    DeclModifierSyntax(name: .keyword(.private))
+                },
+                name: .identifier("\(enumName)Subtype"),
+                inheritanceClause: InheritanceClauseSyntax {
+                    InheritedTypeSyntax(type: IdentifierTypeSyntax(name: .identifier("Equatable")))
+                }
+            ) {
+                enumDecl.forEachCaseElement { caseElement in
+                    EnumCaseDeclSyntax {
+                        EnumCaseElementSyntax(name: .identifier("\(caseElement.name.trimmed.text.lowercasingFirst)"))
+                    }
                 }
             }
+            .with(\.leadingTrivia, .newlines(2))
+        )
+
+        enumDecl.forEachCaseElement { caseElement in
+            decls.append(
+                TypeAliasDeclSyntax(
+                    modifiers: DeclModifierListSyntax {
+                        // Inherit visibility modifiers
+                        enumDecl.modifiers.trimmed
+                    },
+                    name: .identifier("\(enumName)\(caseElement.name.trimmed.text.uppercasingFirst)MatchHandler"),
+                    initializer: TypeInitializerClauseSyntax(
+                        equal: .equalToken(),
+                        value: FunctionTypeSyntax(
+                            parameters: TupleTypeElementListSyntax {
+                                for (index, caseParam) in (caseElement.parameterClause?.parameters ?? []).enumerated() {
+                                    TupleTypeElementSyntax(
+                                        firstName: .wildcardToken(),
+                                        secondName: caseParam.properName(index: index),
+                                        colon: .colonToken(),
+                                        type: caseParam.type.asNSNumberIfOptionalNumeral.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes)
+                                    )
+                                }
+                            },
+                            returnClause: ReturnClauseSyntax(
+                                type: IdentifierTypeSyntax(name: .identifier("Void"))
+                            )
+                        )
+                    )
+                )
+                .with(\.leadingTrivia, .newlines(2))
+            )
         }
 
         decls.append(
@@ -305,8 +320,15 @@ public struct SwiftObjcValueTypeFactory {
                     }
                 },
                 memberBlockBuilder: {
+                    DeclSyntax("private let subtype: \(raw: enumName)Subtype")
+
                     try objcEnumPrivateVariablesDecl(
                         enumDecl: enumDecl, referencedSwiftTypes: referencedSwiftTypes
+                    )
+
+                    try enumPrivateObjcInitializer(
+                        enumDecl: enumDecl,
+                        referencedSwiftTypes: referencedSwiftTypes
                     )
                     .with(\.leadingTrivia, .newlines(2))
 
@@ -337,65 +359,67 @@ public struct SwiftObjcValueTypeFactory {
                         .with(\.leadingTrivia, .newlines(2))
                     }
 
-                    for member in enumDecl.memberBlock.members {
-                        if let caseDecl = member.decl.as(EnumCaseDeclSyntax.self) {
-                            for caseElement in caseDecl.elements {
-                                FunctionDeclSyntax(
-                                    attributes: AttributeListSyntax {
-                                        "@objc"
-                                    }
-                                    .with(\.trailingTrivia, .newline),
-                                    modifiers: DeclModifierListSyntax {
-                                        // Inherit visibility modifiers
-                                        enumDecl.modifiers.trimmed
+                    enumDecl.forEachCaseElement { caseElement in
+                        FunctionDeclSyntax(
+                            attributes: AttributeListSyntax {
+                                "@objc"
+                            }
+                            .with(\.trailingTrivia, .newline),
+                            modifiers: DeclModifierListSyntax {
+                                // Inherit visibility modifiers
+                                enumDecl.modifiers.trimmed
 
-                                        DeclModifierSyntax(name: .keyword(.class))
-                                    },
-                                    name: caseElement.name,
-                                    signature: FunctionSignatureSyntax(
-                                        parameterClause: FunctionParameterClauseSyntax(
-                                            parametersBuilder: {
-                                                for (index, caseParam) in (caseElement.parameterClause?.parameters ?? []).enumerated() {
-                                                    let type: any TypeSyntaxProtocol = {
-                                                        if let optional = caseParam.type.as(OptionalTypeSyntax.self), optional.wrappedType.isNSNumberBridged {
-                                                            return OptionalTypeSyntax(
-                                                                wrappedType: IdentifierTypeSyntax(name: "NSNumber")
-                                                            )
-                                                        } else {
-                                                            return caseParam.type.trimmed
-                                                        }
-                                                    }()
-                                                    FunctionParameterSyntax(
-                                                        firstName: caseParam.properName(index: index),
-                                                        secondName: caseParam.secondName,
-                                                        type: type
-                                                    )
-                                                }
-                                            }
-                                        ),
-                                        returnClause: ReturnClauseSyntax(
-                                            type: IdentifierTypeSyntax(name: .identifier("\(enumName)Objc"))
-                                        )
-                                    )
-                                ) {
-                                    ReturnStmtSyntax(
-                                        expression: FunctionCallExprSyntax(
-                                            calledExpression: DeclReferenceExprSyntax(
-                                                baseName: .identifier("\(enumName)Objc")),
-                                            leftParen: .leftParenToken(),
-                                            rightParen: .rightParenToken()
-                                        ) {
-                                            LabeledExprSyntax(
-                                                label: .identifier("wrapped"),
-                                                colon: .colonToken(),
-                                                expression: enumCaseInitializer(caseElement: caseElement)
+                                DeclModifierSyntax(name: .keyword(.class))
+                            },
+                            name: caseElement.name,
+                            signature: FunctionSignatureSyntax(
+                                parameterClause: FunctionParameterClauseSyntax(
+                                    parametersBuilder: {
+                                        for (index, caseParam) in (caseElement.parameterClause?.parameters ?? []).enumerated() {
+                                            FunctionParameterSyntax(
+                                                firstName: caseParam.properName(index: index),
+                                                secondName: caseParam.secondName,
+                                                type: caseParam.type.asNSNumberIfOptionalNumeral.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes)
                                             )
                                         }
+                                    }
+                                ),
+                                returnClause: ReturnClauseSyntax(
+                                    type: IdentifierTypeSyntax(name: .identifier("\(enumName)Objc"))
+                                )
+                            )
+                        ) {
+                            ReturnStmtSyntax(
+                                expression: FunctionCallExprSyntax(
+                                    calledExpression: DeclReferenceExprSyntax(
+                                        baseName: .identifier("\(enumName)Objc")),
+                                    leftParen: .leftParenToken(),
+                                    rightParen: .rightParenToken()
+                                ) {
+                                    LabeledExprSyntax(
+                                        label: .identifier("subtype"),
+                                        colon: .colonToken(),
+                                        expression: MemberAccessExprSyntax(
+                                            period: .periodToken(),
+                                            declName: DeclReferenceExprSyntax(baseName: .identifier(caseElement.name.trimmed.text.lowercasingFirst))
+                                        )
                                     )
+
+                                    let caseName = caseElement.name.trimmed.text.uppercasingFirst
+                                    let params = caseElement.parameterClause?.parameters ?? []
+                                    for (index, caseParam) in params.enumerated() {
+                                        let propertyName = caseParam.properName(index: index).trimmed.text
+
+                                        LabeledExprSyntax(
+                                            label: .identifier(caseName.lowercasingFirst + propertyName.uppercasingFirst),
+                                            colon: .colonToken(),
+                                            expression: DeclReferenceExprSyntax(baseName: .identifier(propertyName))
+                                        )
+                                    }
                                 }
-                                .with(\.leadingTrivia, .newlines(2))
-                            }
+                            )
                         }
+                        .with(\.leadingTrivia, .newlines(2))
                     }
 
                     try enumMatchFunc(
@@ -408,67 +432,6 @@ public struct SwiftObjcValueTypeFactory {
         )
 
         return decls
-    }
-
-    private func enumCaseInitializer(
-        caseElement: EnumCaseElementSyntax
-    ) -> FunctionCallExprSyntax {
-        FunctionCallExprSyntax(
-            calledExpression: MemberAccessExprSyntax(
-                period: .periodToken(),
-                declName: DeclReferenceExprSyntax(
-                    baseName: caseElement.name
-                )
-            ),
-            leftParen: .leftParenToken(),
-            rightParen: .rightParenToken()
-        ) {
-            let params = caseElement.parameterClause?.parameters ?? []
-            for (index, caseParam) in params.enumerated() {
-                LabeledExprSyntax(
-                    label: caseParam.properName(index: index),
-                    colon: .colonToken(),
-                    expression: DeclReferenceExprSyntax(
-                        baseName: caseParam.properName(index: index)
-                    )
-                    .mappingNSNumberToNumeralValue(type: caseParam.type),
-                    trailingComma: index + 1 < params.count ? .commaToken() : nil
-                )
-            }
-        }
-    }
-
-    func switchCaseLabel(caseElement: EnumCaseElementSyntax) -> SwitchCaseLabelSyntax {
-        SwitchCaseLabelSyntax {
-            SwitchCaseItemSyntax(
-                pattern: ExpressionPatternSyntax(
-                    expression: FunctionCallExprSyntax(
-                        calledExpression: MemberAccessExprSyntax(
-                            period: .periodToken(),
-                            declName: DeclReferenceExprSyntax(baseName: caseElement.name)
-                        ),
-                        leftParen: .leftParenToken(),
-                        rightParen: .rightParenToken()
-                    ) {
-                        LabeledExprListSyntax {
-                            let params = caseElement.parameterClause?.parameters ?? []
-                            for (index, caseParam) in params.enumerated() {
-                                LabeledExprSyntax(
-                                    expression: PatternExprSyntax(
-                                        pattern: ValueBindingPatternSyntax(
-                                            bindingSpecifier: .keyword(.let),
-                                            pattern: IdentifierPatternSyntax(identifier: caseParam.properName(index: index))
-                                        )
-                                    ),
-                                    trailingComma: index + 1 < params.count ? .commaToken() : nil
-                                )
-                            }
-                        }
-                    }
-                )
-            )
-        }
-
     }
 
     private func enumMatchFunc(
@@ -501,10 +464,21 @@ public struct SwiftObjcValueTypeFactory {
                 }
             )
         ) {
-            try SwitchExprSyntax("switch wrapped") {
+            try SwitchExprSyntax("switch subtype") {
                 enumDecl.forEachCaseElement { caseElement in
                     SwitchCaseSyntax(
-                        label: .case(switchCaseLabel(caseElement: caseElement))
+                        label: .case(
+                            SwitchCaseLabelSyntax {
+                                SwitchCaseItemSyntax(
+                                    pattern: ExpressionPatternSyntax(
+                                        expression: MemberAccessExprSyntax(
+                                            period: .periodToken(),
+                                            declName: DeclReferenceExprSyntax(baseName: caseElement.name)
+                                        )
+                                    )
+                                )
+                            }
+                        )
                     ) {
                         FunctionCallExprSyntax(
                             calledExpression: OptionalChainingExprSyntax(
@@ -516,14 +490,15 @@ public struct SwiftObjcValueTypeFactory {
                             rightParen: .rightParenToken()
                         ) {
                             LabeledExprListSyntax {
+                                let caseName = caseElement.name.trimmed.text.uppercasingFirst
                                 let params = caseElement.parameterClause?.parameters ?? []
                                 for (index, caseParam) in params.enumerated() {
                                     LabeledExprSyntax(
                                         expression: DeclReferenceExprSyntax(
-                                            baseName: caseParam.properName(index: index)
+                                            baseName: .identifier(caseName.lowercasingFirst + caseParam.properName(index: index).trimmed.text.uppercasingFirst)
                                         )
-                                        .mappingNumeralValueToNSNumber(type: caseParam.type),
-                                        trailingComma: index + 1 < params.count ? .commaToken() : nil
+                                        .mappingNumeralValueToNSNumber(type: caseParam.type)
+                                        .forceUnwrapIfNotOptional(type: caseParam.type)
                                     )
                                 }
                             }
@@ -555,6 +530,64 @@ public struct SwiftObjcValueTypeFactory {
             )
         ) {
             "fatalError()"
+        }
+    }
+
+    @MemberBlockItemListBuilder
+    private func enumPrivateObjcInitializer(
+        enumDecl: EnumDeclSyntax,
+        referencedSwiftTypes: [String]
+    ) throws -> MemberBlockItemListSyntax {
+        InitializerDeclSyntax(
+            modifiers: DeclModifierListSyntax {
+                DeclModifierSyntax(name: .keyword(.private))
+            },
+            signature: FunctionSignatureSyntax(
+                parameterClause: FunctionParameterClauseSyntax(
+                    parametersBuilder: {
+                        FunctionParameterSyntax(
+                            firstName: .identifier("subtype"),
+                            type: IdentifierTypeSyntax(name: .identifier("\(enumDecl.name.trimmed.text)Subtype"))
+                        )
+
+                        enumDecl.forEachCaseElement { caseElement in
+                            let caseName = caseElement.name.trimmed.text.uppercasingFirst
+                            let params = caseElement.parameterClause?.parameters ?? []
+                            for (index, caseParam) in params.enumerated() {
+                                FunctionParameterSyntax(
+                                    firstName: .identifier(caseName.lowercasingFirst + caseParam.properName(index: index).trimmed.text.uppercasingFirst),
+                                    type: caseParam.type.asNSNumberIfOptionalNumeral.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes).optionalized,
+                                    defaultValue: InitializerClauseSyntax(
+                                        value: NilLiteralExprSyntax()
+                                    )
+                                )
+                            }
+                        }
+                    }
+                )
+            )
+        ) {
+            "self.subtype = subtype"
+
+            enumDecl.forEachCaseElement { caseElement in
+                let caseName = caseElement.name.trimmed.text.uppercasingFirst
+                let params = caseElement.parameterClause?.parameters ?? []
+
+                for (index, caseParam) in params.enumerated() {
+                    let propertyName = caseName.lowercasingFirst + caseParam.properName(index: index).trimmed.text.uppercasingFirst
+
+                    SequenceExprSyntax {
+                        MemberAccessExprSyntax(
+                            base: DeclReferenceExprSyntax(baseName: .keyword(.self)),
+                            declName: DeclReferenceExprSyntax(baseName: .identifier(propertyName))
+                        )
+
+                        AssignmentExprSyntax()
+
+                        DeclReferenceExprSyntax(baseName: .identifier(propertyName))
+                    }
+                }
+            }
         }
     }
 
@@ -689,7 +722,7 @@ public struct SwiftObjcValueTypeFactory {
                             identifier: .identifier(caseName.lowercasingFirst + caseParam.properName(index: index).trimmed.text.uppercasingFirst)
                         ),
                         typeAnnotation: TypeAnnotationSyntax(
-                            type: caseParam.type.asNSNumberIfOptionalNumeral.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes)
+                            type: caseParam.type.asNSNumberIfOptionalNumeral.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes).optionalized
                         )
                     )
                 }

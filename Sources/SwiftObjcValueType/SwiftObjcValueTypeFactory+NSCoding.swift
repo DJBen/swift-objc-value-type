@@ -272,11 +272,22 @@ extension SwiftObjcValueTypeFactory {
             )
         ) {
             SwitchExprSyntax(
-                subject: DeclReferenceExprSyntax(baseName: .identifier("wrapped"))
+                subject: DeclReferenceExprSyntax(baseName: .identifier("subtype"))
             ) {
                 enumDecl.forEachCaseElement { caseElement in
                     SwitchCaseSyntax(
-                        label: .case(switchCaseLabel(caseElement: caseElement))
+                        label: .case(
+                            SwitchCaseLabelSyntax {
+                                SwitchCaseItemSyntax(
+                                    pattern: ExpressionPatternSyntax(
+                                        expression: MemberAccessExprSyntax(
+                                            period: .periodToken(),
+                                            declName: DeclReferenceExprSyntax(baseName: caseElement.name)
+                                        )
+                                    )
+                                )
+                            }
+                        )
                     ) {
                         let params = caseElement.parameterClause?.parameters ?? []
                         let caseName = caseElement.name.trimmed.text.uppercasingFirst
@@ -284,7 +295,7 @@ extension SwiftObjcValueTypeFactory {
                             let propertyName = caseParam.properName(index: index).trimmed.text
                             coderEncodeCall(
                                 type: caseParam.type,
-                                propertyName: propertyName,
+                                propertyName: caseName.lowercasingFirst + propertyName.uppercasingFirst,
                                 constantName: "k\(caseName)\(propertyName.uppercasingFirst)Key"
                             )
                         }

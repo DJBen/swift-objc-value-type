@@ -372,6 +372,15 @@ extension ExprSyntaxProtocol {
             return self
         }
     }
+
+    func forceUnwrapIfNotOptional(
+        type: some TypeSyntaxProtocol
+    ) -> any ExprSyntaxProtocol {
+        if type.is(OptionalTypeSyntax.self) {
+            return self
+        }
+        return ForceUnwrapExprSyntax(expression: self)
+    }
 }
 
 extension EnumDeclSyntax {
@@ -427,6 +436,12 @@ extension EnumDeclSyntax {
             collection.append(contentsOf: try caseElementBlock(index, caseElement))
         }
         return collection
+    }
+
+    func forEachCaseElement(
+        @CodeBlockItemListBuilder caseElementBlock: (EnumCaseElementSyntax) throws -> CodeBlockItemListSyntax
+    ) rethrows -> CodeBlockItemListSyntax {
+        try forEachCaseElementGeneric(caseElementBlock: caseElementBlock)
     }
 
     func forEachCaseElement(
