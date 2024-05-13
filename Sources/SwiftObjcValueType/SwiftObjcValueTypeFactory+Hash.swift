@@ -24,7 +24,7 @@ extension SwiftObjcValueTypeFactory {
             )
         } else if type.isSignedInt {
             return ExprSyntax("UInt(abs(\(identifier)\(raw: numeralUnwrapSuffix)))")
-        } else if type.isObjcPrimitiveNumeral {
+        } else if type.isObjcPrimitive {
             return ExprSyntax("UInt(\(identifier)\(raw: numeralUnwrapSuffix))")
         } else {
             if needsUnwrap {

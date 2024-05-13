@@ -56,7 +56,7 @@ extension SwiftObjcValueTypeFactory {
         // Use `a == other.a` if primitive type
         // Otherwise use `a.isEqual(other.a)` if not optional
         // `a?.isEqual(other?.a) == true` if optional
-        if type.isObjcPrimitiveNumeral {
+        if type.isObjcPrimitive {
             DeclReferenceExprSyntax(
                 baseName: identifier
             )

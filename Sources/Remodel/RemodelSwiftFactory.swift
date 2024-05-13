@@ -250,7 +250,6 @@ public class RemodelSwiftFactory {
         model.includes.contains("RMEquality") ? InheritanceClauseSyntax {
             if model.includes.contains("RMEquality") {
                 InheritedTypeSyntax(type: IdentifierTypeSyntax(name: "Equatable"))
-                InheritedTypeSyntax(type: IdentifierTypeSyntax(name: "Hashable"))
             }
         } : nil
     }
@@ -266,7 +265,7 @@ public class RemodelSwiftFactory {
             )
         )
         .optionalized({
-            if isObjcPrimitiveNumeral(structValue.type) {
+            if isObjcPrimitive(structValue.type) {
                 return false
             }
             switch structValue.nullability {
@@ -328,7 +327,7 @@ public class RemodelSwiftFactory {
         }
     }
 
-    private func isObjcPrimitiveNumeral(_ remodelType: String) -> Bool {
+    private func isObjcPrimitive(_ remodelType: String) -> Bool {
         if remodelType == "char" {
             return true
         } else if remodelType.lowercased() == "bool" {
@@ -336,8 +335,10 @@ public class RemodelSwiftFactory {
         } else if remodelType == "float" || remodelType == "double" {
             return true
         } else if let aliasedType = remodelType.firstMatch(of: aliasedPrimitiveTypeRegex) {
-            return isObjcPrimitiveNumeral(String(aliasedType.2))
+            return isObjcPrimitive(String(aliasedType.2))
         } else if remodelType == "NSInteger" || remodelType == "NSUInteger" {
+            return true
+        } else if ["CGFloat", "CGSize", "CGRect", "CGVector"].contains(remodelType) {
             return true
         } else {
             return remodelType.contains(primitiveCIntRegex) || remodelType.contains(primitiveCIntTRegex)

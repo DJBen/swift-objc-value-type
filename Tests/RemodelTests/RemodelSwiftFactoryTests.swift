@@ -102,7 +102,7 @@ final class RemodelSwiftFactoryTests: XCTestCase {
 
             /// Some comments
             /// comment line 2
-            public struct TrackV2ConfigValue: Equatable, Hashable {
+            public struct TrackV2ConfigValue: Equatable {
 
                 public let enableAttachment: Bool
 
@@ -279,7 +279,7 @@ final class RemodelSwiftFactoryTests: XCTestCase {
 
             /// An Example Algebraic data type (akin to swift enum associated value)
             /// multiline comment
-            public enum AdtValue: Equatable, Hashable {
+            public enum AdtValue: Equatable {
                 
                 /// case 1 comment
                 /// - someInt: some non-pointer integer
@@ -386,7 +386,7 @@ final class RemodelSwiftFactoryTests: XCTestCase {
             result,
             """
 
-            
+
             public struct NestedValue {
 
                 public let arr: [Hello]?

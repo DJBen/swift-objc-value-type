@@ -86,10 +86,13 @@ extension TypeSyntaxProtocol {
     }
 
     /// Whether this property can be expressed as a primitive in Objective-C.
-    var isObjcPrimitiveNumeral: Bool {
+    var isObjcPrimitive: Bool {
         if let identifierType = self.as(IdentifierTypeSyntax.self) {
             switch identifierType.name.trimmed.text {
-            case "Int", "UInt8", "Int8", "Int16", "UInt16", "Int32", "UInt32", "Int64", "UInt64", "Float", "CFGloat", "Double", "Bool":
+            case "Int", "UInt8", "Int8", "Int16", "UInt16", "Int32", "UInt32", "Int64", "UInt64", "Float", "Double", "Bool":
+                return true
+            case "CGFloat", "CGRect", "CGSize", "CGVector":
+                // Core graphics
                 return true
             default:
                 return false
