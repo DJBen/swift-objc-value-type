@@ -7,6 +7,7 @@ let package = Package(
   name: "SwiftObjcValueType",
   platforms: [
     .macOS(.v13),
+    .iOS(.v16),
   ],
   products: [
     .executable(name: "swift-objc-value-type", targets: ["SwiftObjcValueTypeExecutable"]),

@@ -5,10 +5,11 @@ module(
 bazel_dep(name = "rules_swift", version = "1.18.0")
 bazel_dep(name = "rules_apple", version = "3.5.1")
 bazel_dep(name = "apple_support", version = "1.15.1", repo_name = "build_bazel_apple_support")
+bazel_dep(name = "bazel_skylib", version = "1.6.1")
+bazel_dep(name = "rules_xcodeproj", version = "2.3.1")
 
 bazel_dep(name = "swift_objc_value_type")
 local_path_override(
     module_name = "swift_objc_value_type",
     path = "../",
 )
-
