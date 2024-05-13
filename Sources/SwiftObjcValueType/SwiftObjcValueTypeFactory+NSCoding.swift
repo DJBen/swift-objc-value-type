@@ -325,8 +325,9 @@ extension SwiftObjcValueTypeFactory {
 
         InitializerDeclSyntax(
             modifiers: DeclModifierListSyntax {
-                DeclModifierSyntax(name: .keyword(Keyword.public))
-                DeclModifierSyntax(name: .keyword(Keyword.required))
+                DeclModifierSyntax(name: .keyword(.public))
+                DeclModifierSyntax(name: .keyword(.required))
+                DeclModifierSyntax(name: .keyword(.convenience))
             },
             optionalMark: .postfixQuestionMarkToken(),
             signature: FunctionSignatureSyntax(
@@ -387,48 +388,43 @@ extension SwiftObjcValueTypeFactory {
                             )
                         }
 
-                        // self.wrapped = .saveBegan(savingToAlpha: savingToAlpha)
-
-                        SequenceExprSyntax{
-                            MemberAccessExprSyntax(
-                                base: DeclReferenceExprSyntax(
-                                    baseName: .keyword(.`self`)
-                                ),
+                        FunctionCallExprSyntax(
+                            calledExpression: MemberAccessExprSyntax(
+                                base: ExprSyntax("self"),
                                 period: .periodToken(),
                                 declName: DeclReferenceExprSyntax(
-                                    baseName: .identifier("wrapped")
+                                    baseName: "init"
                                 )
-                            )
-
-                            AssignmentExprSyntax(equal: .equalToken())
-
-                            FunctionCallExprSyntax(
-                                calledExpression: MemberAccessExprSyntax(
-                                    period: .periodToken(),
-                                    declName: DeclReferenceExprSyntax(
-                                        baseName: caseElement.name
-                                    )
-                                ),
-                                leftParen: .leftParenToken(),
-                                arguments: LabeledExprListSyntax {
-                                    let params = caseElement.parameterClause?.parameters ?? []
-                                    for (index, caseParam) in params.enumerated() {
-                                        LabeledExprSyntax(
-                                            label: .identifier(caseParam.properName(index: index).trimmed.text),
-                                            colon: .colonToken(),
-                                            expression: DeclReferenceExprSyntax(
-                                                baseName: .identifier(caseParam.properName(index: index).trimmed.text)
-                                            )
-                                            .mappingNSNumberToNumeralValue(
-                                                type: caseParam.type
-                                            ),
-                                            trailingComma: index + 1 < params.count ? .commaToken() : nil
+                            ),
+                            leftParen: .leftParenToken(),
+                            arguments: LabeledExprListSyntax {
+                                LabeledExprSyntax(
+                                    label: .identifier("subtype"),
+                                    colon: .colonToken(),
+                                    expression: MemberAccessExprSyntax(
+                                        period: .periodToken(),
+                                        declName: DeclReferenceExprSyntax(
+                                            baseName: .identifier(caseElement.name.trimmed.text.lowercasingFirst)
                                         )
-                                    }
-                                },
-                                rightParen: .rightParenToken()
-                            )
-                        }
+                                    )
+                                )
+
+                                let params = caseElement.parameterClause?.parameters ?? []
+                                for (index, caseParam) in params.enumerated() {
+                                    LabeledExprSyntax(
+                                        label: .identifier(caseElement.name.trimmed.text.lowercasingFirst + caseParam.properName(index: index).trimmed.text.uppercasingFirst),
+                                        colon: .colonToken(),
+                                        expression: DeclReferenceExprSyntax(
+                                            baseName: .identifier(caseParam.properName(index: index).trimmed.text)
+                                        )
+                                        .mappingNSNumberToNumeralValue(
+                                            type: caseParam.type
+                                        )
+                                    )
+                                }
+                            },
+                            rightParen: .rightParenToken()
+                        )
                     }
                 }
 
