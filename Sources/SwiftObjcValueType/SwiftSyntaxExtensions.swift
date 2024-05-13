@@ -63,12 +63,26 @@ extension TypeSyntaxProtocol {
                 return .identifier("decodeInt64")
             case "Float":
                 return .identifier("decodeFloat")
-            case "CGFloat", "Double":
+            case "Double", "CGFloat":
+                // CGFloat is supposed to be Double, but when being decoded
+                // as decodeDouble it throws http://www.openradar.me/39871638
+                // Thus it is mandatory to cast to Double before encoding and
+                // covert it back to CGFloat after decoding
                 return .identifier("decodeDouble")
             case "Bool":
                 return .identifier("decodeBool")
             case "Int", "UInt":
                 return .identifier("decodeInteger")
+            case "CGAffineTransform":
+                return .identifier("decodeCGAffineTransform")
+            case "CGPoint":
+                return .identifier("decodeCGPoint")
+            case "CGRect":
+                return .identifier("decodeCGRect")
+            case "CGVector":
+                return .identifier("decodeCGVector")
+            case "CGSize":
+                return .identifier("decodeCGSize")
             default:
                 return .identifier("decodeObject")
             }
@@ -91,7 +105,7 @@ extension TypeSyntaxProtocol {
             switch identifierType.name.trimmed.text {
             case "Int", "UInt8", "Int8", "Int16", "UInt16", "Int32", "UInt32", "Int64", "UInt64", "Float", "Double", "Bool":
                 return true
-            case "CGFloat", "CGRect", "CGSize", "CGVector":
+            case "CGFloat", "CGPoint", "CGRect", "CGSize", "CGVector", "CGAffineTransform":
                 // Core graphics
                 return true
             default:

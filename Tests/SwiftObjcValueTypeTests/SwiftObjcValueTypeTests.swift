@@ -783,6 +783,167 @@ final class SwiftObjcValueTypeTests: XCTestCase {
         )
     }
 
+    func testValueObjc_cgTypes() throws {
+        let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
+            codeBlocks: CodeBlockItemListSyntax {
+                "import Foundation"
+
+                "import UIKit"
+
+                #"""
+                /// Another value type
+                public struct StoriesOther: Equatable {
+
+                    /// The original size of the product image
+                    public let productImageSize: CGSize
+
+                    /// The frame of the custom image within the original product image
+                    public let frame: CGRect
+
+                    /// The rotation angle in degrees (clockwise) of the custom image
+                    public let rotationAngle: CGFloat
+
+                    public init(productImageSize: CGSize, frame: CGRect, rotationAngle: CGFloat) {
+                        self.productImageSize = productImageSize
+                        self.frame = frame
+                        self.rotationAngle = rotationAngle
+                    }
+                }
+                """#
+            },
+            prefix: "SC"
+        )
+
+        assertBuildResult(
+            result,
+            #"""
+            import Foundation
+            import UIKit
+            private let kProductImageSizeKey = "PRODUCT_IMAGE_SIZE"
+            private let kFrameKey = "FRAME"
+            private let kRotationAngleKey = "ROTATION_ANGLE"
+
+            @objc(SCStoriesOther)
+            public class StoriesOtherObjc: NSObject, NSCopying, NSCoding {
+
+                @objc public let productImageSize: CGSize
+
+                @objc public let frame: CGRect
+
+                @objc public let rotationAngle: CGFloat
+
+                @objc
+                public init(productImageSize: CGSize, frame: CGRect, rotationAngle: CGFloat) {
+                    self.productImageSize = productImageSize
+                    self.frame = frame
+                    self.rotationAngle = rotationAngle
+                }
+
+                public init(_ original: StoriesOther) {
+                    self.productImageSize = original.productImageSize
+                    self.frame = original.frame
+                    self.rotationAngle = original.rotationAngle
+                }
+
+                public override func isEqual(_ object: Any?) -> Bool {
+                    guard let other = object as? StoriesOtherObjc else {
+                        return false
+                    }
+                    return productImageSize == other.productImageSize && frame == other.frame && rotationAngle == other.rotationAngle
+                }
+
+                public func copy(with zone: NSZone? = nil) -> Any {
+                    StoriesOtherObjc(productImageSize: productImageSize, frame: frame, rotationAngle: rotationAngle)
+                }
+
+                public func encode(with coder: NSCoder) {
+                    coder.encode(productImageSize, forKey: kProductImageSizeKey)
+                    coder.encode(frame, forKey: kFrameKey)
+                    coder.encode(Double(rotationAngle), forKey: kRotationAngleKey)
+                }
+
+                public required convenience init?(coder: NSCoder) {
+                    guard let productImageSize = coder.decodeCGSize(forKey: kProductImageSizeKey) else {
+                        return nil
+                    }
+                    guard let frame = coder.decodeCGRect(forKey: kFrameKey) else {
+                        return nil
+                    }
+                    let rotationAngle = CGFloat(coder.decodeDouble(forKey: kRotationAngleKey))
+                    self.init(productImageSize: productImageSize, frame: frame, rotationAngle: rotationAngle)
+                }
+
+                @available(*, unavailable)
+                public override init() {
+                    fatalError()
+                }
+            }
+
+            extension StoriesOtherObjc {
+                @objc(SCStoriesOtherBuilder)
+                public class StoriesOtherBuilder: NSObject {
+                    @objc public class func storiesOther() -> StoriesOtherBuilder {
+                        StoriesOtherBuilder()
+                    }
+
+                    @objc public class func storiesOther(existingStoriesOther: StoriesOtherObjc) -> StoriesOtherObjc {
+                        StoriesOtherBuilder.storiesOther().withProductImageSize(existingStoriesOther.productImageSize).withFrame(existingStoriesOther.frame).withRotationAngle(existingStoriesOther.rotationAngle).build()
+                    }
+
+                    private var productImageSize: CGSize?
+
+                    @objc @discardableResult public func withProductImageSize(_ productImageSize: CGSize) -> StoriesOtherBuilder {
+                        self.productImageSize = productImageSize
+                        return self
+                    }
+
+                    private var frame: CGRect?
+
+                    @objc @discardableResult public func withFrame(_ frame: CGRect) -> StoriesOtherBuilder {
+                        self.frame = frame
+                        return self
+                    }
+
+                    private var rotationAngle: CGFloat?
+
+                    @objc @discardableResult public func withRotationAngle(_ rotationAngle: CGFloat) -> StoriesOtherBuilder {
+                        self.rotationAngle = rotationAngle
+                        return self
+                    }
+
+                    private func error(field: String) -> Error {
+                        NSError(
+                            domain: "ValueType.Builder.NonnullFieldUnset",
+                            code: 1,
+                            userInfo: [NSLocalizedDescriptionKey: "Failed to build because nonnull field '\(field)' is unset"]
+                        )
+                    }
+
+                    @objc public func build() -> StoriesOtherObjc {
+                        try! safeBuild()
+                    }
+
+                    @objc
+                    public func safeBuild() throws -> StoriesOtherObjc {
+                        guard let productImageSize = productImageSize else {
+                            throw error(field: "productImageSize")
+                        }
+                        guard let frame = frame else {
+                            throw error(field: "frame")
+                        }
+                        guard let rotationAngle = rotationAngle else {
+                            throw error(field: "rotationAngle")
+                        }
+
+                        return StoriesOtherObjc(productImageSize: productImageSize, frame: frame, rotationAngle: rotationAngle)
+                    }
+                }
+            }
+
+            """#
+        )
+    }
+
     func testAdtClass_baseCase() throws {
         let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
             codeBlocks: CodeBlockItemListSyntax {

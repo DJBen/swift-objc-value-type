@@ -338,7 +338,7 @@ public class RemodelSwiftFactory {
             return isObjcPrimitive(String(aliasedType.2))
         } else if remodelType == "NSInteger" || remodelType == "NSUInteger" {
             return true
-        } else if ["CGFloat", "CGSize", "CGRect", "CGVector"].contains(remodelType) {
+        } else if ["CGPoint", "CGFloat", "CGSize", "CGRect", "CGVector", "CGAffineTransform"].contains(remodelType) {
             return true
         } else {
             return remodelType.contains(primitiveCIntRegex) || remodelType.contains(primitiveCIntTRegex)

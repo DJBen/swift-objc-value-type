@@ -127,6 +127,11 @@ extension SwiftObjcValueTypeFactory {
                     },
                     rightParen: .rightParenToken()
                 )
+                .casted(
+                    type: type,
+                    to: "CGFloat",
+                    ifEqual: "CGFloat"
+                )
 
                 if let optionalType = type.as(OptionalTypeSyntax.self), optionalType.wrappedType.isNSNumberBridged {
                     UnresolvedAsExprSyntax(
@@ -138,7 +143,7 @@ extension SwiftObjcValueTypeFactory {
                             name: .identifier("NSNumber")
                         )
                     )
-                } else if !type.isNSNumberBridged {
+                } else if !type.isObjcPrimitive {
                     UnresolvedAsExprSyntax(
                         questionOrExclamationMark: .postfixQuestionMarkToken()
                     )
@@ -173,7 +178,11 @@ extension SwiftObjcValueTypeFactory {
             leftParen: .leftParenToken(),
             arguments: LabeledExprListSyntax {
                 LabeledExprSyntax(
-                    expression: propertyExpr
+                    expression: propertyExpr.casted(
+                        type: type,
+                        to: "Double",
+                        ifEqual: "CGFloat"
+                    )
                 )
 
                 LabeledExprSyntax(
@@ -212,7 +221,7 @@ extension SwiftObjcValueTypeFactory {
     ) -> CodeBlockItemListSyntax {
         let constantEnumPrefix = constantEnumPrefix?.uppercasingFirst ?? ""
         let constantName = "k\(constantEnumPrefix)\(identifierPattern.identifier.trimmed.text.uppercasingFirst)Key"
-        if type.is(OptionalTypeSyntax.self) || type.isNSNumberBridged {
+        if type.is(OptionalTypeSyntax.self) || type.isObjcPrimitive {
             VariableDeclSyntax(
                 bindingSpecifier: .keyword(SwiftSyntax.Keyword.let),
                 bindings: PatternBindingListSyntax {
@@ -544,5 +553,109 @@ extension SwiftObjcValueTypeFactory {
         }
         .with(\.leadingTrivia, .newlines(2))
     }
+}
 
+private func nsValueInitializerLabel(
+    cgType: String
+) -> String? {
+    if cgType == "CGPoint" {
+        return "cgPoint"
+    } else if cgType == "CGRect" {
+        return "cgRect"
+    } else if cgType == "CGSize" {
+        return "cgSize"
+    } else if cgType == "CGVector" {
+        return "cgVector"
+    } else {
+        return nil
+    }
+}
+
+extension ExprSyntaxProtocol {
+    func casted(
+        type: some TypeSyntaxProtocol,
+        to castedType: String = "CGFloat",
+        ifEqual equalToType: String = "CGFloat"
+    ) -> any ExprSyntaxProtocol {
+        if let identifierType = type.as(IdentifierTypeSyntax.self), identifierType.name.trimmed.text == equalToType {
+            return FunctionCallExprSyntax(
+                calledExpression: DeclReferenceExprSyntax(
+                    baseName: .identifier(castedType)
+                ),
+                leftParen: .leftParenToken(),
+                arguments: LabeledExprListSyntax {
+                    LabeledExprSyntax(
+                        expression: self
+                    )
+                },
+                rightParen: .rightParenToken()
+            )
+        } else {
+            return self
+        }
+    }
+
+    func wrappingWithNSValueForEncoding(
+        type: some TypeSyntaxProtocol
+    ) -> any ExprSyntaxProtocol {
+        if let optionalType = type.as(OptionalTypeSyntax.self), let innerIdentifierType = optionalType.wrappedType.as(IdentifierTypeSyntax.self) {
+            // <epxr>.map(NSValue(<label>:))
+            return nsValueInitializerLabel(
+                cgType: innerIdentifierType.name.trimmed.text
+            )
+            .map { functionLabel in
+                FunctionCallExprSyntax(
+                    calledExpression: MemberAccessExprSyntax(
+                        base: self,
+                        period: .periodToken(),
+                        declName: DeclReferenceExprSyntax(
+                            baseName: .identifier("map")
+                        )
+                    ),
+                    leftParen: .leftParenToken(),
+                    arguments: LabeledExprListSyntax {
+                        LabeledExprSyntax(
+                            expression: DeclReferenceExprSyntax(
+                                baseName: .identifier("NSValue"),
+                                argumentNames: DeclNameArgumentsSyntax(
+                                    leftParen: .leftParenToken(),
+                                    arguments: DeclNameArgumentListSyntax {
+                                        DeclNameArgumentSyntax(
+                                            name: .identifier(functionLabel),
+                                            colon: .colonToken()
+                                        )
+                                    },
+                                    rightParen: .rightParenToken()
+                                )
+                            )
+                        )
+                    },
+                    rightParen: .rightParenToken()
+                )
+            } ?? self
+        } else if let identifierType = type.as(IdentifierTypeSyntax.self) {
+            // NSValue(<label>: <expr>)
+            return nsValueInitializerLabel(
+                cgType: identifierType.name.trimmed.text
+            )
+            .map { functionLabel in
+                FunctionCallExprSyntax(
+                    calledExpression: DeclReferenceExprSyntax(
+                        baseName: .identifier("NSValue")
+                    ),
+                    leftParen: .leftParenToken(),
+                    arguments: LabeledExprListSyntax {
+                        LabeledExprSyntax(
+                            label: .identifier(functionLabel),
+                            colon: .colonToken(),
+                            expression: self
+                        )
+                    },
+                    rightParen: .rightParenToken()
+                )
+            } ?? self
+        } else {
+            return self
+        }
+    }
 }
