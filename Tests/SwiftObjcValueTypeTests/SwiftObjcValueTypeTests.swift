@@ -13,42 +13,38 @@ final class SwiftObjcValueTypeTests: XCTestCase {
     @objc(Value)
     public class ValueObjc: NSObject, NSCopying, NSCoding {
 
-        @objc public var doubleValue: Double {
-            wrapped.doubleValue
-        }
+        @objc public let doubleValue: Double
 
-        @objc public var optInt: NSNumber? {
-            wrapped.optInt.map(NSNumber.init)
-        }
+        @objc public let optInt: NSNumber?
 
-        @objc public var stringArray: [String] {
-            wrapped.stringArray
-        }
+        @objc public let stringArray: [String]
 
-        @objc public var map: [String: [String: Double]] {
-            wrapped.map
-        }
-
-        public let wrapped: Value
+        @objc public let map: [String: [String: Double]]
 
         @objc
         public init(doubleValue: Double, optInt: NSNumber?, stringArray: [String], map: [String: [String: Double]]) {
-            self.wrapped = Value(doubleValue: doubleValue, optInt: optInt.map(\.int64Value), stringArray: stringArray, map: map)
+            self.doubleValue = doubleValue
+            self.optInt = optInt
+            self.stringArray = stringArray
+            self.map = map
+        }
+
+        public init(_ original: Value) {
+            self.doubleValue = original.doubleValue
+            self.optInt = original.optInt.map(NSNumber.init)
+            self.stringArray = original.stringArray
+            self.map = original.map
         }
 
         public override func isEqual(_ object: Any?) -> Bool {
-            if let other = object as? ValueObjc {
-                return wrapped == other.wrapped
+            guard let other = object as? ValueObjc else {
+                return false
             }
-            return false
-        }
-
-        public init(wrapped: Value) {
-            self.wrapped = wrapped
+            return doubleValue == other.doubleValue && optInt?.isEqual(other.optInt) == true && stringArray.isEqual(other.stringArray) && map.isEqual(other.map)
         }
 
         public func copy(with zone: NSZone? = nil) -> Any {
-            return ValueObjc(wrapped: wrapped)
+            ValueObjc(doubleValue: doubleValue, optInt: optInt, stringArray: stringArray, map: map)
         }
 
         public func encode(with coder: NSCoder) {
@@ -169,40 +165,50 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             @objc(Value)
             public class ValueObjc: NSObject, NSCopying {
 
-                @objc public var doubleValue: Double {
-                    wrapped.doubleValue
-                }
+                @objc public let doubleValue: Double
 
-                @objc public var optInt: NSNumber? {
-                    wrapped.optInt.map(NSNumber.init)
-                }
-
-                public let wrapped: Value
+                @objc public let optInt: NSNumber?
 
                 @objc
                 public init(doubleValue: Double, optInt: NSNumber?) {
-                    self.wrapped = Value(doubleValue: doubleValue, optInt: optInt.map(\.int64Value))
+                    self.doubleValue = doubleValue
+                    self.optInt = optInt
+                }
+
+                public init(_ original: Value) {
+                    self.doubleValue = original.doubleValue
+                    self.optInt = original.optInt.map(NSNumber.init)
                 }
 
                 public override var hash: Int {
-                    var hasher = Hasher()
-                    hasher.combine(wrapped)
-                    return hasher.finalize()
+                    let hashes: [UInt] = [UInt(doubleValue), UInt(abs(optInt ?? 0))]
+                    return Int(hashImpl(hashes, 2))
+                }
+
+                private func hashImpl(_ subhashes: UnsafePointer<UInt>, _ length: Int) -> UInt {
+                    var result = subhashes[0]
+                    for i in 1 ..< length {
+                        var base = (UInt64(result) << 32) | UInt64(subhashes[i])
+                        base = (~base) &+ (base << 18)
+                        base ^= (base >> 31)
+                        base &*= 21
+                        base ^= (base >> 11)
+                        base &+= (base << 6)
+                        base ^= (base >> 22)
+                        result = UInt(base)
+                    }
+                    return result
                 }
 
                 public override func isEqual(_ object: Any?) -> Bool {
-                    if let other = object as? ValueObjc {
-                        return wrapped == other.wrapped
+                    guard let other = object as? ValueObjc else {
+                        return false
                     }
-                    return false
-                }
-
-                public init(wrapped: Value) {
-                    self.wrapped = wrapped
+                    return doubleValue == other.doubleValue && optInt?.isEqual(other.optInt) == true
                 }
 
                 public func copy(with zone: NSZone? = nil) -> Any {
-                    return ValueObjc(wrapped: wrapped)
+                    ValueObjc(doubleValue: doubleValue, optInt: optInt)
                 }
 
                 @available(*, unavailable)
@@ -249,30 +255,30 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             @objc(Foo)
             public class FooObjc: NSObject {
 
-                @objc public var str: String {
-                    wrapped.str
-                }
+                @objc public let str: String
 
-                @objc public var optDouble: NSNumber? {
-                    wrapped.optDouble.map(NSNumber.init)
-                }
+                @objc public let optDouble: NSNumber?
 
-                @objc public var isValid: Bool {
-                    wrapped.isValid
-                }
-
-                public let wrapped: Foo
+                @objc public let isValid: Bool
 
                 @objc
                 public init(str: String, optDouble: NSNumber?, isValid: Bool) {
-                    self.wrapped = Foo(str: str, optDouble: optDouble.map(\.doubleValue), isValid: isValid)
+                    self.str = str
+                    self.optDouble = optDouble
+                    self.isValid = isValid
+                }
+
+                public init(_ original: Foo) {
+                    self.str = original.str
+                    self.optDouble = original.optDouble.map(NSNumber.init)
+                    self.isValid = original.isValid
                 }
 
                 public override func isEqual(_ object: Any?) -> Bool {
-                    if let other = object as? FooObjc {
-                        return wrapped == other.wrapped
+                    guard let other = object as? FooObjc else {
+                        return false
                     }
-                    return false
+                    return str.isEqual(other.str) && optDouble?.isEqual(other.optDouble) == true && isValid == other.isValid
                 }
 
                 @available(*, unavailable)
@@ -353,11 +359,15 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     public let doubleValue: Double
 
                     public let ref: Value2
+
+                    public let ref2: [Int: [Bar]]
+
+                    public let ref3: [Bar]?
                 }
 
                 """#
             },
-            referencedSwiftTypes: ["Value2"],
+            referencedSwiftTypes: ["Value2", "Bar"],
             shouldSynthesizeNSCoding: true,
             shouldSynthesizeNSCopying: true,
             shouldSynthesizeObjCBuilder: true
@@ -368,36 +378,50 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             #"""
             private let kDoubleValueKey = "DOUBLE_VALUE"
             private let kRefKey = "REF"
+            private let kRef2Key = "REF2"
+            private let kRef3Key = "REF3"
 
             @objc(Value)
             public class ValueObjc: NSObject, NSCopying, NSCoding {
 
-                @objc public var doubleValue: Double {
-                    wrapped.doubleValue
-                }
+                @objc public let doubleValue: Double
 
-                @objc public var ref: Value2Objc {
-                    Value2Objc(wrapped: wrapped.ref)
-                }
+                @objc public let ref: Value2Objc
 
-                public let wrapped: Value
+                @objc public let ref2: [Int: [BarObjc]]
+
+                @objc public let ref3: [BarObjc]?
 
                 @objc
-                public init(doubleValue: Double, ref: Value2Objc) {
-                    self.wrapped = Value(doubleValue: doubleValue, ref: ref.wrapped)
+                public init(doubleValue: Double, ref: Value2Objc, ref2: [Int: [BarObjc]], ref3: [BarObjc]?) {
+                    self.doubleValue = doubleValue
+                    self.ref = ref
+                    self.ref2 = ref2
+                    self.ref3 = ref3
                 }
 
-                public init(wrapped: Value) {
-                    self.wrapped = wrapped
+                public init(_ original: Value) {
+                    self.doubleValue = original.doubleValue
+                    self.ref = Value2Objc(original.ref)
+                    self.ref2 = original.ref2.mapValues({ a0 in
+                            a0.map({ a1 in
+                                    BarObjc(a1)
+                                })
+                        })
+                    self.ref3 = original.ref3?.map({ a0 in
+                            BarObjc(a0)
+                        })
                 }
 
                 public func copy(with zone: NSZone? = nil) -> Any {
-                    return ValueObjc(wrapped: wrapped)
+                    ValueObjc(doubleValue: doubleValue, ref: ref, ref2: ref2, ref3: ref3)
                 }
 
                 public func encode(with coder: NSCoder) {
                     coder.encode(doubleValue, forKey: kDoubleValueKey)
                     coder.encode(ref, forKey: kRefKey)
+                    coder.encode(ref2, forKey: kRef2Key)
+                    coder.encodeConditionalObject(ref3, forKey: kRef3Key)
                 }
 
                 public required convenience init?(coder: NSCoder) {
@@ -405,7 +429,11 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     guard let ref = coder.decodeObject(forKey: kRefKey) as? Value2Objc else {
                         return nil
                     }
-                    self.init(doubleValue: doubleValue, ref: ref)
+                    guard let ref2 = coder.decodeObject(forKey: kRef2Key) as? [Int: [BarObjc]] else {
+                        return nil
+                    }
+                    let ref3 = coder.decodeObject(forKey: kRef3Key) as? [BarObjc]
+                    self.init(doubleValue: doubleValue, ref: ref, ref2: ref2, ref3: ref3)
                 }
 
                 public override var description: String {
@@ -426,7 +454,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     }
 
                     @objc public class func value(existingValue: ValueObjc) -> ValueObjc {
-                        ValueBuilder.value().withDoubleValue(existingValue.doubleValue).withRef(existingValue.ref).build()
+                        ValueBuilder.value().withDoubleValue(existingValue.doubleValue).withRef(existingValue.ref).withRef2(existingValue.ref2).withRef3(existingValue.ref3).build()
                     }
 
                     private var doubleValue: Double?
@@ -440,6 +468,20 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
                     @objc @discardableResult public func withRef(_ ref: Value2Objc) -> ValueBuilder {
                         self.ref = ref
+                        return self
+                    }
+
+                    private var ref2: [Int: [BarObjc]]?
+
+                    @objc @discardableResult public func withRef2(_ ref2: [Int: [BarObjc]]) -> ValueBuilder {
+                        self.ref2 = ref2
+                        return self
+                    }
+
+                    private var ref3: [BarObjc]?
+
+                    @objc @discardableResult public func withRef3(_ ref3: [BarObjc]?) -> ValueBuilder {
+                        self.ref3 = ref3
                         return self
                     }
 
@@ -463,8 +505,11 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                         guard let ref = ref else {
                             throw error(field: "ref")
                         }
+                        guard let ref2 = ref2 else {
+                            throw error(field: "ref2")
+                        }
 
-                        return ValueObjc(doubleValue: doubleValue, ref: ref)
+                        return ValueObjc(doubleValue: doubleValue, ref: ref, ref2: ref2, ref3: ref3)
                     }
                 }
             }
@@ -500,15 +545,15 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             @objc(Value)
             public class ValueObjc: NSObject {
 
-                @objc public var doubleValue: Double {
-                    wrapped.doubleValue
-                }
-
-                public let wrapped: Value
+                @objc public let doubleValue: Double
 
                 @objc
                 public init(doubleValue: Double) {
-                    self.wrapped = Value(doubleValue: doubleValue)
+                    self.doubleValue = doubleValue
+                }
+
+                public init(_ original: Value) {
+                    self.doubleValue = original.doubleValue
                 }
 
                 public override var description: String {
@@ -578,42 +623,38 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             @objc(XYValue)
             public class ValueObjc: NSObject, NSCopying, NSCoding {
 
-                @objc public var doubleValue: Double {
-                    wrapped.doubleValue
-                }
+                @objc public let doubleValue: Double
 
-                @objc public var optInt: NSNumber? {
-                    wrapped.optInt.map(NSNumber.init)
-                }
+                @objc public let optInt: NSNumber?
 
-                @objc public var stringArray: [String] {
-                    wrapped.stringArray
-                }
+                @objc public let stringArray: [String]
 
-                @objc public var map: [String: [String: Double]] {
-                    wrapped.map
-                }
-
-                public let wrapped: Value
+                @objc public let map: [String: [String: Double]]
 
                 @objc
                 public init(doubleValue: Double, optInt: NSNumber?, stringArray: [String], map: [String: [String: Double]]) {
-                    self.wrapped = Value(doubleValue: doubleValue, optInt: optInt.map(\.int64Value), stringArray: stringArray, map: map)
+                    self.doubleValue = doubleValue
+                    self.optInt = optInt
+                    self.stringArray = stringArray
+                    self.map = map
+                }
+
+                public init(_ original: Value) {
+                    self.doubleValue = original.doubleValue
+                    self.optInt = original.optInt.map(NSNumber.init)
+                    self.stringArray = original.stringArray
+                    self.map = original.map
                 }
 
                 public override func isEqual(_ object: Any?) -> Bool {
-                    if let other = object as? ValueObjc {
-                        return wrapped == other.wrapped
+                    guard let other = object as? ValueObjc else {
+                        return false
                     }
-                    return false
-                }
-
-                public init(wrapped: Value) {
-                    self.wrapped = wrapped
+                    return doubleValue == other.doubleValue && optInt?.isEqual(other.optInt) == true && stringArray.isEqual(other.stringArray) && map.isEqual(other.map)
                 }
 
                 public func copy(with zone: NSZone? = nil) -> Any {
-                    return ValueObjc(wrapped: wrapped)
+                    ValueObjc(doubleValue: doubleValue, optInt: optInt, stringArray: stringArray, map: map)
                 }
 
                 public func encode(with coder: NSCoder) {
@@ -769,6 +810,12 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             private let kSaveSucceededDisplayNameKey = "SAVE_SUCCEEDED_DISPLAY_NAME"
             private let kSaveFailedErrorKey = "SAVE_FAILED_ERROR"
 
+            private enum SaveUpdatesSubtype: Equatable {
+                case saveBegan
+                case saveSucceeded
+                case saveFailed
+            }
+
             public typealias SaveUpdatesSaveBeganMatchHandler = (_ savingToAlpha: Bool) -> Void
 
             public typealias SaveUpdatesSaveSucceededMatchHandler = (_ savedToAlpha: Bool, _ savedToBeta: Bool, _ optFloat: NSNumber?, _ displayName: String?) -> Void
@@ -777,56 +824,67 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
             @objc(SaveUpdates)
             public class SaveUpdatesObjc: NSObject, NSCopying {
-                
-                public let wrapped: SaveUpdates
+                private let subtype: SaveUpdatesSubtype
+                private let saveBeganSavingToAlpha: Bool?
+                private let saveSucceededSavedToAlpha: Bool?
+                private let saveSucceededSavedToBeta: Bool?
+                private let saveSucceededOptFloat: NSNumber?
+                private let saveSucceededDisplayName: String?
+                private let saveFailedError: Error?
 
-                @available(*, unavailable) 
+                private init(subtype: SaveUpdatesSubtype, saveBeganSavingToAlpha: Bool? = nil, saveSucceededSavedToAlpha: Bool? = nil, saveSucceededSavedToBeta: Bool? = nil, saveSucceededOptFloat: NSNumber? = nil, saveSucceededDisplayName: String? = nil, saveFailedError: Error? = nil) {
+                    self.subtype = subtype
+                    self.saveBeganSavingToAlpha = saveBeganSavingToAlpha
+                    self.saveSucceededSavedToAlpha = saveSucceededSavedToAlpha
+                    self.saveSucceededSavedToBeta = saveSucceededSavedToBeta
+                    self.saveSucceededOptFloat = saveSucceededOptFloat
+                    self.saveSucceededDisplayName = saveSucceededDisplayName
+                    self.saveFailedError = saveFailedError
+                }
+
+                @available(*, unavailable)
                 public override init() {
                     fatalError()
                 }
 
-                public init(wrapped: SaveUpdates) {
-                    self.wrapped = wrapped
-                }
-
                 public func copy(with zone: NSZone? = nil) -> Any {
-                    return SaveUpdatesObjc(wrapped: wrapped)
+                    return self
                 }
 
                 public func encode(with coder: NSCoder) {
-                    switch wrapped {
-                    case .saveBegan(let savingToAlpha):
-                        coder.encode(savingToAlpha, forKey: kSaveBeganSavingToAlphaKey)
+                    switch subtype {
+                    case .saveBegan:
+                        coder.encode(saveBeganSavingToAlpha, forKey: kSaveBeganSavingToAlphaKey)
                         coder.encode("SUBTYPE_SAVE_BEGAN", forKey: kCodedSubtypeKey)
-                    case .saveSucceeded(let savedToAlpha, let savedToBeta, let optFloat, let displayName):
-                        coder.encode(savedToAlpha, forKey: kSaveSucceededSavedToAlphaKey)
-                        coder.encode(savedToBeta, forKey: kSaveSucceededSavedToBetaKey)
-                        coder.encodeConditionalObject(optFloat, forKey: kSaveSucceededOptFloatKey)
-                        coder.encodeConditionalObject(displayName, forKey: kSaveSucceededDisplayNameKey)
+                    case .saveSucceeded:
+                        coder.encode(saveSucceededSavedToAlpha, forKey: kSaveSucceededSavedToAlphaKey)
+                        coder.encode(saveSucceededSavedToBeta, forKey: kSaveSucceededSavedToBetaKey)
+                        coder.encodeConditionalObject(saveSucceededOptFloat, forKey: kSaveSucceededOptFloatKey)
+                        coder.encodeConditionalObject(saveSucceededDisplayName, forKey: kSaveSucceededDisplayNameKey)
                         coder.encode("SUBTYPE_SAVE_SUCCEEDED", forKey: kCodedSubtypeKey)
-                    case .saveFailed(let error):
-                        coder.encodeConditionalObject(error, forKey: kSaveFailedErrorKey)
+                    case .saveFailed:
+                        coder.encodeConditionalObject(saveFailedError, forKey: kSaveFailedErrorKey)
                         coder.encode("SUBTYPE_SAVE_FAILED", forKey: kCodedSubtypeKey)
                     }
                 }
 
-                public required init?(coder: NSCoder) {
+                public required convenience init?(coder: NSCoder) {
                     guard let codedSubtype = coder.decodeObject(forKey: kCodedSubtypeKey) as? String else {
                         return nil
                     }
                     switch codedSubtype {
                     case "SUBTYPE_SAVE_BEGAN":
                         let savingToAlpha = coder.decodeBool(forKey: kSaveBeganSavingToAlphaKey)
-                        self.wrapped = .saveBegan(savingToAlpha: savingToAlpha)
+                        self.init(subtype: .saveBegan, saveBeganSavingToAlpha: savingToAlpha)
                     case "SUBTYPE_SAVE_SUCCEEDED":
                         let savedToAlpha = coder.decodeBool(forKey: kSaveSucceededSavedToAlphaKey)
                         let savedToBeta = coder.decodeBool(forKey: kSaveSucceededSavedToBetaKey)
                         let optFloat = coder.decodeObject(forKey: kSaveSucceededOptFloatKey) as? NSNumber
                         let displayName = coder.decodeObject(forKey: kSaveSucceededDisplayNameKey) as? String
-                        self.wrapped = .saveSucceeded(savedToAlpha: savedToAlpha, savedToBeta: savedToBeta, optFloat: optFloat.map(\.floatValue), displayName: displayName)
+                        self.init(subtype: .saveSucceeded, saveSucceededSavedToAlpha: savedToAlpha, saveSucceededSavedToBeta: savedToBeta, saveSucceededOptFloat: optFloat.map(\.floatValue), saveSucceededDisplayName: displayName)
                     case "SUBTYPE_SAVE_FAILED":
                         let error = coder.decodeObject(forKey: kSaveFailedErrorKey) as? Error
-                        self.wrapped = .saveFailed(error: error)
+                        self.init(subtype: .saveFailed, saveFailedError: error)
                     default:
                         return nil
                     }
@@ -834,28 +892,28 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
                 @objc
                 public class func saveBegan(savingToAlpha: Bool) -> SaveUpdatesObjc {
-                    return SaveUpdatesObjc(wrapped: .saveBegan(savingToAlpha: savingToAlpha))
+                    return SaveUpdatesObjc(subtype: .saveBegan, saveBeganSavingToAlpha: savingToAlpha)
                 }
 
                 @objc
                 public class func saveSucceeded(savedToAlpha: Bool, savedToBeta: Bool, optFloat: NSNumber?, displayName: String?) -> SaveUpdatesObjc {
-                    return SaveUpdatesObjc(wrapped: .saveSucceeded(savedToAlpha: savedToAlpha, savedToBeta: savedToBeta, optFloat: optFloat.map(\.floatValue), displayName: displayName))
+                    return SaveUpdatesObjc(subtype: .saveSucceeded, saveSucceededSavedToAlpha: savedToAlpha, saveSucceededSavedToBeta: savedToBeta, saveSucceededOptFloat: optFloat, saveSucceededDisplayName: displayName)
                 }
 
                 @objc
                 public class func saveFailed(error: Error?) -> SaveUpdatesObjc {
-                    return SaveUpdatesObjc(wrapped: .saveFailed(error: error))
+                    return SaveUpdatesObjc(subtype: .saveFailed, saveFailedError: error)
                 }
 
                 @objc
                 public func match(saveBegan: SaveUpdatesSaveBeganMatchHandler?, saveSucceeded: SaveUpdatesSaveSucceededMatchHandler?, saveFailed: SaveUpdatesSaveFailedMatchHandler?) {
-                    switch wrapped {
-                    case .saveBegan(let savingToAlpha):
-                        saveBegan?(savingToAlpha)
-                    case .saveSucceeded(let savedToAlpha, let savedToBeta, let optFloat, let displayName):
-                        saveSucceeded?(savedToAlpha, savedToBeta, optFloat.map(NSNumber.init), displayName)
-                    case .saveFailed(let error):
-                        saveFailed?(error)
+                    switch subtype {
+                    case .saveBegan:
+                        saveBegan?(saveBeganSavingToAlpha!)
+                    case .saveSucceeded:
+                        saveSucceeded?(saveSucceededSavedToAlpha!, saveSucceededSavedToBeta!, saveSucceededOptFloat.map(NSNumber.init), saveSucceededDisplayName)
+                    case .saveFailed:
+                        saveFailed?(saveFailedError)
                     }
                 }
             }
@@ -983,159 +1041,5 @@ public struct Value: Hashable, Equatable, Codable, CustomStringConvertible {
 
     public var description: String {
         "placeholder"
-    }
-}
-
-private let kDoubleValueKey = "DOUBLE_VALUE"
-private let kOptIntKey = "OPT_INT"
-private let kStringArrayKey = "STRING_ARRAY"
-private let kMapKey = "MAP"
-
-// Auto generated:
-@objc(Value)
-public class ValueObjc: NSObject, NSCopying, NSCoding {
-    @objc public var doubleValue: Double {
-        wrapped.doubleValue
-    }
-
-    @objc public var optInt: NSNumber? {
-        wrapped.optInt.map(NSNumber.init)
-    }
-
-    @objc public var stringArray: [String] {
-        wrapped.stringArray
-    }
-
-    @objc public var map: [String: [String: Double]] {
-        wrapped.map
-    }
-
-    public let wrapped: Value
-
-    @objc
-    public init(doubleValue: Double, optInt: NSNumber?, stringArray: [String], map: [String: [String : Double]]) {
-        self.wrapped = Value(
-            doubleValue: doubleValue,
-            optInt: optInt.map(\.int64Value),
-            stringArray: stringArray,
-            map: map
-        )
-    }
-
-    public override var hash: Int {
-        var hasher = Hasher()
-        hasher.combine(wrapped)
-        return hasher.finalize()
-    }
-
-    public override func isEqual(_ object: Any?) -> Bool {
-        if let other = object as? ValueObjc {
-            return wrapped == other.wrapped
-        }
-        return false
-    }
-
-    public init(wrapped: Value) {
-        self.wrapped = wrapped
-    }
-
-    public func copy(with zone: NSZone? = nil) -> Any {
-        return ValueObjc(wrapped: wrapped)
-    }
-
-    public override var description: String {
-        return wrapped.description
-    }
-
-    public func encode(with coder: NSCoder) {
-        coder.encode(doubleValue, forKey: kDoubleValueKey)
-        coder.encodeConditionalObject(optInt, forKey: kOptIntKey)
-        coder.encode(stringArray, forKey: kStringArrayKey)
-        coder.encode(map, forKey: kMapKey)
-    }
-
-    public required convenience init?(coder: NSCoder) {
-        let doubleValue = coder.decodeDouble(forKey: kDoubleValueKey)
-        let optInt = coder.decodeObject(forKey: kOptIntKey) as? NSNumber
-        guard let stringArray = coder.decodeObject(forKey: kStringArrayKey) as? [String] else {
-            return nil
-        }
-        guard let map = coder.decodeObject(forKey: kMapKey) as? [String: [String: Double]] else {
-            return nil
-        }
-        self.init(doubleValue: doubleValue, optInt: optInt, stringArray: stringArray, map: map)
-    }
-
-    @available(*, unavailable)
-    public override init() {
-        fatalError()
-    }
-}
-
-extension ValueObjc {
-    @objc
-    public class ValueBuilder: NSObject {
-        @objc public class func value() -> ValueBuilder {
-            ValueBuilder()
-        }
-
-        @objc public class func value(existingValue: ValueObjc) -> ValueObjc {
-            ValueBuilder.value().withDoubleValue(existingValue.doubleValue).withOptInt(existingValue.optInt).withStringArray(existingValue.stringArray).withMap(existingValue.map).build()
-        }
-
-        private var doubleValue: Double?
-
-        @objc @discardableResult public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
-            self.doubleValue = doubleValue
-            return self
-        }
-
-        private var optInt: NSNumber?
-
-        @objc @discardableResult public func withOptInt(_ optInt: NSNumber?) -> ValueBuilder {
-            self.optInt = optInt
-            return self
-        }
-
-        private var stringArray: [String]?
-
-        @objc @discardableResult public func withStringArray(_ stringArray: [String]) -> ValueBuilder {
-            self.stringArray = stringArray
-            return self
-        }
-
-        private var map: [String: [String: Double]]?
-
-        @objc @discardableResult public func withMap(_ map: [String: [String: Double]]) -> ValueBuilder {
-            self.map = map
-            return self
-        }
-
-        private func error(field: String) -> Error {
-            NSError(
-                domain: "ValueType.Builder.NonnullFieldUnset",
-                code: 1,
-                userInfo: [NSLocalizedDescriptionKey: "Failed to build because nonnull field '\(field)' is unset"]
-            )
-        }
-
-        @objc public func build() -> ValueObjc {
-            try! safeBuild()
-        }
-
-        @objc
-        public func safeBuild() throws -> ValueObjc {
-            guard let doubleValue = doubleValue else {
-                throw error(field: "doubleValue")
-            }
-            guard let stringArray = stringArray else {
-                throw error(field: "stringArray")
-            }
-            guard let map = map else {
-                throw error(field: "map")
-            }
-
-            return ValueObjc(doubleValue: doubleValue, optInt: optInt, stringArray: stringArray, map: map)
-        }
     }
 }

@@ -1,4 +1,5 @@
 import Foundation
+import SharedUtilities
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
@@ -56,37 +57,6 @@ public class RemodelSwiftFactory {
         imports: [String] = [],
         existingPrefix: String = ""
     ) throws -> CodeBlockItemListSyntax {
-        let model: RMModelSyntax = try {
-            let modelBuilder = RMModelSyntax.Builder(model)
-            let existingPrefix = existingPrefix.trimmingCharacters(in: .whitespaces)
-            if !existingPrefix.isEmpty {
-                if model.name.hasPrefix(existingPrefix) {
-                    modelBuilder.name = String(model.name.dropFirst(existingPrefix.count))
-                }
-                modelBuilder.properties = try model.properties.map { property -> RMPropertySyntax in
-                    switch property.value {
-                    case .value(let structValue):
-                        let builder = RMPropertySyntax.StructValue.Builder(structValue)
-                        if structValue.type.hasPrefix(existingPrefix) {
-                            builder.type = builder.type.map { String($0.dropFirst(existingPrefix.count)) }
-                        }
-                        return RMPropertySyntax(.value(try builder.build()))
-                    case .adt(let adtValue):
-                        let builder = RMPropertySyntax.AdtValue.Builder(adtValue)
-                        builder.innerValues = try adtValue.innerValues.map { innerValue in
-                            let innerBuilder = RMPropertySyntax.StructValue.Builder(innerValue)
-                            if innerValue.type.hasPrefix(existingPrefix) {
-                                innerBuilder.type = String(innerValue.type.dropFirst(existingPrefix.count))
-                            }
-                            return try innerBuilder.build()
-                        }
-                        return RMPropertySyntax(.adt(try builder.build()))
-                    }
-                }
-            }
-            return try modelBuilder.build()
-        }()
-
         try CodeBlockItemListSyntax {
             for `import` in imports {
                 DeclSyntax(
@@ -96,9 +66,9 @@ public class RemodelSwiftFactory {
 
             switch model.type {
             case .value:
-                for decl in try generateValue(model) { decl }
+                for decl in try generateValue(model, existingPrefix: existingPrefix) { decl }
             case .adtValue:
-                for decl in try generateAdt(model) { decl }
+                for decl in try generateAdt(model, existingPrefix: existingPrefix) { decl }
             case .interface:
                 ""
             }
@@ -106,7 +76,8 @@ public class RemodelSwiftFactory {
     }
 
     func generateValue(
-        _ model: RMModelSyntax
+        _ model: RMModelSyntax,
+        existingPrefix: String
     ) throws -> [any DeclSyntaxProtocol] {
         let assumesNonnull = model.includes.contains("RMAssumeNonnull")
 
@@ -123,7 +94,7 @@ public class RemodelSwiftFactory {
                 modifiers: DeclModifierListSyntax {
                     DeclModifierSyntax(name: .identifier("public"))
                 },
-                name: .identifier(model.name),
+                name: .identifier(removeTypePrefix(prefix: existingPrefix, name: model.name)),
                 inheritanceClause: inheritanceClause(model)
             ) {
                 for property in model.properties {
@@ -140,7 +111,14 @@ public class RemodelSwiftFactory {
                             PatternBindingSyntax(
                                 pattern: IdentifierPatternSyntax(identifier: .identifier(structValue.name)),
                                 typeAnnotation: TypeAnnotationSyntax(
-                                    type: propertyType(structValue, assumesNonnull: assumesNonnull)
+                                    type: propertyType(
+                                        structValue,
+                                        assumesNonnull: assumesNonnull,
+                                        existingPrefix: existingPrefix
+                                    )
+                                    .mapTypeName {
+                                        removeTypePrefix(prefix: existingPrefix, name: $0)
+                                    }
                                 )
                             )
                         }
@@ -160,7 +138,14 @@ public class RemodelSwiftFactory {
                                 case .value(let structValue):
                                     FunctionParameterSyntax(
                                         firstName: .identifier(structValue.name),
-                                        type: propertyType(structValue, assumesNonnull: assumesNonnull),
+                                        type: propertyType(
+                                            structValue,
+                                            assumesNonnull: assumesNonnull,
+                                            existingPrefix: existingPrefix
+                                        )
+                                        .mapTypeName {
+                                            removeTypePrefix(prefix: existingPrefix, name: $0)
+                                        },
                                         trailingComma: index == model.properties.count - 1 ? nil : .commaToken()
                                     )
                                 case .adt(_):
@@ -187,7 +172,8 @@ public class RemodelSwiftFactory {
     }
 
     func generateAdt(
-        _ model: RMModelSyntax
+        _ model: RMModelSyntax,
+        existingPrefix: String
     ) throws -> [any DeclSyntaxProtocol] {
         let assumesNonnull = model.includes.contains("RMAssumeNonnull")
 
@@ -240,7 +226,11 @@ public class RemodelSwiftFactory {
                                             EnumCaseParameterSyntax(
                                                 firstName: .identifier(innerValue.name),
                                                 colon: .colonToken(),
-                                                type: propertyType(innerValue, assumesNonnull: assumesNonnull)
+                                                type: propertyType(
+                                                    innerValue,
+                                                    assumesNonnull: assumesNonnull,
+                                                    existingPrefix: existingPrefix
+                                                )
                                             )
                                         }
                                     }
@@ -257,20 +247,22 @@ public class RemodelSwiftFactory {
     }
 
     private func inheritanceClause(_ model: RMModelSyntax) -> InheritanceClauseSyntax? {
-        model.includes.contains("RMEquality") || model.includes.contains("RMCoding") ? InheritanceClauseSyntax {
+        model.includes.contains("RMEquality") ? InheritanceClauseSyntax {
             if model.includes.contains("RMEquality") {
                 InheritedTypeSyntax(type: IdentifierTypeSyntax(name: "Equatable"))
-                InheritedTypeSyntax(type: IdentifierTypeSyntax(name: "Hashable"))
-            }
-            if model.includes.contains("RMCoding") {
-                InheritedTypeSyntax(type: IdentifierTypeSyntax(name: "Codable"))
             }
         } : nil
     }
 
-    private func propertyType(_ structValue: RMPropertySyntax.StructValue, assumesNonnull: Bool) -> any TypeSyntaxProtocol {
+    private func propertyType(
+        _ structValue: RMPropertySyntax.StructValue,
+        assumesNonnull: Bool,
+        existingPrefix: String = ""
+    ) -> any TypeSyntaxProtocol {
         IdentifierTypeSyntax(
-            name: .identifier(mapType(structValue.type))
+            name: .identifier(
+                mapType(structValue.type, existingPrefix: existingPrefix)
+            )
         )
         .optionalized({
             if isObjcPrimitive(structValue.type) {
@@ -287,21 +279,32 @@ public class RemodelSwiftFactory {
         }())
     }
 
-    private func mapType(_ remodelType: String) -> String {
+    private func removeTypePrefix(prefix: String, name: String) -> String {
+        if name.hasPrefix(prefix) {
+            return String(name.dropFirst(prefix.count))
+        } else {
+            return name
+        }
+    }
+
+    private func mapType(
+        _ remodelType: String,
+        existingPrefix: String
+    ) -> String {
         if let match = remodelType.firstMatch(of: /NS(?:Mutable)?Dictionary<([\w\* <>]+),\s*([\w\* <>]+)>\s*\*/) {
-            return "[\(mapType(String(match.1))): \(mapType(String(match.2)))]"
+            return "[\(mapType(String(match.1), existingPrefix: existingPrefix)): \(mapType(String(match.2), existingPrefix: existingPrefix))]"
         } else if let match = remodelType.firstMatch(of: /NS(?:Mutable)?(Set|Array)<([\w\* <>]+)>\s*\*/) {
             if match.1 == "Set" {
-                return "Set<\(mapType(String(match.2)))>"
+                return "Set<\(mapType(String(match.2), existingPrefix: existingPrefix))>"
             } else {
-                return "[\(mapType(String(match.2)))]"
+                return "[\(mapType(String(match.2), existingPrefix: existingPrefix))]"
             }
         } else if let match = remodelType.firstMatch(of: /(\w+)<([\w\* <>]+)>\s\*/) {
-            return "\(String(match.1))<\(mapType(String(match.2)))>"
+            return "\(String(match.1))<\(mapType(String(match.2), existingPrefix: existingPrefix))>"
         } else if remodelType.hasSuffix("*") {
             var result = remodelType
             result.removeLast()
-            return mapType(result.trimmingCharacters(in: .whitespacesAndNewlines))
+            return mapType(result.trimmingCharacters(in: .whitespacesAndNewlines), existingPrefix: existingPrefix)
         } else if let aliasedType = remodelType.firstMatch(of: aliasedPrimitiveTypeRegex) {
             return String(aliasedType.1)
         } else if remodelType.lowercased() == "bool" {
@@ -320,7 +323,7 @@ public class RemodelSwiftFactory {
         } else if let mappedSwiftType = objcToSwiftMaps[remodelType] {
             return mappedSwiftType
         } else {
-            return remodelType
+            return removeTypePrefix(prefix: existingPrefix, name: remodelType)
         }
     }
 
@@ -334,6 +337,8 @@ public class RemodelSwiftFactory {
         } else if let aliasedType = remodelType.firstMatch(of: aliasedPrimitiveTypeRegex) {
             return isObjcPrimitive(String(aliasedType.2))
         } else if remodelType == "NSInteger" || remodelType == "NSUInteger" {
+            return true
+        } else if ["CGFloat", "CGSize", "CGRect", "CGVector"].contains(remodelType) {
             return true
         } else {
             return remodelType.contains(primitiveCIntRegex) || remodelType.contains(primitiveCIntTRegex)

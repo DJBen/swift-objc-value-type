@@ -15,6 +15,7 @@ public struct SwiftObjcValueTypeFactory {
         referencedSwiftTypes: [String] = [],
         prefix: String = "",
         imports: [String] = [],
+        externalHashFunc: String? = nil,
         shouldSynthesizeNSCoding: Bool = true,
         shouldSynthesizeNSCopying: Bool = true,
         shouldSynthesizeObjCBuilder: Bool = true
@@ -35,6 +36,7 @@ public struct SwiftObjcValueTypeFactory {
                         referencedSwiftTypes: referencedSwiftTypes,
                         prefix: prefix,
                         imports: imports,
+                        externalHashFunc: externalHashFunc,
                         shouldSynthesizeEquatable: descriptor.inheritedTypes.contains("Equatable") || descriptor.inheritedTypes.contains("Hashable") ||
                         descriptor.inheritedTypes.contains("Identifiable"),
                         shouldSynthesizeHash: descriptor.inheritedTypes.contains("Hashable"),
@@ -47,6 +49,7 @@ public struct SwiftObjcValueTypeFactory {
                 case .enumDecl(let enumDecl):
                     for decl in try wrappingClassDecl(
                         enumDecl: enumDecl,
+                        imports: imports,
                         referencedSwiftTypes: referencedSwiftTypes,
                         shouldSynthesizeEquatable: descriptor.inheritedTypes.contains("Equatable") || descriptor.inheritedTypes.contains("Hashable") ||
                         descriptor.inheritedTypes.contains("Identifiable"),
@@ -62,6 +65,7 @@ public struct SwiftObjcValueTypeFactory {
         structDecl: StructDeclSyntax,
         prefix: String,
         imports: [String],
+        externalHashFunc: String?,
         shouldSynthesizeNSCoding: Bool,
         shouldSynthesizeNSCopying: Bool,
         shouldSynthesizeObjCBuilder: Bool
@@ -71,6 +75,7 @@ public struct SwiftObjcValueTypeFactory {
             referencedSwiftTypes: [],
             prefix: prefix,
             imports: imports,
+            externalHashFunc: externalHashFunc,
             shouldSynthesizeEquatable: structDecl.inheritedTypes.contains("Equatable") || structDecl.inheritedTypes.contains("Hashable") ||
             structDecl.inheritedTypes.contains("Identifiable"),
             shouldSynthesizeHash: structDecl.inheritedTypes.contains("Hashable"),
@@ -82,11 +87,12 @@ public struct SwiftObjcValueTypeFactory {
         )
     }
 
-    public func wrappingClassDecl(
+    private func wrappingClassDecl(
         structDecl: StructDeclSyntax,
         referencedSwiftTypes: [String],
         prefix: String,
         imports: [String],
+        externalHashFunc: String?,
         shouldSynthesizeEquatable: Bool,
         shouldSynthesizeHash: Bool,
         shouldSynthesizeNSCoding: Bool,
@@ -133,7 +139,7 @@ public struct SwiftObjcValueTypeFactory {
                     }
                 },
                 memberBlockBuilder: {
-                    try structDecl.enumerateVariableDecls { variableTypeDecl in
+                    try structDecl.forEachVariableDecl { variableTypeDecl in
                         try objcVariableDecl(
                             variableTypeDecl: variableTypeDecl,
                             referencedSwiftTypes: referencedSwiftTypes
@@ -141,88 +147,36 @@ public struct SwiftObjcValueTypeFactory {
                         .with(\.leadingTrivia, .newlines(2))
                     }
 
-                    DeclSyntax(
-                        "public let wrapped: \(raw: structName)"
+                    try objcInitializer(
+                        structDecl: structDecl,
+                        referencedSwiftTypes: referencedSwiftTypes
                     )
                     .with(\.leadingTrivia, .newlines(2))
 
-                    InitializerDeclSyntax(
-                        attributes: AttributeListSyntax {
-                            .attribute("@objc")
-                        }.with(\.trailingTrivia, .newline),
-                        modifiers: structDecl.modifiers.trimmed,
-                        signature: FunctionSignatureSyntax(
-                            parameterClause: FunctionParameterClauseSyntax(
-                                parametersBuilder: {
-                                    structDecl.enumerateBindings { binding in
-                                        if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let typeAnnotation = binding.typeAnnotation {
-                                            let variableName = identifierPattern.identifier.trimmed.text
-
-                                            FunctionParameterSyntax(
-                                                firstName: .identifier(variableName),
-                                                type: typeAnnotation.type.asNSNumberIfOptionalNumeral.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes)
-                                            )
-                                        }
-                                    }
-                                }
-                            )
-                        )
-                    ) {
-                        SequenceExprSyntax {
-                            MemberAccessExprSyntax(
-                                base: DeclReferenceExprSyntax(baseName: .keyword(.self)),
-                                declName: DeclReferenceExprSyntax(baseName: .identifier("wrapped"))
-                            )
-
-                            AssignmentExprSyntax()
-
-                            FunctionCallExprSyntax(
-                                calledExpression: DeclReferenceExprSyntax(baseName: .identifier(structName)),
-                                leftParen: .leftParenToken(),
-                                rightParen: .rightParenToken()
-                            ) {
-                                structDecl.enumerateBindings { binding in
-                                    if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let typeAnnotation = binding.typeAnnotation {
-                                        let variableName = identifierPattern.identifier.trimmed.text
-
-                                        LabeledExprSyntax(
-                                            label: .identifier(variableName),
-                                            colon: .colonToken(),
-                                            expression: DeclReferenceExprSyntax(
-                                                baseName: .identifier(variableName)
-                                            )
-                                            .mappingNSNumberToNumeralValue(type: typeAnnotation.type)
-                                            .appendingWrappedIfSwiftType(
-                                                type: typeAnnotation.type,
-                                                referencedSwiftTypes: referencedSwiftTypes
-                                            )
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    try objcInitializerFromSwiftType(
+                        structDecl: structDecl,
+                        referencedSwiftTypes: referencedSwiftTypes
+                    )
                     .with(\.leadingTrivia, .newlines(2))
 
                     if shouldSynthesizeHash {
-                        try objcHashFunc(
-                            structDecl: structDecl
+                        objcHashFunc(
+                            structDecl: structDecl, 
+                            externalHashFunc: externalHashFunc
                         )
                         .with(\.leadingTrivia, .newlines(2))
                     }
 
                     if shouldSynthesizeEquatable {
                         try objcIsEqualFunc(
-                            containerName: structDecl.name.trimmed.text,
-                            modifiers: structDecl.modifiers
+                            structDecl: structDecl
                         )
                         .with(\.leadingTrivia, .newlines(2))
                     }
 
                     if shouldSynthesizeNSCopying {
                         try nsCopyingConformances(
-                            containerName: structDecl.name.trimmed.text,
-                            modifiers: structDecl.modifiers
+                            structDecl: structDecl
                         )
                         .with(\.leadingTrivia, .newlines(2))
                     }
@@ -275,8 +229,9 @@ public struct SwiftObjcValueTypeFactory {
         return decls
     }
 
-    public func wrappingClassDecl(
+    private func wrappingClassDecl(
         enumDecl: EnumDeclSyntax,
+        imports: [String],
         referencedSwiftTypes: [String],
         shouldSynthesizeEquatable: Bool,
         shouldSynthesizeNSCoding: Bool,
@@ -285,43 +240,67 @@ public struct SwiftObjcValueTypeFactory {
         var decls = [any DeclSyntaxProtocol]()
         let enumName = enumDecl.name.trimmed.text
 
+        for (index, `import`) in imports.enumerated() {
+            decls.append(
+                DeclSyntax(
+                    "import \(raw: `import`)"
+                )
+                .with(\.trailingTrivia, index + 1 >= imports.count ? .newlines(2) : [])
+            )
+        }
+
         if shouldSynthesizeNSCoding {
             decls.append(contentsOf: nsCodingConstants(enumDecl: enumDecl))
         }
 
-        for member in enumDecl.memberBlock.members {
-            if let caseDecl = member.decl.as(EnumCaseDeclSyntax.self) {
-                for caseElement in caseDecl.elements {
-                    decls.append(
-                        TypeAliasDeclSyntax(
-                            modifiers: DeclModifierListSyntax {
-                                // Inherit visibility modifiers
-                                enumDecl.modifiers.trimmed
-                            },
-                            name: .identifier("\(enumName)\(caseElement.name.trimmed.text.uppercasingFirst)MatchHandler"),
-                            initializer: TypeInitializerClauseSyntax(
-                                equal: .equalToken(),
-                                value: FunctionTypeSyntax(
-                                    parameters: TupleTypeElementListSyntax {
-                                        for (index, caseParam) in (caseElement.parameterClause?.parameters ?? []).enumerated() {
-                                            TupleTypeElementSyntax(
-                                                firstName: .wildcardToken(),
-                                                secondName: caseParam.properName(index: index),
-                                                colon: .colonToken(),
-                                                type: caseParam.type.asNSNumberIfOptionalNumeral
-                                            )
-                                        }
-                                    },
-                                    returnClause: ReturnClauseSyntax(
-                                        type: IdentifierTypeSyntax(name: .identifier("Void"))
-                                    )
-                                )
-                            )
-                        )
-                        .with(\.leadingTrivia, .newlines(2))
-                    )
+        decls.append(
+            EnumDeclSyntax(
+                modifiers: DeclModifierListSyntax {
+                    DeclModifierSyntax(name: .keyword(.private))
+                },
+                name: .identifier("\(enumName)Subtype"),
+                inheritanceClause: InheritanceClauseSyntax {
+                    InheritedTypeSyntax(type: IdentifierTypeSyntax(name: .identifier("Equatable")))
+                }
+            ) {
+                enumDecl.forEachCaseElement { caseElement in
+                    EnumCaseDeclSyntax {
+                        EnumCaseElementSyntax(name: .identifier("\(caseElement.name.trimmed.text.lowercasingFirst)"))
+                    }
                 }
             }
+            .with(\.leadingTrivia, .newlines(2))
+        )
+
+        enumDecl.forEachCaseElement { caseElement in
+            decls.append(
+                TypeAliasDeclSyntax(
+                    modifiers: DeclModifierListSyntax {
+                        // Inherit visibility modifiers
+                        enumDecl.modifiers.trimmed
+                    },
+                    name: .identifier("\(enumName)\(caseElement.name.trimmed.text.uppercasingFirst)MatchHandler"),
+                    initializer: TypeInitializerClauseSyntax(
+                        equal: .equalToken(),
+                        value: FunctionTypeSyntax(
+                            parameters: TupleTypeElementListSyntax {
+                                for (index, caseParam) in (caseElement.parameterClause?.parameters ?? []).enumerated() {
+                                    TupleTypeElementSyntax(
+                                        firstName: .wildcardToken(),
+                                        secondName: caseParam.properName(index: index),
+                                        colon: .colonToken(),
+                                        type: caseParam.type.asNSNumberIfOptionalNumeral.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes)
+                                    )
+                                }
+                            },
+                            returnClause: ReturnClauseSyntax(
+                                type: IdentifierTypeSyntax(name: .identifier("Void"))
+                            )
+                        )
+                    )
+                )
+                .with(\.leadingTrivia, .newlines(2))
+            )
         }
 
         decls.append(
@@ -341,8 +320,15 @@ public struct SwiftObjcValueTypeFactory {
                     }
                 },
                 memberBlockBuilder: {
-                    DeclSyntax(
-                        "public let wrapped: \(raw: enumName)"
+                    DeclSyntax("private let subtype: \(raw: enumName)Subtype")
+
+                    try objcEnumPrivateVariablesDecl(
+                        enumDecl: enumDecl, referencedSwiftTypes: referencedSwiftTypes
+                    )
+
+                    try enumPrivateObjcInitializer(
+                        enumDecl: enumDecl,
+                        referencedSwiftTypes: referencedSwiftTypes
                     )
                     .with(\.leadingTrivia, .newlines(2))
 
@@ -353,16 +339,14 @@ public struct SwiftObjcValueTypeFactory {
 
                     if shouldSynthesizeEquatable {
                         try objcIsEqualFunc(
-                            containerName: enumDecl.name.trimmed.text,
-                            modifiers: enumDecl.modifiers
+                            enumDecl: enumDecl
                         )
                         .with(\.leadingTrivia, .newlines(2))
                     }
 
                     if shouldSynthesizeNSCopying {
                         try nsCopyingConformances(
-                            containerName: enumDecl.name.trimmed.text,
-                            modifiers: enumDecl.modifiers
+                            enumDecl: enumDecl
                         )
                         .with(\.leadingTrivia, .newlines(2))
                     }
@@ -375,65 +359,67 @@ public struct SwiftObjcValueTypeFactory {
                         .with(\.leadingTrivia, .newlines(2))
                     }
 
-                    for member in enumDecl.memberBlock.members {
-                        if let caseDecl = member.decl.as(EnumCaseDeclSyntax.self) {
-                            for caseElement in caseDecl.elements {
-                                FunctionDeclSyntax(
-                                    attributes: AttributeListSyntax {
-                                        "@objc"
-                                    }
-                                    .with(\.trailingTrivia, .newline),
-                                    modifiers: DeclModifierListSyntax {
-                                        // Inherit visibility modifiers
-                                        enumDecl.modifiers.trimmed
+                    enumDecl.forEachCaseElement { caseElement in
+                        FunctionDeclSyntax(
+                            attributes: AttributeListSyntax {
+                                "@objc"
+                            }
+                            .with(\.trailingTrivia, .newline),
+                            modifiers: DeclModifierListSyntax {
+                                // Inherit visibility modifiers
+                                enumDecl.modifiers.trimmed
 
-                                        DeclModifierSyntax(name: .keyword(.class))
-                                    },
-                                    name: caseElement.name,
-                                    signature: FunctionSignatureSyntax(
-                                        parameterClause: FunctionParameterClauseSyntax(
-                                            parametersBuilder: {
-                                                for (index, caseParam) in (caseElement.parameterClause?.parameters ?? []).enumerated() {
-                                                    let type: any TypeSyntaxProtocol = {
-                                                        if let optional = caseParam.type.as(OptionalTypeSyntax.self), optional.wrappedType.isNSNumberBridged {
-                                                            return OptionalTypeSyntax(
-                                                                wrappedType: IdentifierTypeSyntax(name: "NSNumber")
-                                                            )
-                                                        } else {
-                                                            return caseParam.type.trimmed
-                                                        }
-                                                    }()
-                                                    FunctionParameterSyntax(
-                                                        firstName: caseParam.properName(index: index),
-                                                        secondName: caseParam.secondName,
-                                                        type: type
-                                                    )
-                                                }
-                                            }
-                                        ),
-                                        returnClause: ReturnClauseSyntax(
-                                            type: IdentifierTypeSyntax(name: .identifier("\(enumName)Objc"))
-                                        )
-                                    )
-                                ) {
-                                    ReturnStmtSyntax(
-                                        expression: FunctionCallExprSyntax(
-                                            calledExpression: DeclReferenceExprSyntax(
-                                                baseName: .identifier("\(enumName)Objc")),
-                                            leftParen: .leftParenToken(),
-                                            rightParen: .rightParenToken()
-                                        ) {
-                                            LabeledExprSyntax(
-                                                label: .identifier("wrapped"),
-                                                colon: .colonToken(),
-                                                expression: enumCaseInitializer(caseElement: caseElement)
+                                DeclModifierSyntax(name: .keyword(.class))
+                            },
+                            name: caseElement.name,
+                            signature: FunctionSignatureSyntax(
+                                parameterClause: FunctionParameterClauseSyntax(
+                                    parametersBuilder: {
+                                        for (index, caseParam) in (caseElement.parameterClause?.parameters ?? []).enumerated() {
+                                            FunctionParameterSyntax(
+                                                firstName: caseParam.properName(index: index),
+                                                secondName: caseParam.secondName,
+                                                type: caseParam.type.asNSNumberIfOptionalNumeral.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes)
                                             )
                                         }
+                                    }
+                                ),
+                                returnClause: ReturnClauseSyntax(
+                                    type: IdentifierTypeSyntax(name: .identifier("\(enumName)Objc"))
+                                )
+                            )
+                        ) {
+                            ReturnStmtSyntax(
+                                expression: FunctionCallExprSyntax(
+                                    calledExpression: DeclReferenceExprSyntax(
+                                        baseName: .identifier("\(enumName)Objc")),
+                                    leftParen: .leftParenToken(),
+                                    rightParen: .rightParenToken()
+                                ) {
+                                    LabeledExprSyntax(
+                                        label: .identifier("subtype"),
+                                        colon: .colonToken(),
+                                        expression: MemberAccessExprSyntax(
+                                            period: .periodToken(),
+                                            declName: DeclReferenceExprSyntax(baseName: .identifier(caseElement.name.trimmed.text.lowercasingFirst))
+                                        )
                                     )
+
+                                    let caseName = caseElement.name.trimmed.text.uppercasingFirst
+                                    let params = caseElement.parameterClause?.parameters ?? []
+                                    for (index, caseParam) in params.enumerated() {
+                                        let propertyName = caseParam.properName(index: index).trimmed.text
+
+                                        LabeledExprSyntax(
+                                            label: .identifier(caseName.lowercasingFirst + propertyName.uppercasingFirst),
+                                            colon: .colonToken(),
+                                            expression: DeclReferenceExprSyntax(baseName: .identifier(propertyName))
+                                        )
+                                    }
                                 }
-                                .with(\.leadingTrivia, .newlines(2))
-                            }
+                            )
                         }
+                        .with(\.leadingTrivia, .newlines(2))
                     }
 
                     try enumMatchFunc(
@@ -446,67 +432,6 @@ public struct SwiftObjcValueTypeFactory {
         )
 
         return decls
-    }
-
-    private func enumCaseInitializer(
-        caseElement: EnumCaseElementSyntax
-    ) -> FunctionCallExprSyntax {
-        FunctionCallExprSyntax(
-            calledExpression: MemberAccessExprSyntax(
-                period: .periodToken(),
-                declName: DeclReferenceExprSyntax(
-                    baseName: caseElement.name
-                )
-            ),
-            leftParen: .leftParenToken(),
-            rightParen: .rightParenToken()
-        ) {
-            let params = caseElement.parameterClause?.parameters ?? []
-            for (index, caseParam) in params.enumerated() {
-                LabeledExprSyntax(
-                    label: caseParam.properName(index: index),
-                    colon: .colonToken(),
-                    expression: DeclReferenceExprSyntax(
-                        baseName: caseParam.properName(index: index)
-                    )
-                    .mappingNSNumberToNumeralValue(type: caseParam.type),
-                    trailingComma: index + 1 < params.count ? .commaToken() : nil
-                )
-            }
-        }
-    }
-
-    func switchCaseLabel(caseElement: EnumCaseElementSyntax) -> SwitchCaseLabelSyntax {
-        SwitchCaseLabelSyntax {
-            SwitchCaseItemSyntax(
-                pattern: ExpressionPatternSyntax(
-                    expression: FunctionCallExprSyntax(
-                        calledExpression: MemberAccessExprSyntax(
-                            period: .periodToken(),
-                            declName: DeclReferenceExprSyntax(baseName: caseElement.name)
-                        ),
-                        leftParen: .leftParenToken(),
-                        rightParen: .rightParenToken()
-                    ) {
-                        LabeledExprListSyntax {
-                            let params = caseElement.parameterClause?.parameters ?? []
-                            for (index, caseParam) in params.enumerated() {
-                                LabeledExprSyntax(
-                                    expression: PatternExprSyntax(
-                                        pattern: ValueBindingPatternSyntax(
-                                            bindingSpecifier: .keyword(.let),
-                                            pattern: IdentifierPatternSyntax(identifier: caseParam.properName(index: index))
-                                        )
-                                    ),
-                                    trailingComma: index + 1 < params.count ? .commaToken() : nil
-                                )
-                            }
-                        }
-                    }
-                )
-            )
-        }
-
     }
 
     private func enumMatchFunc(
@@ -526,7 +451,7 @@ public struct SwiftObjcValueTypeFactory {
             name: .identifier("match"),
             signature: FunctionSignatureSyntax(
                 parameterClause: FunctionParameterClauseSyntax {
-                    enumDecl.enumerateCaseElements { caseElement in
+                    enumDecl.forEachCaseElement { caseElement in
                         FunctionParameterSyntax(
                             firstName: caseElement.name,
                             type: OptionalTypeSyntax(
@@ -539,10 +464,21 @@ public struct SwiftObjcValueTypeFactory {
                 }
             )
         ) {
-            try SwitchExprSyntax("switch wrapped") {
-                enumDecl.enumerateCaseElements { caseElement in
+            try SwitchExprSyntax("switch subtype") {
+                enumDecl.forEachCaseElement { caseElement in
                     SwitchCaseSyntax(
-                        label: .case(switchCaseLabel(caseElement: caseElement))
+                        label: .case(
+                            SwitchCaseLabelSyntax {
+                                SwitchCaseItemSyntax(
+                                    pattern: ExpressionPatternSyntax(
+                                        expression: MemberAccessExprSyntax(
+                                            period: .periodToken(),
+                                            declName: DeclReferenceExprSyntax(baseName: caseElement.name)
+                                        )
+                                    )
+                                )
+                            }
+                        )
                     ) {
                         FunctionCallExprSyntax(
                             calledExpression: OptionalChainingExprSyntax(
@@ -554,14 +490,15 @@ public struct SwiftObjcValueTypeFactory {
                             rightParen: .rightParenToken()
                         ) {
                             LabeledExprListSyntax {
+                                let caseName = caseElement.name.trimmed.text.uppercasingFirst
                                 let params = caseElement.parameterClause?.parameters ?? []
                                 for (index, caseParam) in params.enumerated() {
                                     LabeledExprSyntax(
                                         expression: DeclReferenceExprSyntax(
-                                            baseName: caseParam.properName(index: index)
+                                            baseName: .identifier(caseName.lowercasingFirst + caseParam.properName(index: index).trimmed.text.uppercasingFirst)
                                         )
-                                        .mappingNumeralValueToNSNumber(type: caseParam.type),
-                                        trailingComma: index + 1 < params.count ? .commaToken() : nil
+                                        .mappingNumeralValueToNSNumber(type: caseParam.type)
+                                        .forceUnwrapIfNotOptional(type: caseParam.type)
                                     )
                                 }
                             }
@@ -597,6 +534,203 @@ public struct SwiftObjcValueTypeFactory {
     }
 
     @MemberBlockItemListBuilder
+    private func enumPrivateObjcInitializer(
+        enumDecl: EnumDeclSyntax,
+        referencedSwiftTypes: [String]
+    ) throws -> MemberBlockItemListSyntax {
+        InitializerDeclSyntax(
+            modifiers: DeclModifierListSyntax {
+                DeclModifierSyntax(name: .keyword(.private))
+            },
+            signature: FunctionSignatureSyntax(
+                parameterClause: FunctionParameterClauseSyntax(
+                    parametersBuilder: {
+                        FunctionParameterSyntax(
+                            firstName: .identifier("subtype"),
+                            type: IdentifierTypeSyntax(name: .identifier("\(enumDecl.name.trimmed.text)Subtype"))
+                        )
+
+                        enumDecl.forEachCaseElement { caseElement in
+                            let caseName = caseElement.name.trimmed.text.uppercasingFirst
+                            let params = caseElement.parameterClause?.parameters ?? []
+                            for (index, caseParam) in params.enumerated() {
+                                FunctionParameterSyntax(
+                                    firstName: .identifier(caseName.lowercasingFirst + caseParam.properName(index: index).trimmed.text.uppercasingFirst),
+                                    type: caseParam.type.asNSNumberIfOptionalNumeral.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes).optionalized,
+                                    defaultValue: InitializerClauseSyntax(
+                                        value: NilLiteralExprSyntax()
+                                    )
+                                )
+                            }
+                        }
+                    }
+                )
+            )
+        ) {
+            "self.subtype = subtype"
+
+            enumDecl.forEachCaseElement { caseElement in
+                let caseName = caseElement.name.trimmed.text.uppercasingFirst
+                let params = caseElement.parameterClause?.parameters ?? []
+
+                for (index, caseParam) in params.enumerated() {
+                    let propertyName = caseName.lowercasingFirst + caseParam.properName(index: index).trimmed.text.uppercasingFirst
+
+                    SequenceExprSyntax {
+                        MemberAccessExprSyntax(
+                            base: DeclReferenceExprSyntax(baseName: .keyword(.self)),
+                            declName: DeclReferenceExprSyntax(baseName: .identifier(propertyName))
+                        )
+
+                        AssignmentExprSyntax()
+
+                        DeclReferenceExprSyntax(baseName: .identifier(propertyName))
+                    }
+                }
+            }
+        }
+    }
+
+    /*
+     @objc
+     public init(foo: [FooObjc]?, bar: Int) {
+         self.foo = foo
+         self.bar = bar
+     }
+     */
+    @MemberBlockItemListBuilder
+    private func objcInitializer(
+        structDecl: StructDeclSyntax,
+        referencedSwiftTypes: [String]
+    ) throws -> MemberBlockItemListSyntax {
+        InitializerDeclSyntax(
+            attributes: AttributeListSyntax {
+                .attribute("@objc")
+            }.with(\.trailingTrivia, .newline),
+            modifiers: structDecl.modifiers.trimmed,
+            signature: FunctionSignatureSyntax(
+                parameterClause: FunctionParameterClauseSyntax(
+                    parametersBuilder: {
+                        structDecl.forEachBinding { binding in
+                            if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let typeAnnotation = binding.typeAnnotation {
+                                let variableName = identifierPattern.identifier.trimmed.text
+
+                                FunctionParameterSyntax(
+                                    firstName: .identifier(variableName),
+                                    type: typeAnnotation.type.asNSNumberIfOptionalNumeral.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes)
+                                )
+                            }
+                        }
+                    }
+                )
+            )
+        ) {
+            structDecl.forEachBinding { binding in
+                SequenceExprSyntax {
+                    if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self) {
+                        MemberAccessExprSyntax(
+                            base: DeclReferenceExprSyntax(baseName: .keyword(.self)),
+                            declName: DeclReferenceExprSyntax(baseName: identifierPattern.identifier)
+                        )
+
+                        AssignmentExprSyntax()
+
+                        DeclReferenceExprSyntax(baseName: identifierPattern.identifier)
+                    }
+                }
+            }
+        }
+    }
+
+
+    /*
+     public init(_ original: Foo) {
+        self.init(
+            prop1: original.prop1,
+            arrayOfBar: original.array.map({ a0 in BarObjc(a0) }),
+            optMapOfIntToBaz: original.optMap?.mapValue({ a0 in Baz(a0) })
+        )
+     }
+     */
+    @MemberBlockItemListBuilder
+    private func objcInitializerFromSwiftType(
+        structDecl: StructDeclSyntax,
+        referencedSwiftTypes: [String]
+    ) throws -> MemberBlockItemListSyntax {
+        InitializerDeclSyntax(
+            modifiers: DeclModifierListSyntax {
+                structDecl.modifiers.trimmed
+            },
+            signature: FunctionSignatureSyntax(
+                parameterClause: FunctionParameterClauseSyntax(
+                    parametersBuilder: {
+                        FunctionParameterSyntax(
+                            firstName: .wildcardToken(),
+                            secondName: .identifier("original"),
+                            type: IdentifierTypeSyntax(name: structDecl.name.trimmed)
+                        )
+                    }
+                )
+            )
+        ) {
+            structDecl.forEachBinding { binding in
+                SequenceExprSyntax {
+                    if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let typeAnnotation = binding.typeAnnotation {
+                        MemberAccessExprSyntax(
+                            base: DeclReferenceExprSyntax(baseName: .keyword(.self)),
+                            declName: DeclReferenceExprSyntax(baseName: identifierPattern.identifier)
+                        )
+
+                        AssignmentExprSyntax()
+
+                        MemberAccessExprSyntax(
+                            base: DeclReferenceExprSyntax(
+                                baseName: .identifier("original")
+                            ),
+                            declName: DeclReferenceExprSyntax(
+                                baseName: identifierPattern.identifier
+                            )
+                        )
+                        .mappingNumeralValueToNSNumber(type: typeAnnotation.type)
+                        .convertingToObjcType(
+                            type: typeAnnotation.type,
+                            referencedSwiftTypes: referencedSwiftTypes
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    @MemberBlockItemListBuilder
+    private func objcEnumPrivateVariablesDecl(
+        enumDecl: EnumDeclSyntax,
+        referencedSwiftTypes: [String]
+    ) throws -> MemberBlockItemListSyntax {
+        enumDecl.forEachCaseElement { caseElement in
+            let caseName = caseElement.name.trimmed.text.uppercasingFirst
+            let params = caseElement.parameterClause?.parameters ?? []
+            for (index, caseParam) in params.enumerated() {
+                VariableDeclSyntax(
+                    modifiers: DeclModifierListSyntax {
+                        DeclModifierSyntax(name: .keyword(.private))
+                    },
+                    bindingSpecifier: .keyword(.let)
+                ) {
+                    PatternBindingSyntax(
+                        pattern: IdentifierPatternSyntax(
+                            identifier: .identifier(caseName.lowercasingFirst + caseParam.properName(index: index).trimmed.text.uppercasingFirst)
+                        ),
+                        typeAnnotation: TypeAnnotationSyntax(
+                            type: caseParam.type.asNSNumberIfOptionalNumeral.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes).optionalized
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    @MemberBlockItemListBuilder
     private func objcVariableDecl(
         variableTypeDecl: VariableDeclSyntax,
         referencedSwiftTypes: [String]
@@ -606,72 +740,18 @@ public struct SwiftObjcValueTypeFactory {
                 .attribute("@objc")
             },
             modifiers: variableTypeDecl.modifiers.trimmed,
-            bindingSpecifier: .keyword(.var)
+            bindingSpecifier: .keyword(.let)
         ) {
             for binding in variableTypeDecl.bindings where !binding.isDerived {
-                if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let typeAnnotation = binding.typeAnnotation {
-
+                if let typeAnnotation = binding.typeAnnotation {
                     PatternBindingSyntax(
                         pattern: binding.pattern,
                         typeAnnotation: TypeAnnotationSyntax(
                             type: typeAnnotation.type.asNSNumberIfOptionalNumeral.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes)
-                        ),
-                        accessorBlock: AccessorBlockSyntax(
-                            accessors: .getter(
-                                CodeBlockItemListSyntax {
-                                    MemberAccessExprSyntax(
-                                        base: DeclReferenceExprSyntax(
-                                            baseName: .identifier("wrapped")
-                                        ),
-                                        declName: DeclReferenceExprSyntax(
-                                            baseName: identifierPattern.identifier
-                                        )
-                                    )
-                                    .mappingNumeralValueToNSNumber(type: typeAnnotation.type)
-                                    .wrappingWithObjcInitializerIfSwiftType(
-                                        type: typeAnnotation.type,
-                                        referencedSwiftTypes: referencedSwiftTypes
-                                    )
-                                }
-                            )
                         )
                     )
                 }
             }
-        }
-    }
-
-    @MemberBlockItemListBuilder
-    private func objcHashFunc(
-        structDecl: StructDeclSyntax
-    ) throws -> MemberBlockItemListSyntax {
-        VariableDeclSyntax(
-            modifiers: DeclModifierListSyntax {
-                // Inherit visibility modifiers
-                structDecl.modifiers.trimmed
-
-                DeclModifierSyntax(
-                    name: .keyword(.override)
-                )
-            },
-            bindingSpecifier: .keyword(.var)
-        ) {
-            PatternBindingSyntax(
-                pattern: IdentifierPatternSyntax(identifier: .identifier("hash")),
-                typeAnnotation: TypeAnnotationSyntax(
-                    colon: .colonToken(),
-                    type: IdentifierTypeSyntax(name: "Int")
-                ),
-                accessorBlock: AccessorBlockSyntax(
-                    accessors: .getter(
-                        CodeBlockItemListSyntax {
-                            "var hasher = Hasher()"
-                            "hasher.combine(wrapped)"
-                            "return hasher.finalize()"
-                        }
-                    )
-                )
-            )
         }
     }
 
@@ -713,98 +793,6 @@ public struct SwiftObjcValueTypeFactory {
                 )
             }
         )
-    }
-
-    @MemberBlockItemListBuilder
-    private func objcIsEqualFunc(
-        containerName: String,
-        modifiers: DeclModifierListSyntax
-    ) throws -> MemberBlockItemListSyntax {
-        FunctionDeclSyntax(
-            modifiers: DeclModifierListSyntax {
-                // Inherit visibility modifiers
-                modifiers.trimmed
-
-                DeclModifierSyntax(
-                    name: .keyword(.override)
-                )
-            },
-            name: .identifier("isEqual"),
-            signature: FunctionSignatureSyntax(
-                parameterClause: FunctionParameterClauseSyntax {
-                    FunctionParameterListSyntax {
-                        FunctionParameterSyntax(
-                            firstName: .wildcardToken(),
-                            secondName: .identifier("object"),
-                            type: TypeSyntax("Any?")
-                        )
-                    }
-                },
-                returnClause: ReturnClauseSyntax(
-                    type: TypeSyntax("Bool")
-                )
-            )
-        ) {
-            StmtSyntax(
-                """
-                if let other = object as? \(raw: containerName)Objc {
-                    return wrapped == other.wrapped
-                }
-                """
-            )
-
-            StmtSyntax("return false")
-        }
-    }
-
-    private func wrappedInitializer(
-        containerName: String
-    ) -> DeclSyntax {
-        DeclSyntax(
-            """
-            public init(wrapped: \(raw: containerName)) {
-                self.wrapped = wrapped
-            }
-            """
-        )
-    }
-
-    @MemberBlockItemListBuilder
-    private func nsCopyingConformances(
-        containerName: String,
-        modifiers: DeclModifierListSyntax
-    ) throws -> MemberBlockItemListSyntax {
-        wrappedInitializer(containerName: containerName)
-
-        FunctionDeclSyntax(
-            modifiers: DeclModifierListSyntax {
-                // Inherit visibility modifiers
-                modifiers.trimmed
-            },
-            name: .identifier("copy"),
-            signature: FunctionSignatureSyntax(
-                parameterClause: FunctionParameterClauseSyntax {
-                    FunctionParameterListSyntax {
-                        FunctionParameterSyntax(
-                            firstName: .identifier("with"),
-                            secondName: .identifier("zone"),
-                            type: TypeSyntax("NSZone?"),
-                            defaultValue: InitializerClauseSyntax(value: ExprSyntax("nil"))
-                        )
-                    }
-                },
-                returnClause: ReturnClauseSyntax(
-                    type: TypeSyntax("Any")
-                )
-            )
-        ) {
-            StmtSyntax(
-                """
-                return \(raw: containerName)Objc(wrapped: wrapped)
-                """
-            )
-        }
-        .with(\.leadingTrivia, .newlines(2))
     }
 
     private struct DeclDescriptor {
