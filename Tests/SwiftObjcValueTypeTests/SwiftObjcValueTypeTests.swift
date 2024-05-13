@@ -863,12 +863,8 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
 
                 public required convenience init?(coder: NSCoder) {
-                    guard let productImageSize = coder.decodeCGSize(forKey: kProductImageSizeKey) else {
-                        return nil
-                    }
-                    guard let frame = coder.decodeCGRect(forKey: kFrameKey) else {
-                        return nil
-                    }
+                    let productImageSize = coder.decodeCGSize(forKey: kProductImageSizeKey)
+                    let frame = coder.decodeCGRect(forKey: kFrameKey)
                     let rotationAngle = CGFloat(coder.decodeDouble(forKey: kRotationAngleKey))
                     self.init(productImageSize: productImageSize, frame: frame, rotationAngle: rotationAngle)
                 }
