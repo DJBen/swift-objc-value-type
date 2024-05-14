@@ -131,3 +131,33 @@ public class ValueObjc: NSObject, NSCopying, NSCoding {
 ```
 
 ## Swift Macros
+
+To generate objc wrapper using Swift macro,
+
+Add `SwiftObjcValueTypeMacroInterface` to the dependencies of your target in `Package.swift`.
+```swift
+
+.target(
+  name: "YourTarget",
+  dependencies: [
+    .product(name: "SwiftObjcValueTypeMacroInterface", package: "SwiftObjcValueType"),
+  ]
+),
+
+```
+
+In your source, add `@ObjcValueWrapper` to your structs or enums
+```swift
+import SwiftObjcValueTypeMacroInterface
+
+@ObjcValueWrapper
+public struct Value: Equatable, Codable {
+    public let doubleValue: Double
+
+    public let optInt: Int64?
+
+    public let stringArray: [String]
+
+    public let map: [String: [String: Double]]
+}
+```
