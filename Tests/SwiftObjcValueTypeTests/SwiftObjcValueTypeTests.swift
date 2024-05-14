@@ -1062,7 +1062,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     return SaveUpdatesObjc(subtype: .saveFailed, saveFailedError: error)
                 }
 
-                @objc
+                @objc(matchSaveBegan: saveSucceeded: saveFailed:)
                 public func match(saveBegan: SaveUpdatesSaveBeganMatchHandler?, saveSucceeded: SaveUpdatesSaveSucceededMatchHandler?, saveFailed: SaveUpdatesSaveFailedMatchHandler?) {
                     switch subtype {
                     case .saveBegan:

@@ -4,7 +4,7 @@ import SwiftSyntaxBuilder
 extension SwiftObjcValueTypeFactory {
     public func objcBuilderExtensionDecl(
         structDecl: StructDeclSyntax,
-        referencedSwiftTypes: [String],
+        referencedSwiftTypes: Set<String>,
         prefix: String
     ) throws -> ExtensionDeclSyntax {
         let structName = structDecl.name.trimmed.text
@@ -24,7 +24,7 @@ extension SwiftObjcValueTypeFactory {
 
     @MemberBlockItemListBuilder public func objcBuilderDecl(
         structDecl: StructDeclSyntax,
-        referencedSwiftTypes: [String],
+        referencedSwiftTypes: Set<String>,
         prefix: String
     ) throws -> MemberBlockItemListSyntax {
         let structName = structDecl.name.trimmed.text

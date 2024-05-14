@@ -260,7 +260,7 @@ extension SwiftObjcValueTypeFactory {
     @MemberBlockItemListBuilder
     func nsCodingConformances(
         enumDecl: EnumDeclSyntax,
-        referencedSwiftTypes: [String]
+        referencedSwiftTypes: Set<String>
     ) throws -> MemberBlockItemListSyntax {
         FunctionDeclSyntax(
             modifiers: DeclModifierListSyntax {
@@ -452,7 +452,7 @@ extension SwiftObjcValueTypeFactory {
     @MemberBlockItemListBuilder
     func nsCodingConformances(
         structDecl: StructDeclSyntax,
-        referencedSwiftTypes: [String]
+        referencedSwiftTypes: Set<String>
     ) throws -> MemberBlockItemListSyntax {
         FunctionDeclSyntax(
             modifiers: DeclModifierListSyntax {

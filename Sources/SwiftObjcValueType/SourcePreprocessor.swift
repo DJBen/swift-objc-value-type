@@ -46,7 +46,7 @@ public class SourcePreprocessor {
     ///
     /// This is used to alias the type in objc wrapper.
     /// - Returns: a list of Swift types that are referenced within the source as properties.
-    public var referencedSwiftTypes: [String] {
+    public var referencedSwiftTypes: Set<String> {
         return referencedTypes.flatMap { type -> [String] in
             var types = Set<String>()
             type.enumerateTypeName { typeName in
@@ -56,5 +56,6 @@ public class SourcePreprocessor {
             }
             return Array(types)
         }
+        .reduce(into: Set(), { $0.insert($1) })
     }
 }

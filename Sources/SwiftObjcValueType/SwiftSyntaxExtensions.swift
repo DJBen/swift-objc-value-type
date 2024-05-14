@@ -9,7 +9,7 @@ extension TypeSyntaxProtocol {
         asNSNumberBridged() != nil
     }
 
-    func aliasingToObjcIfSiblingSwiftType(_ referencedSwiftTypes: [String]) -> any TypeSyntaxProtocol {
+    func aliasingToObjcIfSiblingSwiftType(_ referencedSwiftTypes: Set<String>) -> any TypeSyntaxProtocol {
         return mapTypeName { prevName in
             if referencedSwiftTypes.contains(prevName) {
                 return "\(prevName)Objc"
@@ -19,7 +19,7 @@ extension TypeSyntaxProtocol {
         }
     }
 
-    func isSiblingSwiftType(_ referencedSwiftTypes: [String]) -> Bool {
+    func isSiblingSwiftType(_ referencedSwiftTypes: Set<String>) -> Bool {
         conainsTypeName { prevName in
             return referencedSwiftTypes.contains(prevName)
         }
@@ -191,7 +191,7 @@ extension DeclReferenceExprSyntax {
 extension ExprSyntaxProtocol {
     func convertingToObjcType(
         type: some TypeSyntaxProtocol,
-        referencedSwiftTypes: [String]
+        referencedSwiftTypes: Set<String>
     ) -> any ExprSyntaxProtocol {
         var argIndex = 0
         return convertingToObjcType(
@@ -208,9 +208,10 @@ extension ExprSyntaxProtocol {
     /// Otherwise it will recursively probe into each subcomponent of the type.
     private func convertingToObjcType(
         type: some TypeSyntaxProtocol,
-        referencedSwiftTypes: [String],
+        referencedSwiftTypes: Set<String>,
         temporaryDeclReferenceExpr: DeclReferenceExprSyntax? = nil,
         needsUnwrapRoot: Bool = false,
+        useMapOptional: Bool = false,
         nextArgIndex: () -> Int
     ) -> any ExprSyntaxProtocol {
         guard type.isSiblingSwiftType(referencedSwiftTypes) else {
@@ -219,24 +220,50 @@ extension ExprSyntaxProtocol {
 
         if let identifierType = type.as(IdentifierTypeSyntax.self) {
             // TODO: Add Set<>, and Array<>, Dictionary<> support
-
-            // Wrapping the expr with `<Type>Objc(<expr>)`.
-            return FunctionCallExprSyntax(
-                calledExpression: DeclReferenceExprSyntax(
-                    baseName: identifierType.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes).as(IdentifierTypeSyntax.self)!.name
-                ),
-                leftParen: .leftParenToken(),
-                arguments: LabeledExprListSyntax {
+            if useMapOptional {
+                // .map(<Type>Objc.init)
+                return FunctionCallExprSyntax(
+                    calledExpression: MemberAccessExprSyntax(
+                        base: self,
+                        period: .periodToken(),
+                        declName: DeclReferenceExprSyntax(baseName: "map")
+                    ),
+                    leftParen: .leftParenToken(),
+                    rightParen: .rightParenToken()
+                ) {
                     LabeledExprSyntax(
-                        expression: ExprSyntax(temporaryDeclReferenceExpr) ?? (needsUnwrapRoot ? ExprSyntax(OptionalChainingExprSyntax(expression: self)) : ExprSyntax(self))
+                        expression: MemberAccessExprSyntax(
+                            base: DeclReferenceExprSyntax(
+                                baseName: identifierType.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes).as(IdentifierTypeSyntax.self)!.name
+                            ),
+                            period: .periodToken(),
+                            declName: DeclReferenceExprSyntax(baseName: .keyword(.`init`))
+                        )
                     )
-                },
-                rightParen: .rightParenToken()
-            )
+                }
+            } else {
+                // Wrapping the expr with `<Type>Objc(<expr>)`.
+                return FunctionCallExprSyntax(
+                    calledExpression: DeclReferenceExprSyntax(
+                        baseName: identifierType.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes).as(IdentifierTypeSyntax.self)!.name
+                    ),
+                    leftParen: .leftParenToken(),
+                    arguments: LabeledExprListSyntax {
+                        LabeledExprSyntax(
+                            expression: ExprSyntax(temporaryDeclReferenceExpr) ?? (needsUnwrapRoot ? ExprSyntax(OptionalChainingExprSyntax(expression: self)) : ExprSyntax(self))
+                        )
+                    },
+                    rightParen: .rightParenToken()
+                )
+            }
         } else if let optionalTypeSyntax = type.as(OptionalTypeSyntax.self) {
             if optionalTypeSyntax.wrappedType.is(IdentifierTypeSyntax.self) {
-                // Do not modify if its a terminal optional.
-                return self
+                return convertingToObjcType(
+                    type: optionalTypeSyntax.wrappedType,
+                    referencedSwiftTypes: referencedSwiftTypes,
+                    useMapOptional: true,
+                    nextArgIndex: nextArgIndex
+                )
             } else {
                 // Append `?`
                 return convertingToObjcType(
@@ -426,10 +453,12 @@ extension EnumDeclSyntax {
     func enumerateCaseElement(
         caseElementBlock: (Int, EnumCaseElementSyntax) throws -> Void
     ) rethrows {
+        var index = 0
         for member in memberBlock.members {
             if let caseDecl = member.decl.as(EnumCaseDeclSyntax.self) {
-                for (index, caseElement) in caseDecl.elements.enumerated() {
+                for caseElement in caseDecl.elements {
                     try caseElementBlock(index, caseElement)
+                    index += 1
                 }
             }
         }
@@ -488,6 +517,12 @@ extension EnumDeclSyntax {
     func enumerateCaseElement(
         @ExprListBuilder caseElementBlock: (Int, EnumCaseElementSyntax) throws -> ExprListSyntax
     ) rethrows -> ExprListSyntax {
+        try enumerateCaseElementGeneric(caseElementBlock: caseElementBlock)
+    }
+
+    func enumerateCaseElement(
+        @ObjCSelectorPieceListBuilder caseElementBlock: (Int, EnumCaseElementSyntax) throws -> ObjCSelectorPieceListSyntax
+    ) rethrows -> ObjCSelectorPieceListSyntax {
         try enumerateCaseElementGeneric(caseElementBlock: caseElementBlock)
     }
 

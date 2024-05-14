@@ -12,7 +12,7 @@ public struct SwiftObjcValueTypeFactory {
     @CodeBlockItemListBuilder
     public func wrappingClassDecl(
         codeBlocks: CodeBlockItemListSyntax,
-        referencedSwiftTypes: [String] = [],
+        referencedSwiftTypes: Set<String> = [],
         prefix: String = "",
         imports: [String] = [],
         externalHashFunc: String? = nil,
@@ -89,7 +89,7 @@ public struct SwiftObjcValueTypeFactory {
 
     private func wrappingClassDecl(
         structDecl: StructDeclSyntax,
-        referencedSwiftTypes: [String],
+        referencedSwiftTypes: Set<String>,
         prefix: String,
         imports: [String],
         externalHashFunc: String?,
@@ -232,7 +232,7 @@ public struct SwiftObjcValueTypeFactory {
     private func wrappingClassDecl(
         enumDecl: EnumDeclSyntax,
         imports: [String],
-        referencedSwiftTypes: [String],
+        referencedSwiftTypes: Set<String>,
         shouldSynthesizeEquatable: Bool,
         shouldSynthesizeNSCoding: Bool,
         shouldSynthesizeNSCopying: Bool
@@ -441,7 +441,22 @@ public struct SwiftObjcValueTypeFactory {
 
         return try FunctionDeclSyntax(
             attributes: AttributeListSyntax {
-                "@objc"
+                AttributeSyntax(
+                    atSign: .atSignToken(),
+                    attributeName: IdentifierTypeSyntax(name: .identifier("objc")),
+                    leftParen: .leftParenToken(),
+                    arguments: .objCName(
+                        ObjCSelectorPieceListSyntax {
+                            enumDecl.enumerateCaseElement { index, caseElement in
+                                ObjCSelectorPieceSyntax(
+                                    name: .identifier(index == 0 ? "match\(caseElement.name.trimmed.text.uppercasingFirst)" : caseElement.name.trimmed.text.lowercasingFirst),
+                                    colon: .colonToken()
+                                )
+                            }
+                        }
+                    ),
+                    rightParen: .rightParenToken()
+                )
             }
             .with(\.trailingTrivia, .newline),
             modifiers: DeclModifierListSyntax {
@@ -536,7 +551,7 @@ public struct SwiftObjcValueTypeFactory {
     @MemberBlockItemListBuilder
     private func enumPrivateObjcInitializer(
         enumDecl: EnumDeclSyntax,
-        referencedSwiftTypes: [String]
+        referencedSwiftTypes: Set<String>
     ) throws -> MemberBlockItemListSyntax {
         InitializerDeclSyntax(
             modifiers: DeclModifierListSyntax {
@@ -601,7 +616,7 @@ public struct SwiftObjcValueTypeFactory {
     @MemberBlockItemListBuilder
     private func objcInitializer(
         structDecl: StructDeclSyntax,
-        referencedSwiftTypes: [String]
+        referencedSwiftTypes: Set<String>
     ) throws -> MemberBlockItemListSyntax {
         InitializerDeclSyntax(
             attributes: AttributeListSyntax {
@@ -655,7 +670,7 @@ public struct SwiftObjcValueTypeFactory {
     @MemberBlockItemListBuilder
     private func objcInitializerFromSwiftType(
         structDecl: StructDeclSyntax,
-        referencedSwiftTypes: [String]
+        referencedSwiftTypes: Set<String>
     ) throws -> MemberBlockItemListSyntax {
         InitializerDeclSyntax(
             modifiers: DeclModifierListSyntax {
@@ -667,7 +682,9 @@ public struct SwiftObjcValueTypeFactory {
                         FunctionParameterSyntax(
                             firstName: .wildcardToken(),
                             secondName: .identifier("original"),
-                            type: IdentifierTypeSyntax(name: structDecl.name.trimmed)
+                            type: IdentifierTypeSyntax(
+                                name: structDecl.name.trimmed
+                            )
                         )
                     }
                 )
@@ -691,7 +708,9 @@ public struct SwiftObjcValueTypeFactory {
                                 baseName: identifierPattern.identifier
                             )
                         )
-                        .mappingNumeralValueToNSNumber(type: typeAnnotation.type)
+                        .mappingNumeralValueToNSNumber(
+                            type: typeAnnotation.type
+                        )
                         .convertingToObjcType(
                             type: typeAnnotation.type,
                             referencedSwiftTypes: referencedSwiftTypes
@@ -705,7 +724,7 @@ public struct SwiftObjcValueTypeFactory {
     @MemberBlockItemListBuilder
     private func objcEnumPrivateVariablesDecl(
         enumDecl: EnumDeclSyntax,
-        referencedSwiftTypes: [String]
+        referencedSwiftTypes: Set<String>
     ) throws -> MemberBlockItemListSyntax {
         enumDecl.forEachCaseElement { caseElement in
             let caseName = caseElement.name.trimmed.text.uppercasingFirst
@@ -733,7 +752,7 @@ public struct SwiftObjcValueTypeFactory {
     @MemberBlockItemListBuilder
     private func objcVariableDecl(
         variableTypeDecl: VariableDeclSyntax,
-        referencedSwiftTypes: [String]
+        referencedSwiftTypes: Set<String>
     ) throws -> MemberBlockItemListSyntax {
         VariableDeclSyntax(
             attributes: AttributeListSyntax {
