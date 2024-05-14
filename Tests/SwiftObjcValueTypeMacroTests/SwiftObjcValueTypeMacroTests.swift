@@ -66,11 +66,47 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
                     self.map = original.map
                 }
 
+                public override var hash: Int {
+                    let hashes: [UInt] = [hashDouble(doubleValue), UInt(bitPattern: abs(optInt ?? 0)), UInt(bitPattern: (stringArray as NSArray).hash), UInt(bitPattern: map.hash)]
+                    return Int(hashImpl(hashes, 4))
+                }
+
+                private func hashDouble(_ givenDouble: Double) -> UInt {
+                    var value = givenDouble
+                    var bits: UInt64 = 0
+                    withUnsafeBytes(of: &value) { bytes in
+                        bits = bytes.load(as: UInt64.self)
+                    }
+                    var p = UInt(bits)
+                    p = (~p) &+ (p << 18)
+                    p ^= (p >> 31)
+                    p &*= 21
+                    p ^= (p >> 11)
+                    p &+= (p << 6)
+                    p ^= (p >> 22)
+                    return p
+                }
+
+                private func hashImpl(_ subhashes: UnsafePointer<UInt>, _ length: Int) -> UInt {
+                    var result = subhashes[0]
+                    for i in 1 ..< length {
+                        var base = (UInt64(result) << 32) | UInt64(subhashes[i])
+                        base = (~base) &+ (base << 18)
+                        base ^= (base >> 31)
+                        base &*= 21
+                        base ^= (base >> 11)
+                        base &+= (base << 6)
+                        base ^= (base >> 22)
+                        result = UInt(base)
+                    }
+                    return result
+                }
+
                 public override func isEqual(_ object: Any?) -> Bool {
                     guard let other = object as? ValueObjc else {
                         return false
                     }
-                    return doubleValue == other.doubleValue && optInt?.isEqual(other.optInt) == true && stringArray.isEqual(other.stringArray) && map.isEqual(other.map)
+                    return doubleValue == other.doubleValue && optInt == other.optInt && stringArray == other.stringArray && map == other.map
                 }
 
                 public func copy(with zone: NSZone? = nil) -> Any {

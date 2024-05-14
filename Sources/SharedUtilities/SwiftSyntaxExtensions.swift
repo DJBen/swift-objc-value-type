@@ -1,6 +1,39 @@
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
+/// https://developer.apple.com/documentation/swift/working-with-foundation-types
+public let objcToSwiftFoundationTypeMap = [
+    "NSAffineTransform": "AffineTransform",
+    "NSArray": "Array",
+    "NSCalendar": "Calendar",
+    "NSCharacterSet": "CharacterSet",
+    "NSData": "Data",
+    "NSDateComponents": "DateComponents",
+    "NSDateInterval": "DateInterval",
+    "NSDate": "Date",
+    "NSDecimalNumber": "Decimal",
+    "NSDictionary": "Dictionary",
+    "NSIndexPath": "IndexPath",
+    "NSIndexSet": "IndexSet",
+    "NSLocale": "Locale",
+    "NSMeasurement": "Measurement",
+    "NSNotification": "Notification",
+    "NSPersonNameComponents": "PersonNameComponents",
+    "NSSet": "Set",
+    "NSString": "String",
+    "NSTimeZone": "TimeZone",
+    "NSURL": "URL",
+    "NSURLComponents": "URLComponents",
+    "NSURLQueryItem": "URLQueryItem",
+    "NSURLRequest": "URLRequest",
+    "NSUUID": "UUID",
+    "NSError": "Error",
+]
+
+public let swiftToObjcFoundationTypeMap = {
+    objcToSwiftFoundationTypeMap.reduce(into: [String: String](), { $0[$1.1] = $1.0 })
+}()
+
 extension TypeSyntaxProtocol {
     public func enumerateTypeName(_ block: (String) -> Void) {
         _ = mapTypeName { typeName in

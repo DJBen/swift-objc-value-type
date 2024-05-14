@@ -56,7 +56,7 @@ extension SwiftObjcValueTypeFactory {
         // Use `a == other.a` if primitive type
         // Otherwise use `a.isEqual(other.a)` if not optional
         // `a?.isEqual(other?.a) == true` if optional
-        if type.isObjcPrimitive {
+        if type.shouldUseEqualSignForEqualityCheck {
             DeclReferenceExprSyntax(
                 baseName: identifier
             )
@@ -166,7 +166,6 @@ extension SwiftObjcValueTypeFactory {
                     }
                 }
             )
-
         }
     }
 
@@ -180,7 +179,7 @@ extension SwiftObjcValueTypeFactory {
         ) {
             ReturnStmtSyntax(
                 expression: SequenceExprSyntax {
-                    ExprSyntax("subType == other.subType")
+                    ExprSyntax("subtype == other.subtype")
 
                     BinaryOperatorExprSyntax(operator: .binaryOperator("&&"))
 
@@ -192,7 +191,7 @@ extension SwiftObjcValueTypeFactory {
 
                             propertyIsEqualExprs(
                                 identifier: .identifier(propertyName),
-                                type: caseParam.type
+                                type: caseParam.type.optionalized
                             )
 
                             if paramIndex + 1 < params.count || index + 1 < enumDecl.caseCount {
@@ -203,5 +202,39 @@ extension SwiftObjcValueTypeFactory {
                 }
             )
         }
+    }
+}
+
+private extension TypeSyntaxProtocol {
+    var shouldUseEqualSignForEqualityCheck: Bool {
+        if isObjcPrimitive {
+            return true
+        }
+
+        if self.is(ArrayTypeSyntax.self) {
+            return true
+        }
+
+        if self.is(DictionaryTypeSyntax.self) {
+            return true
+        }
+        
+        if let idType = self.as(IdentifierTypeSyntax.self), swiftToObjcFoundationTypeMap[idType.name.trimmed.text] != nil {
+            return true
+        }
+
+        if self.isIdentifierTypeEqual("UUID") {
+            return true
+        }
+
+        if self.isIdentifierTypeEqual("URL") {
+            return true
+        }
+
+        if let optional = self.as(OptionalTypeSyntax.self), optional.wrappedType.shouldUseEqualSignForEqualityCheck {
+            return true
+        }
+
+        return false
     }
 }

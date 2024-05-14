@@ -15,38 +15,6 @@ let primitiveCIntRegex = /(?:unsigned\s+)?(?:(?:short|(?:long)(?: long)?)\s+)?in
 // is a primitive backed enum.
 let aliasedPrimitiveTypeRegex = /(\w+)\((\w+)\)/
 
-/// https://developer.apple.com/documentation/swift/working-with-foundation-types
-let objcToSwiftMaps = [
-    "NSAffineTransform": "AffineTransform",
-    "NSArray": "Array",
-    "NSCalendar": "Calendar",
-    "NSCharacterSet": "CharacterSet",
-    "NSData": "Data",
-    "NSDateComponents": "DateComponents",
-    "NSDateInterval": "DateInterval",
-    "NSDate": "Date",
-    "NSDecimalNumber": "Decimal",
-    "NSDictionary": "Dictionary",
-    "NSIndexPath": "IndexPath",
-    "NSIndexSet": "IndexSet",
-    "NSLocale": "Locale",
-    "NSMeasurement": "Measurement",
-    "NSNotification": "Notification",
-    "NSPersonNameComponents": "PersonNameComponents",
-    "NSSet": "Set",
-    "NSString": "String",
-    "NSTimeZone": "TimeZone",
-    "NSURL": "URL",
-    "NSURLComponents": "URLComponents",
-    "NSURLQueryItem": "URLQueryItem",
-    "NSURLRequest": "URLRequest",
-    "NSUUID": "UUID",
-    "NSError": "Error",
-    "NSInteger": "Int",
-    "NSUInteger": "UInt",
-    "Class": "AnyClass",
-]
-
 /// Generate Swift models (enums or structs) from Remodel models.
 public class RemodelSwiftFactory {
     public init() {}
@@ -247,10 +215,9 @@ public class RemodelSwiftFactory {
     }
 
     private func inheritanceClause(_ model: RMModelSyntax) -> InheritanceClauseSyntax? {
-        model.includes.contains("RMEquality") ? InheritanceClauseSyntax {
-            if model.includes.contains("RMEquality") {
-                InheritedTypeSyntax(type: IdentifierTypeSyntax(name: "Equatable"))
-            }
+        // AdtValue always require equality check
+        model.includes.contains("RMEquality") || model.type == .adtValue ? InheritanceClauseSyntax {
+            InheritedTypeSyntax(type: IdentifierTypeSyntax(name: "Equatable"))
         } : nil
     }
 
@@ -320,7 +287,13 @@ public class RemodelSwiftFactory {
             return "Float"
         } else if remodelType == "double" {
             return "Double"
-        } else if let mappedSwiftType = objcToSwiftMaps[remodelType] {
+        } else if remodelType == "NSInteger" {
+            return "Int"
+        } else if remodelType == "NSUInteger" {
+            return "UInt"
+        } else if remodelType == "Class" {
+            return "AnyClass"
+        } else if let mappedSwiftType = objcToSwiftFoundationTypeMap[remodelType] {
             return mappedSwiftType
         } else {
             return removeTypePrefix(prefix: existingPrefix, name: remodelType)

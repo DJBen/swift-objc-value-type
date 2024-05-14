@@ -41,9 +41,14 @@ extension SwiftObjcValueTypeFactory {
     ) -> [VariableDeclSyntax] {
         var decls = [VariableDeclSyntax]()
 
-        structDecl.forEachBinding { binding in
+        structDecl.enumerateBinding { index, binding in
             if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self) {
-                decls.append(nsCodingConstant(name: identifierPattern.identifier.trimmed.text))
+                decls.append(
+                    nsCodingConstant(
+                        name: identifierPattern.identifier.trimmed.text
+                    )
+                    .with(\.leadingTrivia, index == 0 ? .newlines(2) : [])
+                )
             }
         }
 
@@ -82,6 +87,7 @@ extension SwiftObjcValueTypeFactory {
                     )
                 }
             }
+            .with(\.leadingTrivia, .newlines(2))
         )
 
         // For each enum parameter in each enum case,

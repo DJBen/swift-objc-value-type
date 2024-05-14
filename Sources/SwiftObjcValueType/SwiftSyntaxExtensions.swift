@@ -116,10 +116,22 @@ extension TypeSyntaxProtocol {
         }
     }
 
-    var isBool: Bool {
+    func isIdentifierTypeEqual(_ name: String) -> Bool {
+        if let identifierType = self.as(IdentifierTypeSyntax.self), identifierType.name.trimmed.text == name {
+            return true
+        } else {
+            return false
+        }
+    }
+
+    var isFloat: Bool {
+        isIdentifierTypeEqual("Float")
+    }
+
+    var isDouble: Bool {
         if let identifierType = self.as(IdentifierTypeSyntax.self) {
             switch identifierType.name.trimmed.text {
-            case "Bool":
+            case "CGFloat", "TimeInterval", "Double":
                 return true
             default:
                 return false
@@ -127,6 +139,10 @@ extension TypeSyntaxProtocol {
         } else {
             return false
         }
+    }
+
+    var isBool: Bool {
+        isIdentifierTypeEqual("Bool")
     }
 
     var isSignedInt: Bool {
@@ -140,6 +156,18 @@ extension TypeSyntaxProtocol {
         } else {
             return false
         }
+    }
+
+    var isArray: Bool {
+        if self.is(ArrayTypeSyntax.self) {
+            // [SomeType]
+            return true
+        } else if let idType = self.as(IdentifierTypeSyntax.self), idType.name.trimmed.text == "Array" {
+            // Array<SomeType>
+            return true
+        }
+
+        return false
     }
 }
 

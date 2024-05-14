@@ -15,7 +15,7 @@ public struct SwiftObjcValueTypeFactory {
         referencedSwiftTypes: Set<String> = [],
         prefix: String = "",
         imports: [String] = [],
-        externalHashFunc: String? = nil,
+        externalHashSettings: ExternalHashSettings? = nil,
         shouldSynthesizeNSCoding: Bool = true,
         shouldSynthesizeNSCopying: Bool = true,
         shouldSynthesizeObjCBuilder: Bool = true
@@ -36,10 +36,9 @@ public struct SwiftObjcValueTypeFactory {
                         referencedSwiftTypes: referencedSwiftTypes,
                         prefix: prefix,
                         imports: imports,
-                        externalHashFunc: externalHashFunc,
+                        externalHashSettings: externalHashSettings,
                         shouldSynthesizeEquatable: descriptor.inheritedTypes.contains("Equatable") || descriptor.inheritedTypes.contains("Hashable") ||
                         descriptor.inheritedTypes.contains("Identifiable"),
-                        shouldSynthesizeHash: descriptor.inheritedTypes.contains("Hashable"),
                         shouldSynthesizeNSCoding: shouldSynthesizeNSCoding,
                         shouldSynthesizeNSCopying: shouldSynthesizeNSCopying,
                         shouldSynthesizeObjCBuilder: shouldSynthesizeObjCBuilder,
@@ -51,6 +50,7 @@ public struct SwiftObjcValueTypeFactory {
                         enumDecl: enumDecl,
                         imports: imports,
                         referencedSwiftTypes: referencedSwiftTypes,
+                        externalHashSettings: externalHashSettings,
                         shouldSynthesizeEquatable: descriptor.inheritedTypes.contains("Equatable") || descriptor.inheritedTypes.contains("Hashable") ||
                         descriptor.inheritedTypes.contains("Identifiable"),
                         shouldSynthesizeNSCoding: shouldSynthesizeNSCoding,
@@ -65,7 +65,7 @@ public struct SwiftObjcValueTypeFactory {
         structDecl: StructDeclSyntax,
         prefix: String,
         imports: [String],
-        externalHashFunc: String?,
+        externalHashSettings: ExternalHashSettings?,
         shouldSynthesizeNSCoding: Bool,
         shouldSynthesizeNSCopying: Bool,
         shouldSynthesizeObjCBuilder: Bool
@@ -75,10 +75,9 @@ public struct SwiftObjcValueTypeFactory {
             referencedSwiftTypes: [],
             prefix: prefix,
             imports: imports,
-            externalHashFunc: externalHashFunc,
+            externalHashSettings: externalHashSettings,
             shouldSynthesizeEquatable: structDecl.inheritedTypes.contains("Equatable") || structDecl.inheritedTypes.contains("Hashable") ||
             structDecl.inheritedTypes.contains("Identifiable"),
-            shouldSynthesizeHash: structDecl.inheritedTypes.contains("Hashable"),
             shouldSynthesizeNSCoding: shouldSynthesizeNSCoding,
             shouldSynthesizeNSCopying: shouldSynthesizeNSCopying,
             shouldSynthesizeObjCBuilder: shouldSynthesizeObjCBuilder,
@@ -92,9 +91,8 @@ public struct SwiftObjcValueTypeFactory {
         referencedSwiftTypes: Set<String>,
         prefix: String,
         imports: [String],
-        externalHashFunc: String?,
+        externalHashSettings: ExternalHashSettings?,
         shouldSynthesizeEquatable: Bool,
-        shouldSynthesizeHash: Bool,
         shouldSynthesizeNSCoding: Bool,
         shouldSynthesizeNSCopying: Bool,
         shouldSynthesizeObjCBuilder: Bool,
@@ -105,12 +103,19 @@ public struct SwiftObjcValueTypeFactory {
 
         var decls = [any DeclSyntaxProtocol]()
 
-        for (index, `import`) in imports.enumerated() {
+        if let lib = externalHashSettings?.libary {
+            decls.append(
+                DeclSyntax(
+                    "import \(raw: lib)"
+                )
+            )
+        }
+
+        for `import` in imports {
             decls.append(
                 DeclSyntax(
                     "import \(raw: `import`)"
                 )
-                .with(\.trailingTrivia, index + 1 >= imports.count ? .newlines(2) : [])
             )
         }
 
@@ -159,15 +164,13 @@ public struct SwiftObjcValueTypeFactory {
                     )
                     .with(\.leadingTrivia, .newlines(2))
 
-                    if shouldSynthesizeHash {
+                    if shouldSynthesizeEquatable {
                         objcHashFunc(
-                            structDecl: structDecl, 
-                            externalHashFunc: externalHashFunc
+                            structDecl: structDecl,
+                            externalHashSettings: externalHashSettings
                         )
                         .with(\.leadingTrivia, .newlines(2))
-                    }
 
-                    if shouldSynthesizeEquatable {
                         try objcIsEqualFunc(
                             structDecl: structDecl
                         )
@@ -233,6 +236,7 @@ public struct SwiftObjcValueTypeFactory {
         enumDecl: EnumDeclSyntax,
         imports: [String],
         referencedSwiftTypes: Set<String>,
+        externalHashSettings: ExternalHashSettings?,
         shouldSynthesizeEquatable: Bool,
         shouldSynthesizeNSCoding: Bool,
         shouldSynthesizeNSCopying: Bool
@@ -240,12 +244,19 @@ public struct SwiftObjcValueTypeFactory {
         var decls = [any DeclSyntaxProtocol]()
         let enumName = enumDecl.name.trimmed.text
 
-        for (index, `import`) in imports.enumerated() {
+        if let lib = externalHashSettings?.libary {
+            decls.append(
+                DeclSyntax(
+                    "import \(raw: lib)"
+                )
+            )
+        }
+
+        for `import` in imports {
             decls.append(
                 DeclSyntax(
                     "import \(raw: `import`)"
                 )
-                .with(\.trailingTrivia, index + 1 >= imports.count ? .newlines(2) : [])
             )
         }
 
@@ -260,6 +271,7 @@ public struct SwiftObjcValueTypeFactory {
                 },
                 name: .identifier("\(enumName)Subtype"),
                 inheritanceClause: InheritanceClauseSyntax {
+                    InheritedTypeSyntax(type: IdentifierTypeSyntax(name: .identifier("Int")))
                     InheritedTypeSyntax(type: IdentifierTypeSyntax(name: .identifier("Equatable")))
                 }
             ) {
@@ -338,6 +350,12 @@ public struct SwiftObjcValueTypeFactory {
                     .with(\.leadingTrivia, .newlines(2))
 
                     if shouldSynthesizeEquatable {
+                        objcHashFunc(
+                            enumDecl: enumDecl,
+                            externalHashSettings: externalHashSettings
+                        )
+                        .with(\.leadingTrivia, .newlines(2))
+
                         try objcIsEqualFunc(
                             enumDecl: enumDecl
                         )

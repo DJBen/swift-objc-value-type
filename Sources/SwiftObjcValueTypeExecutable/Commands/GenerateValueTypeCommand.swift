@@ -40,6 +40,14 @@ struct GenerateValueTypeCommand: ParsableCommand, FileHandlingCommand {
                 referencedSwiftTypes: preprocessor.referencedSwiftTypes, 
                 prefix: genArguments.prefix,
                 imports: genArguments.imports,
+                externalHashSettings: genArguments.externalHashFunc.map { externalHashFunc in
+                    ExternalHashSettings(
+                        libary: genArguments.externalHashLibrary,
+                        hashFunc: externalHashFunc,
+                        hashFloatFunc: genArguments.externalHashFloatFunc,
+                        hashDoubleFunc: genArguments.externalHashDoubleFunc
+                   )
+                },
                 shouldSynthesizeNSCopying: genArguments.shouldSynthesizeNSCopying,
                 shouldSynthesizeObjCBuilder: genArguments.shouldSynthesizeObjCBuilder
             )
@@ -120,4 +128,42 @@ struct GenerateValueTypeArguments: ParsableArguments {
             return dictionary
         }
     }
+
+    @Option(
+        name: [.long],
+        help: """
+        If provided, an import statement will be added to import the library
+        that contains the hash implementation functions.
+        """
+    )
+    var externalHashLibrary: String?
+
+    @Option(
+        name: [.long],
+        help: """
+        If provided, objc -hash function will invoke this function as implementation.
+        Otherwise, a standard hashImpl function will be provided.
+        """
+    )
+    var externalHashFunc: String?
+
+    @Option(
+        name: [.long],
+        help: """
+        If provided, if the object needs to hash a float value, this method
+        will be called.
+        Otherwise, a standard hashFloat function will be provided.
+        """
+    )
+    var externalHashFloatFunc: String?
+
+    @Option(
+        name: [.long],
+        help: """
+        If provided, if the object needs to hash a double value, this method
+        will be called.
+        Otherwise, a standard hashDouble function will be provided.
+        """
+    )
+    var externalHashDoubleFunc: String?
 }
