@@ -159,7 +159,13 @@ extension SwiftObjcValueTypeFactory {
                         FunctionDeclSyntax(
                             attributes: AttributeListSyntax {
                                 "@objc"
-                                "@discardableResult"
+                                AttributeSyntax(
+                                    atSign: .atSignToken(),
+                                    attributeName: IdentifierTypeSyntax(
+                                        name: .identifier("discardableResult")
+                                    )
+                                )
+                                .with(\.trailingTrivia, .newline)
                             },
                             modifiers: DeclModifierListSyntax {
                                 DeclModifierSyntax(name: .keyword(.public))

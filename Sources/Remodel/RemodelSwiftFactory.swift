@@ -293,6 +293,8 @@ public class RemodelSwiftFactory {
             return "UInt"
         } else if remodelType == "Class" {
             return "AnyClass"
+        } else if remodelType == "NSTimeInterval" {
+            return "TimeInterval"
         } else if let mappedSwiftType = objcToSwiftFoundationTypeMap[remodelType] {
             return mappedSwiftType
         } else {

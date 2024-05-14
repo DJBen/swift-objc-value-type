@@ -149,7 +149,6 @@ public struct SwiftObjcValueTypeFactory {
                             variableTypeDecl: variableTypeDecl,
                             referencedSwiftTypes: referencedSwiftTypes
                         )
-                        .with(\.leadingTrivia, .newlines(2))
                     }
 
                     try objcInitializer(
@@ -773,6 +772,7 @@ public struct SwiftObjcValueTypeFactory {
         referencedSwiftTypes: Set<String>
     ) throws -> MemberBlockItemListSyntax {
         VariableDeclSyntax(
+            leadingTrivia: variableTypeDecl.leadingTrivia,
             attributes: AttributeListSyntax {
                 .attribute("@objc")
             },

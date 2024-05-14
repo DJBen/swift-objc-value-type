@@ -14,7 +14,6 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
     @objc(Value)
     public class ValueObjc: NSObject, NSCopying, NSCoding {
-
         @objc public let doubleValue: Double
 
         @objc public let optInt: NSNumber?
@@ -123,28 +122,32 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
             private var doubleValue: Double?
 
-            @objc @discardableResult public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
+            @objc @discardableResult 
+            public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
                 self.doubleValue = doubleValue
                 return self
             }
 
             private var optInt: NSNumber?
 
-            @objc @discardableResult public func withOptInt(_ optInt: NSNumber?) -> ValueBuilder {
+            @objc @discardableResult 
+            public func withOptInt(_ optInt: NSNumber?) -> ValueBuilder {
                 self.optInt = optInt
                 return self
             }
 
             private var stringArray: [String]?
 
-            @objc @discardableResult public func withStringArray(_ stringArray: [String]) -> ValueBuilder {
+            @objc @discardableResult 
+            public func withStringArray(_ stringArray: [String]) -> ValueBuilder {
                 self.stringArray = stringArray
                 return self
             }
 
             private var map: [String: [String: Double]]?
 
-            @objc @discardableResult public func withMap(_ map: [String: [String: Double]]) -> ValueBuilder {
+            @objc @discardableResult 
+            public func withMap(_ map: [String: [String: Double]]) -> ValueBuilder {
                 self.map = map
                 return self
             }
@@ -202,7 +205,6 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
             @objc(Value)
             public class ValueObjc: NSObject, NSCopying {
-
                 @objc public let doubleValue: Double
 
                 @objc public let optInt: NSNumber?
@@ -309,11 +311,10 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
             @objc(Foo)
             public class FooObjc: NSObject {
+                // public let rect: CGRect
 
                 @objc public let str: String
-
                 @objc public let optDouble: NSNumber?
-
                 @objc public let isValid: Bool
 
                 @objc
@@ -360,21 +361,24 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
                     private var str: String?
 
-                    @objc @discardableResult public func withStr(_ str: String) -> FooBuilder {
+                    @objc @discardableResult 
+                    public func withStr(_ str: String) -> FooBuilder {
                         self.str = str
                         return self
                     }
 
                     private var optDouble: NSNumber?
 
-                    @objc @discardableResult public func withOptDouble(_ optDouble: NSNumber?) -> FooBuilder {
+                    @objc @discardableResult 
+                    public func withOptDouble(_ optDouble: NSNumber?) -> FooBuilder {
                         self.optDouble = optDouble
                         return self
                     }
 
                     private var isValid: Bool?
 
-                    @objc @discardableResult public func withIsValid(_ isValid: Bool) -> FooBuilder {
+                    @objc @discardableResult 
+                    public func withIsValid(_ isValid: Bool) -> FooBuilder {
                         self.isValid = isValid
                         return self
                     }
@@ -445,7 +449,6 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
             @objc(Value)
             public class ValueObjc: NSObject, NSCopying, NSCoding {
-
                 @objc public let doubleValue: Double
 
                 @objc public let ref: Value2Objc
@@ -521,28 +524,32 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
                     private var doubleValue: Double?
 
-                    @objc @discardableResult public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
+                    @objc @discardableResult 
+                    public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
                         self.doubleValue = doubleValue
                         return self
                     }
 
                     private var ref: Value2Objc?
 
-                    @objc @discardableResult public func withRef(_ ref: Value2Objc) -> ValueBuilder {
+                    @objc @discardableResult 
+                    public func withRef(_ ref: Value2Objc) -> ValueBuilder {
                         self.ref = ref
                         return self
                     }
 
                     private var ref2: [Int: [BarObjc]]?
 
-                    @objc @discardableResult public func withRef2(_ ref2: [Int: [BarObjc]]) -> ValueBuilder {
+                    @objc @discardableResult 
+                    public func withRef2(_ ref2: [Int: [BarObjc]]) -> ValueBuilder {
                         self.ref2 = ref2
                         return self
                     }
 
                     private var ref3: [BarObjc]?
 
-                    @objc @discardableResult public func withRef3(_ ref3: [BarObjc]?) -> ValueBuilder {
+                    @objc @discardableResult 
+                    public func withRef3(_ ref3: [BarObjc]?) -> ValueBuilder {
                         self.ref3 = ref3
                         return self
                     }
@@ -606,7 +613,6 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
             @objc(Value)
             public class ValueObjc: NSObject {
-
                 @objc public let doubleValue: Double
 
                 @objc
@@ -687,7 +693,6 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
             @objc(XYValue)
             public class ValueObjc: NSObject, NSCopying, NSCoding {
-
                 @objc public let doubleValue: Double
 
                 @objc public let optInt: NSNumber?
@@ -765,28 +770,32 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
                     private var doubleValue: Double?
 
-                    @objc @discardableResult public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
+                    @objc @discardableResult 
+                    public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
                         self.doubleValue = doubleValue
                         return self
                     }
 
                     private var optInt: NSNumber?
 
-                    @objc @discardableResult public func withOptInt(_ optInt: NSNumber?) -> ValueBuilder {
+                    @objc @discardableResult 
+                    public func withOptInt(_ optInt: NSNumber?) -> ValueBuilder {
                         self.optInt = optInt
                         return self
                     }
 
                     private var stringArray: [String]?
 
-                    @objc @discardableResult public func withStringArray(_ stringArray: [String]) -> ValueBuilder {
+                    @objc @discardableResult 
+                    public func withStringArray(_ stringArray: [String]) -> ValueBuilder {
                         self.stringArray = stringArray
                         return self
                     }
 
                     private var map: [String: [String: Double]]?
 
-                    @objc @discardableResult public func withMap(_ map: [String: [String: Double]]) -> ValueBuilder {
+                    @objc @discardableResult 
+                    public func withMap(_ map: [String: [String: Double]]) -> ValueBuilder {
                         self.map = map
                         return self
                     }
@@ -899,10 +908,13 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             @objc(SCStoriesOther)
             public class StoriesOtherObjc: NSObject, NSCopying, NSCoding {
 
+                /// The original size of the product image
                 @objc public let productImageSize: CGSize
 
+                /// The frame of the custom image within the original product image
                 @objc public let frame: CGRect
 
+                /// The rotation angle in degrees (clockwise) of the custom image
                 @objc public let rotationAngle: CGFloat
 
                 @objc
@@ -966,21 +978,24 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
                     private var productImageSize: CGSize?
 
-                    @objc @discardableResult public func withProductImageSize(_ productImageSize: CGSize) -> StoriesOtherBuilder {
+                    @objc @discardableResult 
+                    public func withProductImageSize(_ productImageSize: CGSize) -> StoriesOtherBuilder {
                         self.productImageSize = productImageSize
                         return self
                     }
 
                     private var frame: CGRect?
 
-                    @objc @discardableResult public func withFrame(_ frame: CGRect) -> StoriesOtherBuilder {
+                    @objc @discardableResult 
+                    public func withFrame(_ frame: CGRect) -> StoriesOtherBuilder {
                         self.frame = frame
                         return self
                     }
 
                     private var rotationAngle: CGFloat?
 
-                    @objc @discardableResult public func withRotationAngle(_ rotationAngle: CGFloat) -> StoriesOtherBuilder {
+                    @objc @discardableResult 
+                    public func withRotationAngle(_ rotationAngle: CGFloat) -> StoriesOtherBuilder {
                         self.rotationAngle = rotationAngle
                         return self
                     }

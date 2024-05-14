@@ -42,7 +42,6 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
 
             @objc(Value)
             public class ValueObjc: NSObject, NSCopying, NSCoding {
-
                 @objc public let doubleValue: Double
 
                 @objc public let optInt: NSNumber?
@@ -151,28 +150,32 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
 
                     private var doubleValue: Double?
 
-                    @objc @discardableResult public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
+                    @objc @discardableResult
+                    public func withDoubleValue(_ doubleValue: Double) -> ValueBuilder {
                         self.doubleValue = doubleValue
                         return self
                     }
 
                     private var optInt: NSNumber?
 
-                    @objc @discardableResult public func withOptInt(_ optInt: NSNumber?) -> ValueBuilder {
+                    @objc @discardableResult
+                    public func withOptInt(_ optInt: NSNumber?) -> ValueBuilder {
                         self.optInt = optInt
                         return self
                     }
 
                     private var stringArray: [String]?
 
-                    @objc @discardableResult public func withStringArray(_ stringArray: [String]) -> ValueBuilder {
+                    @objc @discardableResult
+                    public func withStringArray(_ stringArray: [String]) -> ValueBuilder {
                         self.stringArray = stringArray
                         return self
                     }
 
                     private var map: [String: [String: Double]]?
 
-                    @objc @discardableResult public func withMap(_ map: [String: [String: Double]]) -> ValueBuilder {
+                    @objc @discardableResult
+                    public func withMap(_ map: [String: [String: Double]]) -> ValueBuilder {
                         self.map = map
                         return self
                     }
