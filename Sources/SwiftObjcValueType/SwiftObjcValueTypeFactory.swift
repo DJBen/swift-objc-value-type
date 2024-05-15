@@ -904,35 +904,37 @@ public struct SwiftObjcValueTypeFactory {
 }
 
 private extension Trivia {
-    var valueObjectFlags: [String] {
+    var valueObjectFlags: Set<String> {
         pieces.compactMap {
             switch $0 {
             case .blockComment(let comment), .lineComment(let comment), .docLineComment(let comment), .docBlockComment(let comment):
-                if let match = comment.firstMatch(of: /@value_object\s+(.+)/) {
-                    return String(match.1).trimmingCharacters(in: .whitespaces).lowercased().components(separatedBy: " ")
-                } else {
-                    return nil
+                var set = Set<String>()
+                for match in comment.matches(of: /@value_object\s+(.+)/) {
+                    for flag in String(match.1).trimmingCharacters(in: .whitespaces).lowercased().components(separatedBy: " ") {
+                        set.insert(flag)
+                    }
                 }
+                return set
             default:
                 return nil
             }
         }
-        .reduce([String](), +)
+        .reduce(Set<String>(), { $0.union($1) })
     }
 }
 
 private extension StructDeclSyntax {
-    var valueObjectFlags: [String] {
-        attributes.leadingTrivia.valueObjectFlags +
-        modifiers.leadingTrivia.valueObjectFlags +
-        structKeyword.leadingTrivia.valueObjectFlags
+    var valueObjectFlags: Set<String> {
+        attributes.leadingTrivia.valueObjectFlags
+            .union(modifiers.leadingTrivia.valueObjectFlags)
+            .union(structKeyword.leadingTrivia.valueObjectFlags)
     }
 }
 
 private extension EnumDeclSyntax {
-    var valueObjectFlags: [String] {
-        attributes.leadingTrivia.valueObjectFlags +
-        modifiers.leadingTrivia.valueObjectFlags +
-        enumKeyword.leadingTrivia.valueObjectFlags
+    var valueObjectFlags: Set<String> {
+        attributes.leadingTrivia.valueObjectFlags
+            .union(modifiers.leadingTrivia.valueObjectFlags)
+            .union(enumKeyword.leadingTrivia.valueObjectFlags)
     }
 }

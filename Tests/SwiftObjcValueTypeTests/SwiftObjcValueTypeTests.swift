@@ -637,8 +637,8 @@ final class SwiftObjcValueTypeTests: XCTestCase {
         let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
             codeBlocks: CodeBlockItemListSyntax {
                 #"""
-                // @value_object NSCoding NSCopying Builder
-
+                // @value_object NSCoding Builder
+                // @value_object NSCoding NSCopying
                 public struct Value: Equatable {
                     public let doubleValue: Double
 
