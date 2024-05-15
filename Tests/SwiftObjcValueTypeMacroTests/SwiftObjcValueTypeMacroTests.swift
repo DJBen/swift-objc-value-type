@@ -10,6 +10,7 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
     func testMacro() {
         assertMacroExpansion(
             """
+            // @value_object NSCopying NSCoding Builder
             @ObjcValueWrapper
             public struct Value: Equatable, Codable {
                 public let doubleValue: Double
@@ -22,6 +23,7 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
             }
             """,
             expandedSource:#"""
+            // @value_object NSCopying NSCoding Builder
             public struct Value: Equatable, Codable {
                 public let doubleValue: Double
 

@@ -369,7 +369,7 @@ final class RemodelSwiftFactoryTests: XCTestCase {
         let factory = RemodelSwiftFactory()
 
         let source = """
-        NestedValue {
+        NestedValue includes(RMCoding, RMBuilder) {
             NSArray<PYQHello *> *arr
             NSDictionary<PYQYes *, PYQBar *> *dict
         }
@@ -387,6 +387,7 @@ final class RemodelSwiftFactoryTests: XCTestCase {
             """
 
 
+            // @value_object NSCoding Builder
             public struct NestedValue {
 
                 public let arr: [Hello]?

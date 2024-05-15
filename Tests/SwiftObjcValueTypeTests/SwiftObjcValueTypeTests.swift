@@ -204,7 +204,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
 
             @objc(Value)
-            public class ValueObjc: NSObject, NSCopying {
+            public class ValueObjc: NSObject {
                 @objc public let doubleValue: Double
 
                 @objc public let optInt: NSNumber?
@@ -261,10 +261,6 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                         return false
                     }
                     return doubleValue == other.doubleValue && optInt == other.optInt
-                }
-
-                public func copy(with zone: NSZone? = nil) -> Any {
-                    ValueObjc(doubleValue: doubleValue, optInt: optInt)
                 }
 
                 @available(*, unavailable)
@@ -641,7 +637,9 @@ final class SwiftObjcValueTypeTests: XCTestCase {
         let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
             codeBlocks: CodeBlockItemListSyntax {
                 #"""
-                public struct Value: Equatable, Codable {
+                // @value_object NSCoding NSCopying Builder
+
+                public struct Value: Equatable {
                     public let doubleValue: Double
 
                     public let optInt: Int64?
@@ -665,7 +663,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
         let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
             codeBlocks: CodeBlockItemListSyntax {
                 #"""
-                public struct Value: Equatable, Codable {
+                public struct Value: Equatable {
                     public let doubleValue: Double
 
                     public let optInt: Int64?
@@ -678,7 +676,10 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 """#
             },
             prefix: "XY",
-            externalHashSettings: ExternalHashSettings(hashFunc: "HashImpl", hashFloatFunc: "HashFloat", hashDoubleFunc: "HashDouble")
+            externalHashSettings: ExternalHashSettings(hashFunc: "HashImpl", hashFloatFunc: "HashFloat", hashDoubleFunc: "HashDouble"),
+            shouldSynthesizeNSCoding: true,
+            shouldSynthesizeNSCopying: true,
+            shouldSynthesizeObjCBuilder: true
         )
 
         assertBuildResult(
@@ -853,7 +854,10 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
 
                 """#
-            }
+            },
+            shouldSynthesizeNSCoding: true,
+            shouldSynthesizeNSCopying: true,
+            shouldSynthesizeObjCBuilder: true
         )
 
         assertBuildResult(
@@ -891,7 +895,10 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 """#
             },
             prefix: "SC",
-            externalHashSettings: ExternalHashSettings(libary: "HashUtils", hashFunc: "ObjcHash", hashFloatFunc: "ObjcHashFloat", hashDoubleFunc: "ObjcHashDouble")
+            externalHashSettings: ExternalHashSettings(libary: "HashUtils", hashFunc: "ObjcHash", hashFloatFunc: "ObjcHashFloat", hashDoubleFunc: "ObjcHashDouble"),
+            shouldSynthesizeNSCoding: true,
+            shouldSynthesizeNSCopying: true,
+            shouldSynthesizeObjCBuilder: true
         )
 
         assertBuildResult(
@@ -1046,7 +1053,9 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     case saveFailed(error: Error?)
                 }
                 """
-            }
+            },
+            shouldSynthesizeNSCoding: true,
+            shouldSynthesizeNSCopying: true
         )
 
         assertBuildResult(

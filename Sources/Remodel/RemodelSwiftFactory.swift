@@ -43,6 +43,29 @@ public class RemodelSwiftFactory {
         }
     }
 
+    private func configTrivia(
+        _ model: RMModelSyntax
+    ) -> Trivia {
+        var flags = [String]()
+        if model.includes.contains("RMCoding") {
+            flags.append("NSCoding")
+        }
+        if model.includes.contains("RMCopying") {
+            flags.append("NSCopying")
+        }
+        if model.includes.contains("RMBuilder") {
+            flags.append("Builder")
+        }
+        if flags.isEmpty {
+            return []
+        } else {
+            return [
+                .docLineComment("// @value_object \(flags.joined(separator: " "))"),
+                .newlines(1)
+            ]
+        }
+    }
+
     func generateValue(
         _ model: RMModelSyntax,
         existingPrefix: String
@@ -58,7 +81,7 @@ public class RemodelSwiftFactory {
         decls.append(
             try StructDeclSyntax(
                 leadingTrivia: Trivia(
-                    pieces: [.newlines(2)] + model.comments.flatMap({ [.docLineComment("/// " + $0), .newlines(1)] })),
+                    pieces: [.newlines(2)] + configTrivia(model) + model.comments.flatMap({ [.docLineComment("/// " + $0), .newlines(1)] })),
                 modifiers: DeclModifierListSyntax {
                     DeclModifierSyntax(name: .identifier("public"))
                 },
@@ -153,11 +176,11 @@ public class RemodelSwiftFactory {
         decls.append(
             try EnumDeclSyntax(
                 leadingTrivia: Trivia(
-                    pieces: [.newlines(2)] + model.comments.flatMap({ [.docLineComment("/// " + $0), .newlines(1)] })),
+                    pieces: [.newlines(2)] + configTrivia(model) + model.comments.flatMap({ [.docLineComment("/// " + $0), .newlines(1)] })),
                 modifiers: DeclModifierListSyntax {
                     DeclModifierSyntax(name: .identifier("public"))
                 },
-                name: .identifier(model.name),
+                name: .identifier(removeTypePrefix(prefix: existingPrefix, name: model.name)),
                 inheritanceClause: inheritanceClause(model)
             ) {
                 for property in model.properties {

@@ -25,13 +25,12 @@ public enum SwiftObjcValueTypeMacro: PeerMacro {
     ) throws -> [DeclSyntax] {
         if let structDecl = declaration.as(StructDeclSyntax.self) {
             return try factory.wrappingClassDeclInMacro(
-                structDecl: structDecl,
-                prefix: "",
-                imports: [],
-                externalHashSettings: nil,
-                shouldSynthesizeNSCoding: true,
-                shouldSynthesizeNSCopying: true,
-                shouldSynthesizeObjCBuilder: true
+                structDecl: structDecl
+            )
+            .map(DeclSyntax.init)
+        } else if let enumDecl = declaration.as(EnumDeclSyntax.self) {
+            return try factory.wrappingClassDeclInMacro(
+                enumDecl: enumDecl
             )
             .map(DeclSyntax.init)
         }

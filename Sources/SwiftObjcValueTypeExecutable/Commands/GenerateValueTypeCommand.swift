@@ -89,17 +89,17 @@ struct GenerateValueTypeArguments: ParsableArguments {
     )
     var excludeStructs: [String] = []
 
-    @Option(
+    @Flag(
         name: .customLong("nscopying"),
         help: "Synthesize NSCopying conformances for the type and its wrapper class if enabled."
     )
-    var shouldSynthesizeNSCopying: Bool = true
+    var shouldSynthesizeNSCopying: Bool = false
 
-    @Option(
+    @Flag(
         name: .customLong("objc-builder"),
         help: "Synthesize @objc compatible builder for each struct if enabled."
     )
-    var shouldSynthesizeObjCBuilder: Bool = true
+    var shouldSynthesizeObjCBuilder: Bool = false
 
     @Option(
         name: [.long],
