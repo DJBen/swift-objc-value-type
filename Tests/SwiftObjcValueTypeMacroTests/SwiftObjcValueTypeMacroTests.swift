@@ -58,6 +58,8 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
                     self.optInt = optInt
                     self.stringArray = stringArray
                     self.map = map
+
+                    super.init()
                 }
 
                 public init(_ original: Value) {
@@ -65,6 +67,8 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
                     self.optInt = original.optInt.map(NSNumber.init)
                     self.stringArray = original.stringArray
                     self.map = original.map
+
+                    super.init()
                 }
 
                 public override var hash: Int {

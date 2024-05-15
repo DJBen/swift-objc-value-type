@@ -640,6 +640,11 @@ public struct SwiftObjcValueTypeFactory {
                     }
                 }
             }
+
+            ExprSyntax(
+                "super.init()"
+            )
+            .with(\.leadingTrivia, .newlines(2))
         }
     }
 
@@ -648,6 +653,8 @@ public struct SwiftObjcValueTypeFactory {
      public init(foo: [FooObjc]?, bar: Int) {
          self.foo = foo
          self.bar = bar
+
+         super.init()
      }
      */
     @MemberBlockItemListBuilder
@@ -691,17 +698,22 @@ public struct SwiftObjcValueTypeFactory {
                     }
                 }
             }
+
+            ExprSyntax(
+                "super.init()"
+            )
+            .with(\.leadingTrivia, .newlines(2))
         }
     }
 
 
     /*
      public init(_ original: Foo) {
-        self.init(
-            prop1: original.prop1,
-            arrayOfBar: original.array.map({ a0 in BarObjc(a0) }),
-            optMapOfIntToBaz: original.optMap?.mapValue({ a0 in Baz(a0) })
-        )
+         self.prop1 = original.prop1,
+         self.arrayOfBar = original.array.map({ a0 in BarObjc(a0) }),
+         self.optMapOfIntToBaz = original.optMap?.mapValue({ a0 in Baz(a0) })
+
+         super.init()
      }
      */
     @MemberBlockItemListBuilder
@@ -755,6 +767,11 @@ public struct SwiftObjcValueTypeFactory {
                     }
                 }
             }
+
+            ExprSyntax(
+                "super.init()"
+            )
+            .with(\.leadingTrivia, .newlines(2))
         }
     }
 

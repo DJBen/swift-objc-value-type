@@ -28,6 +28,8 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             self.optInt = optInt
             self.stringArray = stringArray
             self.map = map
+
+            super.init()
         }
 
         public init(_ original: Value) {
@@ -35,6 +37,8 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             self.optInt = original.optInt.map(NSNumber.init)
             self.stringArray = original.stringArray
             self.map = original.map
+
+            super.init()
         }
 
         public override var hash: Int {
@@ -213,11 +217,15 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 public init(doubleValue: Double, optInt: NSNumber?) {
                     self.doubleValue = doubleValue
                     self.optInt = optInt
+
+                    super.init()
                 }
 
                 public init(_ original: Value) {
                     self.doubleValue = original.doubleValue
                     self.optInt = original.optInt.map(NSNumber.init)
+
+                    super.init()
                 }
 
                 public override var hash: Int {
@@ -318,12 +326,16 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     self.str = str
                     self.optDouble = optDouble
                     self.isValid = isValid
+
+                    super.init()
                 }
 
                 public init(_ original: Foo) {
                     self.str = original.str
                     self.optDouble = original.optDouble.map(NSNumber.init)
                     self.isValid = original.isValid
+
+                    super.init()
                 }
 
                 public override var hash: Int {
@@ -459,6 +471,8 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     self.ref = ref
                     self.ref2 = ref2
                     self.ref3 = ref3
+
+                    super.init()
                 }
 
                 public init(_ original: Value) {
@@ -472,6 +486,8 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     self.ref3 = original.ref3?.map({ a0 in
                             BarObjc(a0)
                         })
+
+                    super.init()
                 }
 
                 public func copy(with zone: NSZone? = nil) -> Any {
@@ -614,10 +630,14 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 @objc
                 public init(doubleValue: Double) {
                     self.doubleValue = doubleValue
+
+                    super.init()
                 }
 
                 public init(_ original: Value) {
                     self.doubleValue = original.doubleValue
+
+                    super.init()
                 }
 
                 public override var description: String {
@@ -708,6 +728,8 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     self.optInt = optInt
                     self.stringArray = stringArray
                     self.map = map
+
+                    super.init()
                 }
 
                 public init(_ original: Value) {
@@ -715,6 +737,8 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     self.optInt = original.optInt.map(NSNumber.init)
                     self.stringArray = original.stringArray
                     self.map = original.map
+
+                    super.init()
                 }
 
                 public override var hash: Int {
@@ -929,12 +953,16 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     self.productImageSize = productImageSize
                     self.frame = frame
                     self.rotationAngle = rotationAngle
+
+                    super.init()
                 }
 
                 public init(_ original: StoriesOther) {
                     self.productImageSize = original.productImageSize
                     self.frame = original.frame
                     self.rotationAngle = original.rotationAngle
+
+                    super.init()
                 }
 
                 public override var hash: Int {
@@ -1101,6 +1129,8 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     self.saveSucceededOptFloat = saveSucceededOptFloat
                     self.saveSucceededDisplayName = saveSucceededDisplayName
                     self.saveFailedError = saveFailedError
+
+                    super.init()
                 }
 
                 @available(*, unavailable)
