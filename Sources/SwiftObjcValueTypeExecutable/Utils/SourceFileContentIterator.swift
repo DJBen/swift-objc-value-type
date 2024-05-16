@@ -19,12 +19,45 @@ public struct File {
 public struct SourceFileContentIterator: IteratorProtocol {
     private let paths: [Path]
     private var fileIndex = 0
+    private let fileManager = FileManager.default
 
-    public init(sourcePaths: any Sequence<String>) {
-        let filePaths: Set<Path> = sourcePaths.map { sourcePath in
-            Path.glob(sourcePath)
-        }.reduce(into: Set<Path>(), { $0.formUnion($1) })
-        self.init(paths: Array(filePaths))
+    public init(
+        sourcePaths: any Sequence<String>,
+        filteringExtension: ((String) -> Bool)?
+    ) {
+        var files = Set<String>()
+        let fileManager = FileManager.default
+
+        func iterateFiles(at path: String) {
+            var isDirectory: ObjCBool = false
+            if fileManager.fileExists(atPath: path, isDirectory: &isDirectory) {
+                if isDirectory.boolValue {
+                    // Iterate directory recursively
+                    if let contents = try? fileManager.contentsOfDirectory(atPath: path) {
+                        for item in contents {
+                            let subPath = (path as NSString).appendingPathComponent(item)
+                            iterateFiles(at: subPath)
+                        }
+                    }
+                } else {
+                    // Filter by extension if provided
+                    if let filteringExtension = filteringExtension {
+                        let pathExtension = path.split(separator: ".").last.map(String.init) ?? ""
+                        if filteringExtension(pathExtension) {
+                            files.insert(path)
+                        }
+                    } else {
+                        files.insert(path)
+                    }
+                }
+            }
+        }
+
+        for path in sourcePaths {
+            iterateFiles(at: path)
+        }
+
+        self.init(paths: Array(files))
     }
     
     public init(

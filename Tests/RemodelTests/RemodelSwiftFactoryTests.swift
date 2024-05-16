@@ -59,7 +59,7 @@ final class RemodelSwiftFactoryTests: XCTestCase {
             """
             import FooServices
 
-            public enum DataRequest: Equatable {
+            public enum DataRequest {
 
                 /// Case foo documentations
                 case handleCaseFoo
@@ -319,7 +319,7 @@ final class RemodelSwiftFactoryTests: XCTestCase {
 
 
             /// Defines the updates
-            public enum Updates: Equatable {
+            public enum Updates {
             
                 case identifiers
 

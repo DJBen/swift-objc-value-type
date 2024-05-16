@@ -19,6 +19,8 @@ public final class EnumOptionConverter {
         case enumCaseUsingNonNumericValue
     }
 
+    public init() {}
+
     @MemberBlockItemListBuilder
     private func objcEnum(
         _ enumOrOption: ObjcEnumOrOption,

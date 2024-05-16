@@ -16,13 +16,10 @@ import PathKit
 
 struct FileHandlingArguments: ParsableArguments {
     @Argument(
-        help: "The source file path or glob; use stdin if omitted",
+        help: "The source file path or a directory; use stdin if omitted",
         completion: .file()
     )
     var sourcePaths: [String] = []
-
-    @Option(name: [.long], help: "If provided, parse the source text instead of reading source file")
-    var source: String?
 
     @Option(
         name: [.long, .short],
@@ -71,14 +68,16 @@ final class FileStreamSink: TextOutputStreamableSink {
 
 extension FileHandlingCommand {
     /// The contents of the source files that should be parsed, each in UTF-8 bytes.
-    func sourceFiles() -> any IteratorProtocol<File> {
-        if let source = fileArguments.source {
-            return SourceFileContentIterator(paths: [source])
-        } else if fileArguments.sourcePaths.isEmpty {
+    func makeSourceFileIterator(
+        filteringExtension: ((String) -> Bool)? = { _ in true }
+    ) -> any IteratorProtocol<File> {
+        if fileArguments.sourcePaths.isEmpty {
             return StdinIterator()
         } else {
             let dedupedSourcePaths = Set(fileArguments.sourcePaths)
-            return SourceFileContentIterator(sourcePaths: dedupedSourcePaths)
+            return SourceFileContentIterator(
+                sourcePaths: dedupedSourcePaths, filteringExtension: filteringExtension
+            )
         }
     }
 

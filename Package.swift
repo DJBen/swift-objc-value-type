@@ -123,6 +123,7 @@ let package = Package(
       dependencies: [
         "SwiftObjcValueType",
         "Remodel",
+        "ObjcSupport",
         .product(name: "PathKit", package: "PathKit"),
         .product(name: "CustomDump", package: "swift-custom-dump"),
         .product(name: "SwiftDiagnostics", package: "swift-syntax"),

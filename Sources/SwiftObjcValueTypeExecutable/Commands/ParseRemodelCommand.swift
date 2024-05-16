@@ -22,7 +22,7 @@ struct ParseRemodelCommand: ParsableCommand, FileHandlingCommand {
     var parseRemodelArguments: RemodelArguments
 
     func run() throws {
-        var sourceFilesIterator = sourceFiles()
+        var sourceFilesIterator = makeSourceFileIterator()
         let remodelParser = RemodelValueObjectParser()
 
         while let sourceFile = sourceFilesIterator.next() {

@@ -23,7 +23,9 @@ struct GenerateValueTypeCommand: ParsableCommand, FileHandlingCommand {
     var genArguments: GenerateValueTypeArguments
 
     func run() throws {
-        var sourceFilesIterator = sourceFiles()
+        var sourceFilesIterator = makeSourceFileIterator {
+            $0.lowercased() == "swift"
+        }
         var sourceFiles = [(String?, SourceFileSyntax)]()
         let preprocessor = SourcePreprocessor()
         while let sourceFile = sourceFilesIterator.next() {

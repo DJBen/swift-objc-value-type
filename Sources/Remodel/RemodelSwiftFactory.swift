@@ -238,8 +238,7 @@ public class RemodelSwiftFactory {
     }
 
     private func inheritanceClause(_ model: RMModelSyntax) -> InheritanceClauseSyntax? {
-        // AdtValue always require equality check
-        model.includes.contains("RMEquality") || model.type == .adtValue ? InheritanceClauseSyntax {
+        model.includes.contains("RMEquality") ? InheritanceClauseSyntax {
             InheritedTypeSyntax(type: IdentifierTypeSyntax(name: "Equatable"))
         } : nil
     }

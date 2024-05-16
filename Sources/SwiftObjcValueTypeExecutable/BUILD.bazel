@@ -5,6 +5,7 @@ swift_binary(
     srcs = [
         "Commands/FileHandlingCommand.swift",
         "Commands/GenerateValueTypeCommand.swift",
+        "Commands/MigrateObjcCommand.swift",
         "Commands/MigrateRemodelCommand.swift",
         "Commands/ParseRemodelCommand.swift",
         "SwiftObjcValueTypeExecutable.swift",
@@ -15,6 +16,7 @@ swift_binary(
     module_name = "SwiftObjcValueTypeExecutable",
     visibility = ["//visibility:public"],
     deps = [
+        "//Sources/ObjcSupport",
         "//Sources/Remodel",
         "//Sources/SwiftObjcValueType",
         "@swiftpkg_pathkit//:PathKit",
