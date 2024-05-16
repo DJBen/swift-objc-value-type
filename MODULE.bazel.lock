@@ -2714,7 +2714,7 @@
       "general": {
         "bzlTransitiveDigest": "6l2zsx0cqTtMqy8Iqgd0Dh9ePjYCUdvPDGPecHxDGrw=",
         "recordedFileInputs": {
-          "@@//swift_deps_index.json": "58f5fcb87cb2cb4415caf05eaafac341cb3491171b717a1721aa8bb5f976d063"
+          "@@//swift_deps_index.json": "37908a985e1e70fa5058ccd04a649a30f99ec926362b4b33ca00ec3d50c269be"
         },
         "recordedDirentsInputs": {},
         "envVariables": {},
@@ -2802,25 +2802,6 @@
               "bazel_package_name": "swiftpkg_swift_argument_parser",
               "commit": "46989693916f56d1186bd59ac15124caef896560",
               "remote": "https://github.com/apple/swift-argument-parser.git",
-              "dependencies_index": "@@//:swift_deps_index.json",
-              "init_submodules": false,
-              "recursive_init_submodules": false,
-              "patch_args": [
-                "-p0"
-              ],
-              "patch_cmds": [],
-              "patch_cmds_win": [],
-              "patch_tool": "",
-              "patches": []
-            }
-          },
-          "swiftpkg_swiftbuildermacro": {
-            "bzlFile": "@@rules_swift_package_manager~//swiftpkg/internal:swift_package.bzl",
-            "ruleClassName": "swift_package",
-            "attributes": {
-              "bazel_package_name": "swiftpkg_swiftbuildermacro",
-              "commit": "1cab8fe3da43721779f4865b253258f35cc448e5",
-              "remote": "https://github.com/dziobaczy/SwiftBuilderMacro",
               "dependencies_index": "@@//:swift_deps_index.json",
               "init_submodules": false,
               "recursive_init_submodules": false,
