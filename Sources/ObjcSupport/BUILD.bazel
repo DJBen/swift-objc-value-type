@@ -13,6 +13,5 @@ swift_library(
     deps = [
         "//Sources/SharedUtilities",
         "@swiftpkg_swift_syntax//:SwiftSyntaxBuilder",
-        "@swiftpkg_swiftbuildermacro//:BuilderMacro",
     ],
 )

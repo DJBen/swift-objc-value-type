@@ -3,8 +3,7 @@
     "pathkit",
     "swift-argument-parser",
     "swift-custom-dump",
-    "swift-syntax",
-    "swiftbuildermacro"
+    "swift-syntax"
   ],
   "modules": [
     {
@@ -340,38 +339,6 @@
       ]
     },
     {
-      "name": "BuilderMacro",
-      "c99name": "BuilderMacro",
-      "src_type": "swift",
-      "label": "@swiftpkg_swiftbuildermacro//:BuilderMacro.rspm",
-      "package_identity": "swiftbuildermacro",
-      "product_memberships": [
-        "BuilderMacro",
-        "BuilderMacroClient"
-      ]
-    },
-    {
-      "name": "BuilderMacroClient",
-      "c99name": "BuilderMacroClient",
-      "src_type": "swift",
-      "label": "@swiftpkg_swiftbuildermacro//:BuilderMacroClient.rspm",
-      "package_identity": "swiftbuildermacro",
-      "product_memberships": [
-        "BuilderMacroClient"
-      ]
-    },
-    {
-      "name": "BuilderMacroMacros",
-      "c99name": "BuilderMacroMacros",
-      "src_type": "swift",
-      "label": "@swiftpkg_swiftbuildermacro//:BuilderMacroMacros.rspm",
-      "package_identity": "swiftbuildermacro",
-      "product_memberships": [
-        "BuilderMacro",
-        "BuilderMacroClient"
-      ]
-    },
-    {
       "name": "XCTestDynamicOverlay",
       "c99name": "XCTestDynamicOverlay",
       "src_type": "swift",
@@ -498,18 +465,6 @@
       "label": "@swiftpkg_swift_syntax//:SwiftSyntaxMacrosTestSupport"
     },
     {
-      "identity": "swiftbuildermacro",
-      "name": "BuilderMacro",
-      "type": "library",
-      "label": "@swiftpkg_swiftbuildermacro//:BuilderMacro"
-    },
-    {
-      "identity": "swiftbuildermacro",
-      "name": "BuilderMacroClient",
-      "type": "executable",
-      "label": "@swiftpkg_swiftbuildermacro//:BuilderMacroClient"
-    },
-    {
       "identity": "xctest-dynamic-overlay",
       "name": "XCTestDynamicOverlay",
       "type": "library",
@@ -560,15 +515,6 @@
         "commit": "fa8f95c2d536d6620cc2f504ebe8a6167c9fc2dd",
         "remote": "https://github.com/apple/swift-syntax.git",
         "version": "510.0.1"
-      }
-    },
-    {
-      "name": "swiftpkg_swiftbuildermacro",
-      "identity": "swiftbuildermacro",
-      "remote": {
-        "commit": "1cab8fe3da43721779f4865b253258f35cc448e5",
-        "remote": "https://github.com/dziobaczy/SwiftBuilderMacro",
-        "branch": "main"
       }
     },
     {
