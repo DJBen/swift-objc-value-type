@@ -1,6 +1,6 @@
 {
   "lockFileVersion": 6,
-  "moduleFileHash": "ee4334f57e26a941a11ed17cce879ddadf73049dadb9ddd9e1481182e21dfc1e",
+  "moduleFileHash": "c15a579060f85e1e378dc6b91f6b8bedf6225a1bdbe75a1114b5450aa9d226db",
   "flags": {
     "cmdRegistries": [
       "https://bcr.bazel.build/"
@@ -61,8 +61,8 @@
       ],
       "deps": {
         "rules_swift_package_manager": "rules_swift_package_manager@0.30.0",
-        "gazelle": "gazelle@0.36.0",
-        "rules_swift": "rules_swift@1.18.0",
+        "bazel_gazelle": "gazelle@0.36.0",
+        "build_bazel_rules_swift": "rules_swift@1.18.0",
         "rules_apple": "rules_apple@3.5.1",
         "build_bazel_apple_support": "apple_support@1.15.1",
         "bazel_tools": "bazel_tools@_",

@@ -1,6 +1,6 @@
 {
   "lockFileVersion": 6,
-  "moduleFileHash": "2c588d15e35ddd0ae266cb4d5b1d0b8171795d3f900dd81a5341cd89442d4840",
+  "moduleFileHash": "93f3050294b6cc3a177ec5910c1a069173747da2a5e8fe0c15e3327f1658d9d1",
   "flags": {
     "cmdRegistries": [
       "https://bcr.bazel.build/"
@@ -14,7 +14,7 @@
   },
   "localOverrideHashes": {
     "bazel_tools": "1ae69322ac3823527337acf02016e8ee95813d8d356f47060255b8956fa642f0",
-    "swift_objc_value_type": "ee4334f57e26a941a11ed17cce879ddadf73049dadb9ddd9e1481182e21dfc1e"
+    "swift_objc_value_type": "c15a579060f85e1e378dc6b91f6b8bedf6225a1bdbe75a1114b5450aa9d226db"
   },
   "moduleDepGraph": {
     "<root>": {
@@ -26,7 +26,7 @@
       "toolchainsToRegister": [],
       "extensionUsages": [],
       "deps": {
-        "rules_swift": "rules_swift@1.18.0",
+        "build_bazel_rules_swift": "rules_swift@1.18.0",
         "rules_apple": "rules_apple@3.5.1",
         "build_bazel_apple_support": "apple_support@1.15.1",
         "bazel_skylib": "bazel_skylib@1.6.1",
@@ -393,8 +393,8 @@
       ],
       "deps": {
         "rules_swift_package_manager": "rules_swift_package_manager@0.30.0",
-        "gazelle": "gazelle@0.36.0",
-        "rules_swift": "rules_swift@1.18.0",
+        "bazel_gazelle": "gazelle@0.36.0",
+        "build_bazel_rules_swift": "rules_swift@1.18.0",
         "rules_apple": "rules_apple@3.5.1",
         "build_bazel_apple_support": "apple_support@1.15.1",
         "bazel_tools": "bazel_tools@_",
