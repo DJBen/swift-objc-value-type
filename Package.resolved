@@ -46,15 +46,6 @@
       }
     },
     {
-      "identity" : "swiftbuildermacro",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/dziobaczy/SwiftBuilderMacro",
-      "state" : {
-        "branch" : "main",
-        "revision" : "1cab8fe3da43721779f4865b253258f35cc448e5"
-      }
-    },
-    {
       "identity" : "xctest-dynamic-overlay",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/xctest-dynamic-overlay",

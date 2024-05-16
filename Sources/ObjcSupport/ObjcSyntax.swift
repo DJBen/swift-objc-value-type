@@ -1,11 +1,9 @@
-import BuilderMacro
 
 public enum EnumOrOptionType {
     case nsEnum
     case nsOption
 }
 
-@ThrowingBuilder
 public struct ObjcEnumOrOption: Equatable {
     public enum Trivia: Equatable {
         /// // comments
@@ -21,7 +19,6 @@ public struct ObjcEnumOrOption: Equatable {
         }
     }
 
-    @ThrowingBuilder
     public struct Case: Equatable {
         public enum Value: Equatable {
             case numeric(Int)
@@ -39,6 +36,52 @@ public struct ObjcEnumOrOption: Equatable {
             self.name = name
             self.value = value
             self.afterTrivia = afterTrivia
+        }
+        
+        public class Builder {
+            private enum Error: Swift.Error {
+                case missingValue(property: String)
+            }
+            public var beforeTrivia: [Trivia]?
+            public var name: String?
+            public var value: Value?
+            public var afterTrivia: [Trivia]?
+            public init() {
+            }
+            
+            public convenience init(_ item: Case?) {
+                self.init()
+                fill(with: item)
+            }
+            
+            public func fill(with item: Case?) {
+                beforeTrivia = item?.beforeTrivia
+                name = item?.name
+                value = item?.value
+                afterTrivia = item?.afterTrivia
+            }
+            
+            public func build() throws -> Case {
+                guard let beforeTrivia else {
+                    throw Error.missingValue(property: "beforeTrivia")
+                }
+                guard let name else {
+                    throw Error.missingValue(property: "name")
+                }
+                guard let afterTrivia else {
+                    throw Error.missingValue(property: "afterTrivia")
+                }
+                return Case(
+                    beforeTrivia: beforeTrivia,
+                    name: name,
+                    value: value,
+                    afterTrivia: afterTrivia
+                )
+            }
+        }
+        
+        public static func makeBuilder() -> Builder {
+            Builder()
         }
     }
 
@@ -63,5 +106,60 @@ public struct ObjcEnumOrOption: Equatable {
         self.underlyingType = underlyingType
         self.name = name
         self.cases = cases
+    }
+    
+    public class Builder {
+        private enum Error: Swift.Error {
+            case missingValue(property: String)
+        }
+        public var trivia: [Trivia]?
+        public var type: EnumOrOptionType?
+        public var underlyingType: String?
+        public var name: String?
+        public var cases: [Case]?
+        public init() {
+        }
+        
+        public convenience init(_ item: ObjcEnumOrOption?) {
+            self.init()
+            fill(with: item)
+        }
+        
+        public func fill(with item: ObjcEnumOrOption?) {
+            trivia = item?.trivia
+            type = item?.type
+            underlyingType = item?.underlyingType
+            name = item?.name
+            cases = item?.cases
+        }
+        
+        public func build() throws -> ObjcEnumOrOption {
+            guard let trivia else {
+                throw Error.missingValue(property: "trivia")
+            }
+            guard let type else {
+                throw Error.missingValue(property: "type")
+            }
+            guard let underlyingType else {
+                throw Error.missingValue(property: "underlyingType")
+            }
+            guard let name else {
+                throw Error.missingValue(property: "name")
+            }
+            guard let cases else {
+                throw Error.missingValue(property: "cases")
+            }
+            return ObjcEnumOrOption(
+                trivia: trivia,
+                type: type,
+                underlyingType: underlyingType,
+                name: name,
+                cases: cases
+            )
+        }
+    }
+    
+    public static func makeBuilder() -> Builder {
+        Builder()
     }
 }

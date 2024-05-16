@@ -22,6 +22,5 @@ use_repo(
     "swiftpkg_swift_argument_parser",
     "swiftpkg_swift_custom_dump",
     "swiftpkg_swift_syntax",
-    "swiftpkg_swiftbuildermacro",
 )
 # swift_deps END
