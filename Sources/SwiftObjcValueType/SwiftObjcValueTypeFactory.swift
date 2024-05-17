@@ -31,11 +31,11 @@ public struct SwiftObjcValueTypeFactory {
             try CodeBlockItemListSyntax {
                 switch descriptor.decl {
                 case .structDecl(let structDecl):
-                    let configFlags = structDecl.valueObjectFlags
+                    let configFlags = structDecl.valueObjectConfig.flags
 
                     for decl in try wrappingClassDecl(
                         structDecl: structDecl,
-                        referencedSwiftTypes: referencedSwiftTypes,
+                        referencedSwiftTypes: referencedSwiftTypes.union(structDecl.valueObjectConfig.swiftTypesWithWrapper),
                         prefix: prefix,
                         imports: imports,
                         externalHashSettings: externalHashSettings,
@@ -48,11 +48,11 @@ public struct SwiftObjcValueTypeFactory {
                         shouldSynthesizeDebugDescription: descriptor.inheritedTypes.contains("CustomDebugStringConvertible")
                     ) { decl }
                 case .enumDecl(let enumDecl):
-                    let configFlags = enumDecl.valueObjectFlags
+                    let configFlags = enumDecl.valueObjectConfig.flags
 
                     for decl in try wrappingClassDecl(
                         enumDecl: enumDecl,
-                        referencedSwiftTypes: referencedSwiftTypes,
+                        referencedSwiftTypes: referencedSwiftTypes.union(enumDecl.valueObjectConfig.swiftTypesWithWrapper),
                         prefix: prefix,
                         imports: imports,
                         externalHashSettings: externalHashSettings,
@@ -69,11 +69,11 @@ public struct SwiftObjcValueTypeFactory {
     public func wrappingClassDeclInMacro(
         structDecl: StructDeclSyntax
     ) throws -> [any DeclSyntaxProtocol] {
-        let configFlags = structDecl.valueObjectFlags
+        let configFlags = structDecl.valueObjectConfig.flags
 
         return try wrappingClassDecl(
             structDecl: structDecl,
-            referencedSwiftTypes: [],
+            referencedSwiftTypes: structDecl.valueObjectConfig.swiftTypesWithWrapper,
             prefix: "",
             imports: [],
             externalHashSettings: nil,
@@ -90,11 +90,11 @@ public struct SwiftObjcValueTypeFactory {
     public func wrappingClassDeclInMacro(
         enumDecl: EnumDeclSyntax
     ) throws -> [any DeclSyntaxProtocol] {
-        let configFlags = enumDecl.valueObjectFlags
+        let configFlags = enumDecl.valueObjectConfig.flags
 
         return try wrappingClassDecl(
             enumDecl: enumDecl,
-            referencedSwiftTypes: [],
+            referencedSwiftTypes: enumDecl.valueObjectConfig.swiftTypesWithWrapper,
             prefix: "",
             imports: [],
             externalHashSettings: nil,
@@ -1017,37 +1017,23 @@ public struct SwiftObjcValueTypeFactory {
 }
 
 private extension Trivia {
-    var valueObjectFlags: Set<String> {
-        pieces.compactMap {
-            switch $0 {
-            case .blockComment(let comment), .lineComment(let comment), .docLineComment(let comment), .docBlockComment(let comment):
-                var set = Set<String>()
-                for match in comment.matches(of: /@value_object\s+(.+)/) {
-                    for flag in String(match.1).trimmingCharacters(in: .whitespaces).lowercased().components(separatedBy: " ") {
-                        set.insert(flag)
-                    }
-                }
-                return set
-            default:
-                return nil
-            }
-        }
-        .reduce(Set<String>(), { $0.union($1) })
+    var valueObjectConfig: ValueObjectConfig {
+        ValueObjectConfig(trivia: self)
     }
 }
 
 private extension StructDeclSyntax {
-    var valueObjectFlags: Set<String> {
-        attributes.leadingTrivia.valueObjectFlags
-            .union(modifiers.leadingTrivia.valueObjectFlags)
-            .union(structKeyword.leadingTrivia.valueObjectFlags)
+    var valueObjectConfig: ValueObjectConfig {
+        attributes.leadingTrivia.valueObjectConfig
+            .union(modifiers.leadingTrivia.valueObjectConfig)
+            .union(structKeyword.leadingTrivia.valueObjectConfig)
     }
 }
 
 private extension EnumDeclSyntax {
-    var valueObjectFlags: Set<String> {
-        attributes.leadingTrivia.valueObjectFlags
-            .union(modifiers.leadingTrivia.valueObjectFlags)
-            .union(enumKeyword.leadingTrivia.valueObjectFlags)
+    var valueObjectConfig: ValueObjectConfig {
+        attributes.leadingTrivia.valueObjectConfig
+            .union(modifiers.leadingTrivia.valueObjectConfig)
+            .union(enumKeyword.leadingTrivia.valueObjectConfig)
     }
 }

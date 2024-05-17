@@ -427,6 +427,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
         let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
             codeBlocks: CodeBlockItemListSyntax {
                 #"""
+                // @value_object swift_types_with_wrapper ["Foo"] // TODO: remove
                 public struct Value: CustomStringConvertible {
                     public let doubleValue: Double
 
@@ -435,6 +436,8 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     public let ref2: [Int: [Bar]]
 
                     public let ref3: [Bar]?
+
+                    public let foo: Foo
                 }
 
                 """#
@@ -454,6 +457,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             private let kRefKey = "REF"
             private let kRef2Key = "REF2"
             private let kRef3Key = "REF3"
+            private let kFooKey = "FOO"
 
             @objc(Value)
             public class ValueObjc: NSObject, NSCopying, NSCoding {
@@ -465,12 +469,15 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
                 @objc public let ref3: [BarObjc]?
 
+                @objc public let foo: FooObjc
+
                 @objc
-                public init(doubleValue: Double, ref: Value2Objc, ref2: [Int: [BarObjc]], ref3: [BarObjc]?) {
+                public init(doubleValue: Double, ref: Value2Objc, ref2: [Int: [BarObjc]], ref3: [BarObjc]?, foo: FooObjc) {
                     self.doubleValue = doubleValue
                     self.ref = ref
                     self.ref2 = ref2
                     self.ref3 = ref3
+                    self.foo = foo
 
                     super.init()
                 }
@@ -486,12 +493,13 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     self.ref3 = original.ref3?.map({ a0 in
                             BarObjc(a0)
                         })
+                    self.foo = FooObjc(original.foo)
 
                     super.init()
                 }
 
                 public func copy(with zone: NSZone? = nil) -> Any {
-                    ValueObjc(doubleValue: doubleValue, ref: ref, ref2: ref2, ref3: ref3)
+                    ValueObjc(doubleValue: doubleValue, ref: ref, ref2: ref2, ref3: ref3, foo: foo)
                 }
 
                 public func encode(with coder: NSCoder) {
@@ -499,6 +507,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     coder.encode(ref, forKey: kRefKey)
                     coder.encode(ref2, forKey: kRef2Key)
                     coder.encodeConditionalObject(ref3, forKey: kRef3Key)
+                    coder.encode(foo, forKey: kFooKey)
                 }
 
                 public required convenience init?(coder: NSCoder) {
@@ -510,7 +519,10 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                         return nil
                     }
                     let ref3 = coder.decodeObject(forKey: kRef3Key) as? [BarObjc]
-                    self.init(doubleValue: doubleValue, ref: ref, ref2: ref2, ref3: ref3)
+                    guard let foo = coder.decodeObject(forKey: kFooKey) as? FooObjc else {
+                        return nil
+                    }
+                    self.init(doubleValue: doubleValue, ref: ref, ref2: ref2, ref3: ref3, foo: foo)
                 }
 
                 public override var description: String {
@@ -531,7 +543,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     }
 
                     @objc public class func value(existingValue: ValueObjc) -> ValueObjc {
-                        ValueBuilder.value().withDoubleValue(existingValue.doubleValue).withRef(existingValue.ref).withRef2(existingValue.ref2).withRef3(existingValue.ref3).build()
+                        ValueBuilder.value().withDoubleValue(existingValue.doubleValue).withRef(existingValue.ref).withRef2(existingValue.ref2).withRef3(existingValue.ref3).withFoo(existingValue.foo).build()
                     }
 
                     private var doubleValue: Double?
@@ -566,6 +578,14 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                         return self
                     }
 
+                    private var foo: FooObjc?
+
+                    @objc @discardableResult
+                    public func withFoo(_ foo: FooObjc) -> ValueBuilder {
+                        self.foo = foo
+                        return self
+                    }
+
                     private func error(field: String) -> Error {
                         NSError(
                             domain: "ValueType.Builder.NonnullFieldUnset",
@@ -589,8 +609,11 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                         guard let ref2 = ref2 else {
                             throw error(field: "ref2")
                         }
+                        guard let foo = foo else {
+                            throw error(field: "foo")
+                        }
 
-                        return ValueObjc(doubleValue: doubleValue, ref: ref, ref2: ref2, ref3: ref3)
+                        return ValueObjc(doubleValue: doubleValue, ref: ref, ref2: ref2, ref3: ref3, foo: foo)
                     }
                 }
             }
