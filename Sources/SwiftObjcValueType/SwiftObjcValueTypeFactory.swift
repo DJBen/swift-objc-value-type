@@ -363,6 +363,12 @@ public struct SwiftObjcValueTypeFactory {
                     )
                     .with(\.leadingTrivia, .newlines(2))
 
+                    try objcInitializerFromSwiftType(
+                        enumDecl: enumDecl,
+                        referencedSwiftTypes: referencedSwiftTypes
+                    )
+                    .with(\.leadingTrivia, .newlines(2))
+
                     try unavailableInit(
                         parentContainerModifiers: enumDecl.modifiers
                     )
@@ -772,6 +778,104 @@ public struct SwiftObjcValueTypeFactory {
                 "super.init()"
             )
             .with(\.leadingTrivia, .newlines(2))
+        }
+    }
+
+    @MemberBlockItemListBuilder
+    private func objcInitializerFromSwiftType(
+        enumDecl: EnumDeclSyntax,
+        referencedSwiftTypes: Set<String>
+    ) throws -> MemberBlockItemListSyntax {
+        try InitializerDeclSyntax(
+            modifiers: DeclModifierListSyntax {
+                enumDecl.modifiers.trimmed
+
+                DeclModifierSyntax(name: .keyword(.convenience))
+            },
+            signature: FunctionSignatureSyntax(
+                parameterClause: FunctionParameterClauseSyntax(
+                    parametersBuilder: {
+                        FunctionParameterSyntax(
+                            firstName: .wildcardToken(),
+                            secondName: .identifier("original"),
+                            type: IdentifierTypeSyntax(
+                                name: enumDecl.name.trimmed
+                            )
+                        )
+                    }
+                )
+            )
+        ) {
+            try SwitchExprSyntax("switch original") {
+                enumDecl.forEachCaseElement { caseElement in
+                    SwitchCaseSyntax(
+                        label: .case(
+                            SwitchCaseLabelSyntax {
+                                SwitchCaseItemSyntax(
+                                    pattern: ExpressionPatternSyntax(
+                                        expression: FunctionCallExprSyntax(
+                                            calledExpression: MemberAccessExprSyntax(
+                                                period: .periodToken(),
+                                                declName: DeclReferenceExprSyntax(baseName: caseElement.name)
+                                            ),
+                                            leftParen: .leftParenToken(),
+                                            arguments: LabeledExprListSyntax {
+                                                let params = caseElement.parameterClause?.parameters ?? []
+                                                for (index, caseParam) in params.enumerated() {
+                                                    LabeledExprSyntax(
+                                                        expression: PatternExprSyntax(
+                                                            pattern: ValueBindingPatternSyntax(
+                                                                bindingSpecifier: .keyword(.let),
+                                                                pattern: IdentifierPatternSyntax(identifier: caseParam.properName(index: index))
+                                                            )
+                                                        )
+                                                    )
+                                                }
+                                            },
+                                            rightParen: .rightParenToken()
+                                        )
+                                    )
+                                )
+                            }
+                        )
+                    ) {
+                        FunctionCallExprSyntax(
+                            calledExpression: MemberAccessExprSyntax(
+                                base: DeclReferenceExprSyntax(baseName: .keyword(.`self`)),
+                                period: .periodToken(),
+                                declName: DeclReferenceExprSyntax(baseName: .keyword(.`init`))
+                            ),
+                            leftParen: .leftParenToken(),
+                            rightParen: .rightParenToken()
+                        ) {
+                            LabeledExprListSyntax {
+                                LabeledExprSyntax(
+                                    label: .identifier("subtype"),
+                                    colon: .colonToken(),
+                                    expression: ExprSyntax(".\(raw: caseElement.name.trimmed.text.lowercasingFirst)")
+                                )
+                            }
+
+                            let params = caseElement.parameterClause?.parameters ?? []
+                            let caseName = caseElement.name.trimmed.text.uppercasingFirst
+                            for (index, caseParam) in params.enumerated() {
+                                LabeledExprSyntax(
+                                    label: .identifier(caseName.lowercasingFirst + caseParam.properName(index: index).trimmed.text.uppercasingFirst),
+                                    colon: .colonToken(),
+                                    expression: DeclReferenceExprSyntax(
+                                        baseName: caseParam.properName(index: index)
+                                    )
+                                    .convertingToObjcType(
+                                        type: caseParam.type,
+                                        referencedSwiftTypes: referencedSwiftTypes
+                                    )
+                                    .mappingNumeralValueToNSNumber(type: caseParam.type)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 

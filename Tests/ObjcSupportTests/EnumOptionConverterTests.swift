@@ -201,7 +201,7 @@ final class EnumOptionConverterTests: XCTestCase {
             """
             /// State for Local media uploaded that requires time for client
             /// to process into Ephemeral media.
-            public enum LocalMediaUploadingState: Int {
+            @objc public enum LocalMediaUploadingState: Int {
                 case uploading = -2
                 case failed = -1
                 case default = 0

@@ -28,6 +28,9 @@ public final class EnumOptionConverter {
     ) throws -> MemberBlockItemListSyntax {
         try EnumDeclSyntax(
             leadingTrivia: Trivia(enumOrOption.trivia),
+            attributes: AttributeListSyntax {
+                "@objc"
+            },
             modifiers: DeclModifierListSyntax {
                 if isPublic {
                     DeclModifierSyntax(name: .keyword(.public))

@@ -1133,6 +1133,17 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     super.init()
                 }
 
+                public convenience init(_ original: SaveUpdates) {
+                    switch original {
+                    case .saveBegan(let savingToAlpha):
+                        self.init(subtype: .saveBegan, saveBeganSavingToAlpha: savingToAlpha)
+                    case .saveSucceeded(let savedToAlpha, let savedToBeta, let optFloat, let displayName):
+                        self.init(subtype: .saveSucceeded, saveSucceededSavedToAlpha: savedToAlpha, saveSucceededSavedToBeta: savedToBeta, saveSucceededOptFloat: optFloat.map(NSNumber.init), saveSucceededDisplayName: displayName)
+                    case .saveFailed(let error):
+                        self.init(subtype: .saveFailed, saveFailedError: error)
+                    }
+                }
+
                 @available(*, unavailable)
                 public override init() {
                     fatalError()
