@@ -22,6 +22,15 @@ struct GenerateValueTypeCommand: ParsableCommand, FileHandlingCommand {
     @OptionGroup
     var genArguments: GenerateValueTypeArguments
 
+    private func makeReferenceFileIterator(
+        filteringExtension: ((String) -> Bool)? = { _ in true }
+    ) -> any IteratorProtocol<File> {
+        let referencePaths = Set(genArguments.referencedSourcesForObjcAliasing).subtracting(Set(fileArguments.sourcePaths))
+        return SourceFileContentIterator(
+            sourcePaths: referencePaths, filteringExtension: filteringExtension
+        )
+    }
+
     func run() throws {
         var sourceFilesIterator = makeSourceFileIterator {
             $0.lowercased() == "swift"
@@ -32,6 +41,18 @@ struct GenerateValueTypeCommand: ParsableCommand, FileHandlingCommand {
             sourceFile.content.withUnsafeBufferPointer { sourceBuffer in
                 let tree = Parser.parse(source: sourceBuffer)
                 sourceFiles.append((sourceFile.fileName, tree))
+                preprocessor.addSource(sourceFileSyntax: tree)
+            }
+        }
+
+        // Add reference files into preprocessor, so that it can correctly
+        // consider the objc wrapper aliases.
+        var referenceFilesIterator = makeReferenceFileIterator {
+            $0.lowercased() == "swift"
+        }
+        while let referenceFile = referenceFilesIterator.next() {
+            referenceFile.content.withUnsafeBufferPointer { referenceBuffer in
+                let tree = Parser.parse(source: referenceBuffer)
                 preprocessor.addSource(sourceFileSyntax: tree)
             }
         }
@@ -168,4 +189,15 @@ struct GenerateValueTypeArguments: ParsableArguments {
         """
     )
     var externalHashDoubleFunc: String?
+
+    @Option(
+        name: [.customLong("referenced-srcs")],
+        parsing: .upToNextOption,
+        help: """
+        A list of files to reference, but not for objc wrapper generation.
+        If the swift sources to generate wrappers references those, the name
+        in objc wrapper will be aliased by -Objc accordingly.
+        """
+    )
+    var referencedSourcesForObjcAliasing: [String] = []
 }
