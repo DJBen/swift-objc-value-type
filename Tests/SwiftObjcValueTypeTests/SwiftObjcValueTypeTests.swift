@@ -427,6 +427,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
         let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
             codeBlocks: CodeBlockItemListSyntax {
                 #"""
+                // Some other comments
                 // @value_object swift_types_with_wrapper ["Foo"] // TODO: remove
                 public struct Value: CustomStringConvertible {
                     public let doubleValue: Double

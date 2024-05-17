@@ -45,9 +45,8 @@ struct ValueObjectConfig: Hashable {
                             }
                         }
                     }
-                    return swiftTypesWithWrapper
                 default:
-                    return []
+                    break
                 }
             }
             return swiftTypesWithWrapper
