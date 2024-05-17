@@ -530,6 +530,12 @@ extension EnumDeclSyntax {
         try forEachCaseElementGeneric(caseElementBlock: caseElementBlock)
     }
 
+    func enumerateCaseElement(
+        @FunctionParameterListBuilder caseElementBlock: (Int, EnumCaseElementSyntax) throws -> FunctionParameterListSyntax
+    ) rethrows -> FunctionParameterListSyntax {
+        try enumerateCaseElementGeneric(caseElementBlock: caseElementBlock)
+    }
+
     func forEachCaseElement(
         @SwitchCaseListBuilder caseElementBlock: (EnumCaseElementSyntax) throws -> SwitchCaseListSyntax
     ) rethrows -> SwitchCaseListSyntax {
@@ -558,6 +564,17 @@ extension EnumDeclSyntax {
         @ArrayElementListBuilder caseElementBlock: (EnumCaseElementSyntax) throws -> ArrayElementListSyntax
     ) rethrows -> ArrayElementListSyntax {
         try forEachCaseElementGeneric(caseElementBlock: caseElementBlock)
+    }
+
+    var firstCaseElement: EnumCaseElementSyntax? {
+        for member in memberBlock.members {
+            if let caseDecl = member.decl.as(EnumCaseDeclSyntax.self) {
+                for caseElement in caseDecl.elements {
+                    return caseElement
+                }
+            }
+        }
+        return nil
     }
 
     var caseCount: Int {

@@ -486,19 +486,7 @@ public struct SwiftObjcValueTypeFactory {
             attributes: AttributeListSyntax {
                 AttributeSyntax(
                     atSign: .atSignToken(),
-                    attributeName: IdentifierTypeSyntax(name: .identifier("objc")),
-                    leftParen: .leftParenToken(),
-                    arguments: .objCName(
-                        ObjCSelectorPieceListSyntax {
-                            enumDecl.enumerateCaseElement { index, caseElement in
-                                ObjCSelectorPieceSyntax(
-                                    name: .identifier(index == 0 ? "match\(caseElement.name.trimmed.text.uppercasingFirst)" : caseElement.name.trimmed.text.lowercasingFirst),
-                                    colon: .colonToken()
-                                )
-                            }
-                        }
-                    ),
-                    rightParen: .rightParenToken()
+                    attributeName: IdentifierTypeSyntax(name: .identifier("objc"))
                 )
             }
             .with(\.trailingTrivia, .newline),
@@ -506,12 +494,16 @@ public struct SwiftObjcValueTypeFactory {
                 // Inherit visibility modifiers
                 enumDecl.modifiers.trimmed
             },
-            name: .identifier("match"),
+            name: enumDecl.firstCaseElement.flatMap { caseElement -> TokenSyntax? in
+                let caseName = caseElement.name.trimmed.text.uppercasingFirst
+                return .identifier("match\(caseName)")
+            } ?? .identifier("match"),
             signature: FunctionSignatureSyntax(
                 parameterClause: FunctionParameterClauseSyntax {
-                    enumDecl.forEachCaseElement { caseElement in
+                    enumDecl.enumerateCaseElement { index, caseElement in
                         FunctionParameterSyntax(
-                            firstName: caseElement.name,
+                            firstName: index == 0 ? .wildcardToken() : caseElement.name,
+                            secondName: index == 0 ? caseElement.name : nil,
                             type: OptionalTypeSyntax(
                                 wrappedType: IdentifierTypeSyntax(
                                     name: .identifier("\(enumName)\(caseElement.name.trimmed.text.uppercasingFirst)MatchHandler")
