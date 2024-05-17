@@ -12,6 +12,7 @@ swift_library(
         "SwiftObjcValueTypeFactory+NSCopying.swift",
         "SwiftObjcValueTypeFactory+isEqual.swift",
         "SwiftSyntaxExtensions.swift",
+        "ValueObjectConfig.swift",
     ],
     module_name = "SwiftObjcValueType",
     visibility = ["//visibility:public"],
