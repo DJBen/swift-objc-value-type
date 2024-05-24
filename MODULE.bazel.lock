@@ -1,6 +1,6 @@
 {
   "lockFileVersion": 6,
-  "moduleFileHash": "57bc90f2f65c0d7a1c3667b98cbbe99a2bb9ab410e59cc4c7008f4d84f0e6295",
+  "moduleFileHash": "e325db54af106d7c963ab42333ce52f1d5bc15926e12c55c397587b60d570606",
   "flags": {
     "cmdRegistries": [
       "https://bcr.bazel.build/"
@@ -34,7 +34,6 @@
             "column": 27
           },
           "imports": {
-            "swiftpkg_pathkit": "swiftpkg_pathkit",
             "swiftpkg_swift_argument_parser": "swiftpkg_swift_argument_parser",
             "swiftpkg_swift_custom_dump": "swiftpkg_swift_custom_dump",
             "swiftpkg_swift_syntax": "swiftpkg_swift_syntax"
@@ -2714,30 +2713,11 @@
       "general": {
         "bzlTransitiveDigest": "6l2zsx0cqTtMqy8Iqgd0Dh9ePjYCUdvPDGPecHxDGrw=",
         "recordedFileInputs": {
-          "@@//swift_deps_index.json": "37908a985e1e70fa5058ccd04a649a30f99ec926362b4b33ca00ec3d50c269be"
+          "@@//swift_deps_index.json": "eff94a4acb20589af0150f87985888304105a10594a49fd1f00d830d3f52fe23"
         },
         "recordedDirentsInputs": {},
         "envVariables": {},
         "generatedRepoSpecs": {
-          "swiftpkg_spectre": {
-            "bzlFile": "@@rules_swift_package_manager~//swiftpkg/internal:swift_package.bzl",
-            "ruleClassName": "swift_package",
-            "attributes": {
-              "bazel_package_name": "swiftpkg_spectre",
-              "commit": "26cc5e9ae0947092c7139ef7ba612e34646086c7",
-              "remote": "https://github.com/kylef/Spectre.git",
-              "dependencies_index": "@@//:swift_deps_index.json",
-              "init_submodules": false,
-              "recursive_init_submodules": false,
-              "patch_args": [
-                "-p0"
-              ],
-              "patch_cmds": [],
-              "patch_cmds_win": [],
-              "patch_tool": "",
-              "patches": []
-            }
-          },
           "swiftpkg_swift_syntax": {
             "bzlFile": "@@rules_swift_package_manager~//swiftpkg/internal:swift_package.bzl",
             "ruleClassName": "swift_package",
@@ -2745,25 +2725,6 @@
               "bazel_package_name": "swiftpkg_swift_syntax",
               "commit": "fa8f95c2d536d6620cc2f504ebe8a6167c9fc2dd",
               "remote": "https://github.com/apple/swift-syntax.git",
-              "dependencies_index": "@@//:swift_deps_index.json",
-              "init_submodules": false,
-              "recursive_init_submodules": false,
-              "patch_args": [
-                "-p0"
-              ],
-              "patch_cmds": [],
-              "patch_cmds_win": [],
-              "patch_tool": "",
-              "patches": []
-            }
-          },
-          "swiftpkg_pathkit": {
-            "bzlFile": "@@rules_swift_package_manager~//swiftpkg/internal:swift_package.bzl",
-            "ruleClassName": "swift_package",
-            "attributes": {
-              "bazel_package_name": "swiftpkg_pathkit",
-              "commit": "2fcd4618d52869b342e208324d455131a48f9e9b",
-              "remote": "https://github.com/kylef/PathKit",
               "dependencies_index": "@@//:swift_deps_index.json",
               "init_submodules": false,
               "recursive_init_submodules": false,

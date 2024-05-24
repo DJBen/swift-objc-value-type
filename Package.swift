@@ -17,7 +17,6 @@ let package = Package(
     .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.3.1"),
     .package(url: "https://github.com/apple/swift-syntax.git", from: "510.0.1"),
     .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "1.3.0"),
-    .package(url: "https://github.com/kylef/PathKit", branch: "master"),
   ],
   targets: [
     .macro(
@@ -121,7 +120,6 @@ let package = Package(
         "SwiftObjcValueType",
         "Remodel",
         "ObjcSupport",
-        .product(name: "PathKit", package: "PathKit"),
         .product(name: "CustomDump", package: "swift-custom-dump"),
         .product(name: "SwiftDiagnostics", package: "swift-syntax"),
         .product(name: "SwiftOperators", package: "swift-syntax"),

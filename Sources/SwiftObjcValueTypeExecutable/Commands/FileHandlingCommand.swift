@@ -12,7 +12,6 @@
 
 import ArgumentParser
 import Foundation
-import PathKit
 
 struct FileHandlingArguments: ParsableArguments {
     @Argument(
@@ -95,7 +94,7 @@ extension FileHandlingCommand {
         extensionTransform: (String) -> String,
         writeBlock: (TextOutputStreamableSink) throws -> Void
     ) throws -> Void {
-        guard let outputDir = fileArguments.outputDir.map({ Path($0) }) else {
+        guard let outputDir = fileArguments.outputDir else {
             try writeBlock(
                 FileStreamSink(stream: FileHandlerOutputStream(.standardOutput))
             )
@@ -103,9 +102,7 @@ extension FileHandlingCommand {
         }
 
         // Ensure the output directory exists, otherwise create dirs along the way
-        if !outputDir.exists {
-            try FileManager.default.createDirectory(at: outputDir.url, withIntermediateDirectories: true, attributes: nil)
-        }
+        try FileManager.default.createDirectory(at: URL(fileURLWithPath: outputDir), withIntermediateDirectories: true, attributes: nil)
 
         let outputFileName: String
         if let inputPath = inputPath {
@@ -123,14 +120,12 @@ extension FileHandlingCommand {
         let outputUrl: URL
 
         if let inputPath = inputPath, !fileArguments.ignoresFolderStructure {
-            let outputDirUrl = outputDir.url.appendingPathComponent(inputPath.relativeFolderPath)
-            if !Path(outputDirUrl.absoluteString).exists {
-                try FileManager.default.createDirectory(at: outputDirUrl, withIntermediateDirectories: true, attributes: nil)
-            }
+            let outputDirUrl = URL(fileURLWithPath: outputDir).appendingPathComponent(inputPath.relativeFolderPath)
+            try FileManager.default.createDirectory(at: outputDirUrl, withIntermediateDirectories: true, attributes: nil)
 
             outputUrl = outputDirUrl.appendingPathComponent(outputFileName)
         } else {
-            outputUrl = outputDir.url.appendingPathComponent(outputFileName)
+            outputUrl = URL(fileURLWithPath: outputDir).appendingPathComponent(outputFileName)
         }
 
         if fileArguments.verbose {

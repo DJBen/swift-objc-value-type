@@ -1,5 +1,4 @@
 import Foundation
-import PathKit
 
 public struct IteratedPath: Hashable {
     let path: String

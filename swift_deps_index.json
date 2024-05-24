@@ -1,31 +1,10 @@
 {
   "direct_dep_identities": [
-    "pathkit",
     "swift-argument-parser",
     "swift-custom-dump",
     "swift-syntax"
   ],
   "modules": [
-    {
-      "name": "PathKit",
-      "c99name": "PathKit",
-      "src_type": "swift",
-      "label": "@swiftpkg_pathkit//:PathKit.rspm",
-      "package_identity": "pathkit",
-      "product_memberships": [
-        "PathKit"
-      ]
-    },
-    {
-      "name": "Spectre",
-      "c99name": "Spectre",
-      "src_type": "swift",
-      "label": "@swiftpkg_spectre//:Spectre.rspm",
-      "package_identity": "spectre",
-      "product_memberships": [
-        "Spectre"
-      ]
-    },
     {
       "name": "ArgumentParser",
       "c99name": "ArgumentParser",
@@ -351,18 +330,6 @@
   ],
   "products": [
     {
-      "identity": "pathkit",
-      "name": "PathKit",
-      "type": "library",
-      "label": "@swiftpkg_pathkit//:PathKit"
-    },
-    {
-      "identity": "spectre",
-      "name": "Spectre",
-      "type": "library",
-      "label": "@swiftpkg_spectre//:Spectre"
-    },
-    {
       "identity": "swift-argument-parser",
       "name": "ArgumentParser",
       "type": "library",
@@ -472,24 +439,6 @@
     }
   ],
   "packages": [
-    {
-      "name": "swiftpkg_pathkit",
-      "identity": "pathkit",
-      "remote": {
-        "commit": "2fcd4618d52869b342e208324d455131a48f9e9b",
-        "remote": "https://github.com/kylef/PathKit",
-        "branch": "master"
-      }
-    },
-    {
-      "name": "swiftpkg_spectre",
-      "identity": "spectre",
-      "remote": {
-        "commit": "26cc5e9ae0947092c7139ef7ba612e34646086c7",
-        "remote": "https://github.com/kylef/Spectre.git",
-        "version": "0.10.1"
-      }
-    },
     {
       "name": "swiftpkg_swift_argument_parser",
       "identity": "swift-argument-parser",
