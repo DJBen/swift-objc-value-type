@@ -288,6 +288,9 @@ public class RemodelSwiftFactory {
             } else {
                 return "[\(mapType(String(match.2), existingPrefix: existingPrefix))]"
             }
+        } else if let match = remodelType.firstMatch(of: /id<(.*?)>/) {
+            // Convert objc `id<Type>` into `Type`
+            return mapType(String(match.1), existingPrefix: existingPrefix)
         } else if let match = remodelType.firstMatch(of: /(\w+)<([\w\* <>]+)>\s\*/) {
             return "\(String(match.1))<\(mapType(String(match.2), existingPrefix: existingPrefix))>"
         } else if remodelType.hasSuffix("*") {

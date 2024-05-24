@@ -142,7 +142,15 @@ extension SwiftObjcValueTypeFactory {
 
         let hashFunc = externalHashSettings?.hashFunc ?? "hashImpl"
 
-        "return Int(\(raw: hashFunc)(hashes, \(raw: count)))"
+        if externalHashSettings?.isUnsafePointer ?? false {
+            #"""
+            return Int(hashes.withUnsafeBufferPointer { p in
+                \#(raw: hashFunc)(p.baseAddress, \#(raw: count))
+            })
+            """#
+        } else {
+            "return Int(\(raw: hashFunc)(hashes, \(raw: count)))"
+        }
     }
 
     @MemberBlockItemListBuilder

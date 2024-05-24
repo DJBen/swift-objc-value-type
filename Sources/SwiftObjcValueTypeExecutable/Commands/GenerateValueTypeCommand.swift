@@ -68,7 +68,8 @@ struct GenerateValueTypeCommand: ParsableCommand, FileHandlingCommand {
                         libary: genArguments.externalHashLibrary,
                         hashFunc: externalHashFunc,
                         hashFloatFunc: genArguments.externalHashFloatFunc,
-                        hashDoubleFunc: genArguments.externalHashDoubleFunc
+                        hashDoubleFunc: genArguments.externalHashDoubleFunc,
+                        isUnsafePointer: genArguments.exernalHashFuncIsUnsafePointer
                    )
                 },
                 shouldSynthesizeNSCopying: genArguments.shouldSynthesizeNSCopying,
@@ -189,6 +190,20 @@ struct GenerateValueTypeArguments: ParsableArguments {
         """
     )
     var externalHashDoubleFunc: String?
+
+    @Flag(
+        name: [.long],
+        help: """
+        If true, it means that the external hash func is an objc implementation
+        that resembles `extern NSUInteger HashFn(NSUInteger subhashes[], int length);`. As a result, the implementation will be wrapped with
+        ```
+        hashes.withUnsafeBufferPointer { bufferPointer in
+            HashFn(bufferPointer.baseAddress, <count>)
+        }
+        ```
+        """
+    )
+    var exernalHashFuncIsUnsafePointer: Bool = false
 
     @Option(
         name: [.customLong("referenced-srcs")],

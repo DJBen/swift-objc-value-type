@@ -280,7 +280,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
         )
     }
 
-    func testsValueObjc_ignoreDerivedProperties() throws {
+    func testValueObjc_ignoreDerivedProperties() throws {
         let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
             codeBlocks: CodeBlockItemListSyntax {
                 "import Foundation"
