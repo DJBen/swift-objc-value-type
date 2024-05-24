@@ -25,7 +25,7 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
         let enumOptionConverter = EnumOptionConverter()
 
         while let sourceFile = sourceFilesIterator.next() {
-            if let fileName = sourceFile.fileName {
+            if let fileName = sourceFile.iteratedPath?.path {
                 if fileArguments.verbose {
                     print("swift-objc-value-type: reading from (\(fileName))")
                 }
@@ -35,14 +35,14 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
                 source: String(bytes: sourceFile.content, encoding: .utf8) ?? ""
             ) else {
                 if fileArguments.verbose {
-                    print("swift-objc-value-type: fail to find NS_ENUM or NS_OPTION in (\(sourceFile.fileName ?? "stdin")), skipping")
+                    print("swift-objc-value-type: fail to find NS_ENUM or NS_OPTION in (\(sourceFile.iteratedPath?.path ?? "stdin")), skipping")
                 }
                 continue
             }
 
             do {
                 try withFileHandler(
-                    sourceFile.fileName,
+                    inputPath: sourceFile.iteratedPath,
                     fileNameTransform: { $0 },
                     extensionTransform: { _ in "swift" }
                 ) { sink in
@@ -53,7 +53,7 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
             } catch let error as EnumOptionConverter.ParseError {
                 switch error {
                 case .unfinishedParsing:
-                    print("Could not parse \(sourceFile.fileName ?? "stdin"); skipping")
+                    print("Could not parse \(sourceFile.iteratedPath?.path ?? "stdin"); skipping")
                 default:
                     throw error
                 }

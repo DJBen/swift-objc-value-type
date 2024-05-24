@@ -11,7 +11,7 @@ public struct StdinIterator: IteratorProtocol {
             return nil
         }
         let stdin = File(
-            fileName: nil,
+            iteratedPath: nil,
             content: [UInt8](FileHandle.standardInput.readDataToEndOfFile())
         )
         hasReadFromStdin = true

@@ -35,12 +35,12 @@ struct GenerateValueTypeCommand: ParsableCommand, FileHandlingCommand {
         var sourceFilesIterator = makeSourceFileIterator {
             $0.lowercased() == "swift"
         }
-        var sourceFiles = [(String?, SourceFileSyntax)]()
+        var sourceFiles = [(IteratedPath?, SourceFileSyntax)]()
         let preprocessor = SourcePreprocessor()
         while let sourceFile = sourceFilesIterator.next() {
             sourceFile.content.withUnsafeBufferPointer { sourceBuffer in
                 let tree = Parser.parse(source: sourceBuffer)
-                sourceFiles.append((sourceFile.fileName, tree))
+                sourceFiles.append((sourceFile.iteratedPath, tree))
                 preprocessor.addSource(sourceFileSyntax: tree)
             }
         }
@@ -57,7 +57,7 @@ struct GenerateValueTypeCommand: ParsableCommand, FileHandlingCommand {
             }
         }
 
-        for (filePath, tree) in sourceFiles {
+        for (iteratedPath, tree) in sourceFiles {
             let generatedCodeBlocks = try SwiftObjcValueTypeFactory().wrappingClassDecl(
                 codeBlocks: tree.statements,
                 referencedSwiftTypes: preprocessor.referencedSwiftTypes, 
@@ -76,7 +76,7 @@ struct GenerateValueTypeCommand: ParsableCommand, FileHandlingCommand {
             )
 
             try withFileHandler(
-                filePath,
+                inputPath: iteratedPath,
                 fileNameTransform: { "\($0)Wrapper" },
                 extensionTransform: { _ in "swift" }
             ) { sink in
