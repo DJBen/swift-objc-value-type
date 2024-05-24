@@ -703,6 +703,126 @@ final class SwiftObjcValueTypeTests: XCTestCase {
         )
     }
 
+    func testValueObjc_duplicatePrefix() throws {
+        let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
+            codeBlocks: CodeBlockItemListSyntax {
+                #"""
+                public struct ABValue: Equatable {
+                    public let value: String
+                }
+
+                """#
+            },
+            prefix: "AB",
+            externalHashSettings: ExternalHashSettings(hashFunc: "HashImpl", hashFloatFunc: "HashFloat", hashDoubleFunc: "HashDouble"),
+            shouldSynthesizeNSCoding: true,
+            shouldSynthesizeNSCopying: true,
+            shouldSynthesizeObjCBuilder: true
+        )
+
+        assertBuildResult(
+            result,
+            #"""
+
+
+            private let kValueKey = "VALUE"
+
+            @objc(ABValue)
+            public class ABValueObjc: NSObject, NSCopying, NSCoding {
+                @objc public let value: String
+
+                @objc
+                public init(value: String) {
+                    self.value = value
+
+                    super.init()
+                }
+
+                public init(_ original: ABValue) {
+                    self.value = original.value
+
+                    super.init()
+                }
+
+                public override var hash: Int {
+                    let hashes: [UInt] = [UInt(bitPattern: (value as NSString).hash)]
+                    return Int(HashImpl(hashes, 1))
+                }
+
+                public override func isEqual(_ object: Any?) -> Bool {
+                    guard let other = object as? ABValueObjc else {
+                        return false
+                    }
+                    return value == other.value
+                }
+
+                public func copy(with zone: NSZone? = nil) -> Any {
+                    ABValueObjc(value: value)
+                }
+
+                public func encode(with coder: NSCoder) {
+                    coder.encode(value, forKey: kValueKey)
+                }
+
+                public required convenience init?(coder: NSCoder) {
+                    guard let value = coder.decodeObject(forKey: kValueKey) as? String else {
+                        return nil
+                    }
+                    self.init(value: value)
+                }
+
+                @available(*, unavailable)
+                public override init() {
+                    fatalError()
+                }
+            }
+
+            extension ABValueObjc {
+                @objc(ABValueBuilder)
+                public class ABValueBuilder: NSObject {
+                    @objc public class func aBValue() -> ABValueBuilder {
+                        ABValueBuilder()
+                    }
+
+                    @objc public class func aBValue(existingABValue: ABValueObjc) -> ABValueObjc {
+                        ABValueBuilder.aBValue().withValue(existingABValue.value).build()
+                    }
+
+                    private var value: String?
+
+                    @objc @discardableResult
+                    public func withValue(_ value: String) -> ABValueBuilder {
+                        self.value = value
+                        return self
+                    }
+
+                    private func error(field: String) -> Error {
+                        NSError(
+                            domain: "ValueType.Builder.NonnullFieldUnset",
+                            code: 1,
+                            userInfo: [NSLocalizedDescriptionKey: "Failed to build because nonnull field '\(field)' is unset"]
+                        )
+                    }
+
+                    @objc public func build() -> ABValueObjc {
+                        try! safeBuild()
+                    }
+
+                    @objc
+                    public func safeBuild() throws -> ABValueObjc {
+                        guard let value = value else {
+                            throw error(field: "value")
+                        }
+
+                        return ABValueObjc(value: value)
+                    }
+                }
+            }
+
+            """#
+        )
+    }
+
     func testValueObjc_prefix() throws {
         let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
             codeBlocks: CodeBlockItemListSyntax {

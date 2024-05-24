@@ -145,7 +145,7 @@ public struct SwiftObjcValueTypeFactory {
         decls.append(
             try ClassDeclSyntax(
                 attributes: AttributeListSyntax {
-                    .attribute("@objc(\(raw: prefix + structName))")
+                    .attribute("@objc(\(raw: prefix + structName.trimmingPrefix(prefix)))")
                 }.with(\.trailingTrivia, .newline),
                 modifiers: structDecl.modifiers.trimmed,
                 name: "\(raw: structName)Objc",

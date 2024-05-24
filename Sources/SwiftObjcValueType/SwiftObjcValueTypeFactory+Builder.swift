@@ -34,7 +34,7 @@ extension SwiftObjcValueTypeFactory {
                 if prefix.isEmpty {
                     .attribute("@objc")
                 } else {
-                    .attribute("@objc(\(raw: prefix + structName)Builder)")
+                    .attribute("@objc(\(raw: prefix + structName.trimmingPrefix(prefix))Builder)")
                 }
             }.with(\.trailingTrivia, .newline),
             modifiers: structDecl.modifiers.trimmed,
