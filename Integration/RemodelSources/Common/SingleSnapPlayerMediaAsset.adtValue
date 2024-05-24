@@ -1,0 +1,12 @@
+%type name=UIImage file=UIKit library=UIKit
+
+SingleSnapPlayerMediaAsset includes(RMAssumeNonnull) {
+    image {
+        UIImage *image;
+    }
+
+    # used for video, or subtitle
+    video {
+        id<NSCopying> asset;
+    }
+}
