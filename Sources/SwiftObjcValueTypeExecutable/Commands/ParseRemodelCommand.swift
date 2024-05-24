@@ -27,7 +27,7 @@ struct ParseRemodelCommand: ParsableCommand, FileHandlingCommand {
 
         while let sourceFile = sourceFilesIterator.next() {
             let remodelType: RemodelType
-            if let fileName = sourceFile.fileName {
+            if let fileName = sourceFile.iteratedPath?.path {
                 if (fileName as NSString).pathExtension.lowercased() == "value" {
                     remodelType = .value
                 } else if (fileName as NSString).pathExtension.lowercased() == "adtvalue" {

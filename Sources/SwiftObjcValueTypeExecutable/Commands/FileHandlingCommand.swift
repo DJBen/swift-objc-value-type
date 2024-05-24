@@ -31,9 +31,10 @@ struct FileHandlingArguments: ParsableArguments {
     @Flag(
         name: [.long],
         help: """
-        If outputDir is unset, this parameter has no effect. Otherwise:
-        - If false, and if outputDir is a *relative* path, output files will be written to outputDir/path/to/fileName.
-        - If true, all output files will be written directly to the outputDir/fileName.
+        If outputDir is unset, this parameter has no effect.
+        Consider the input dir is foo/bar and there are foo/bar/baz/1 and foo/bar/baq/2 files.
+        - If false, output files will be written to outputDir/baz/1 and outputDir/baz/2.
+        - If true, all output files will be written to the outputDir/1 and outputDir/2.
         """
     )
     var ignoresFolderStructure: Bool = false
@@ -86,10 +87,10 @@ extension FileHandlingCommand {
     /// This method reads from arguments and checks `outputDir` property. If exists, it will output
     /// to the directory as files. Otherwise it outputs to stdout.
     /// - Parameters:
-    ///   - filePath: The input file path to derive the resulting file name from. If missing, it the default output file name "Wrapper.swift".
+    ///   - inputPath: The input file path to derive the resulting file name from. If missing, it the default output file name "Wrapper.swift".
     ///   - writeBlock: A closure in which the first argument is a sink object providing an interface to stream content.
     func withFileHandler(
-        _ filePath: String?,
+        inputPath: IteratedPath?,
         fileNameTransform: (String) -> String,
         extensionTransform: (String) -> String,
         writeBlock: (TextOutputStreamableSink) throws -> Void
@@ -107,9 +108,9 @@ extension FileHandlingCommand {
         }
 
         let outputFileName: String
-        if let filePath = filePath {
+        if let inputPath = inputPath {
             // This file name is a relative path that gets passed in.
-            let url = URL(fileURLWithPath: filePath)
+            let url = URL(fileURLWithPath: inputPath.path)
             let fileBaseName = url.deletingPathExtension().lastPathComponent
 
             // Apply file transform to the file name
@@ -121,9 +122,8 @@ extension FileHandlingCommand {
 
         let outputUrl: URL
 
-        if let filePath = filePath.map({ Path($0) }), filePath.isRelative, !fileArguments.ignoresFolderStructure {
-            // If outputDir and filePath shares some path components, strip the shared path from outputDir
-            let outputDirUrl = outputDir.url.concatenating(url: filePath.url.deletingLastPathComponent())
+        if let inputPath = inputPath, !fileArguments.ignoresFolderStructure {
+            let outputDirUrl = outputDir.url.appendingPathComponent(inputPath.relativeFolderPath)
             if !Path(outputDirUrl.absoluteString).exists {
                 try FileManager.default.createDirectory(at: outputDirUrl, withIntermediateDirectories: true, attributes: nil)
             }

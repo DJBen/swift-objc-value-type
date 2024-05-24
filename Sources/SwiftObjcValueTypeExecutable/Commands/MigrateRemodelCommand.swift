@@ -39,7 +39,7 @@ struct MigrateRemodelCommand: ParsableCommand, FileHandlingCommand {
 
         while let sourceFile = sourceFilesIterator.next() {
             let remodelType: RemodelType
-            if let fileName = sourceFile.fileName {
+            if let fileName = sourceFile.iteratedPath?.path {
                 if fileArguments.verbose {
                     print("swift-objc-value-type: reading from (\(fileName))")
                 }
@@ -60,13 +60,13 @@ struct MigrateRemodelCommand: ParsableCommand, FileHandlingCommand {
                 source: String(bytes: sourceFile.content, encoding: .utf8) ?? ""
             ) else {
                 if fileArguments.verbose {
-                    print("swift-objc-value-type: skip processing (\(sourceFile.fileName ?? "stdin"))")
+                    print("swift-objc-value-type: skip processing (\(sourceFile.iteratedPath?.path ?? "stdin"))")
                 }
                 return
             }
             do {
                 try withFileHandler(
-                    sourceFile.fileName,
+                    inputPath: sourceFile.iteratedPath,
                     fileNameTransform: { $0 },
                     extensionTransform: { _ in "swift" }
                 ) { sink in
