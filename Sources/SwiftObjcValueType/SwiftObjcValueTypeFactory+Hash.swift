@@ -144,7 +144,7 @@ extension SwiftObjcValueTypeFactory {
 
         if externalHashSettings?.isUnsafePointer ?? false {
             #"""
-            return Int(hashes.withUnsafeBufferPointer { p in
+            return Int(hashes.withUnsafeMutableBufferPointer { p in
                 \#(raw: hashFunc)(p.baseAddress, \#(raw: count))
             })
             """#
