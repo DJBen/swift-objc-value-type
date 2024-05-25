@@ -99,7 +99,7 @@ extension SwiftObjcValueTypeFactory {
         }()
 
         VariableDeclSyntax(
-            bindingSpecifier: .keyword(.let),
+            bindingSpecifier: (externalHashSettings?.isUnsafePointer ?? false) ? .keyword(.var) : .keyword(.let),
             bindings: PatternBindingListSyntax {
                 PatternBindingSyntax(
                     pattern: IdentifierPatternSyntax(identifier: .identifier("hashes")),
