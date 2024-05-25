@@ -143,6 +143,15 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
                 }
             }
 
+            extension Value {
+                public init(_ wrapper: ValueObjc) {
+                    self.doubleValue = wrapper.doubleValue
+                    self.optInt = wrapper.optInt.map(\.int64Value)
+                    self.stringArray = wrapper.stringArray
+                    self.map = wrapper.map
+                }
+            }
+
             extension ValueObjc {
                 @objc
                 public class ValueBuilder: NSObject {

@@ -6,6 +6,7 @@ swift_library(
         "ExternalHashSettings.swift",
         "SourcePreprocessor.swift",
         "SwiftObjcValueTypeFactory.swift",
+        "SwiftObjcValueTypeFactory+Bridging.swift",
         "SwiftObjcValueTypeFactory+Builder.swift",
         "SwiftObjcValueTypeFactory+Hash.swift",
         "SwiftObjcValueTypeFactory+NSCoding.swift",

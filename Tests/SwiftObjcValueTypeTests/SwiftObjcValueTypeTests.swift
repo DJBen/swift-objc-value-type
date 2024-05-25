@@ -113,6 +113,15 @@ final class SwiftObjcValueTypeTests: XCTestCase {
         }
     }
 
+    extension Value {
+        public init(_ wrapper: ValueObjc) {
+            self.doubleValue = wrapper.doubleValue
+            self.optInt = wrapper.optInt.map(\.int64Value)
+            self.stringArray = wrapper.stringArray
+            self.map = wrapper.map
+        }
+    }
+
     extension ValueObjc {
         @objc
         public class ValueBuilder: NSObject {
@@ -276,6 +285,13 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     fatalError()
                 }
             }
+
+            extension Value {
+                public init(_ wrapper: ValueObjc) {
+                    self.doubleValue = wrapper.doubleValue
+                    self.optInt = wrapper.optInt.map(\.int64Value)
+                }
+            }
             """#
         )
     }
@@ -353,6 +369,14 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 @available(*, unavailable)
                 public override init() {
                     fatalError()
+                }
+            }
+
+            extension Foo {
+                public init(_ wrapper: FooObjc) {
+                    self.str = wrapper.str
+                    self.optDouble = wrapper.optDouble.map(\.doubleValue)
+                    self.isValid = wrapper.isValid
                 }
             }
 
@@ -439,6 +463,8 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     public let ref3: [Bar]?
 
                     public let foo: Foo
+
+                    public let ref4: Set<Bar>
                 }
 
                 """#
@@ -459,6 +485,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             private let kRef2Key = "REF2"
             private let kRef3Key = "REF3"
             private let kFooKey = "FOO"
+            private let kRef4Key = "REF4"
 
             @objc(Value)
             public class ValueObjc: NSObject, NSCopying, NSCoding {
@@ -472,13 +499,16 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
                 @objc public let foo: FooObjc
 
+                @objc public let ref4: Set<BarObjc>
+
                 @objc
-                public init(doubleValue: Double, ref: Value2Objc, ref2: [Int: [BarObjc]], ref3: [BarObjc]?, foo: FooObjc) {
+                public init(doubleValue: Double, ref: Value2Objc, ref2: [Int: [BarObjc]], ref3: [BarObjc]?, foo: FooObjc, ref4: Set<BarObjc>) {
                     self.doubleValue = doubleValue
                     self.ref = ref
                     self.ref2 = ref2
                     self.ref3 = ref3
                     self.foo = foo
+                    self.ref4 = ref4
 
                     super.init()
                 }
@@ -495,12 +525,15 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                             BarObjc(a0)
                         })
                     self.foo = FooObjc(original.foo)
+                    self.ref4 = Set(original.ref4.map({ a0 in
+                                BarObjc(a0)
+                            }))
 
                     super.init()
                 }
 
                 public func copy(with zone: NSZone? = nil) -> Any {
-                    ValueObjc(doubleValue: doubleValue, ref: ref, ref2: ref2, ref3: ref3, foo: foo)
+                    ValueObjc(doubleValue: doubleValue, ref: ref, ref2: ref2, ref3: ref3, foo: foo, ref4: ref4)
                 }
 
                 public func encode(with coder: NSCoder) {
@@ -509,6 +542,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     coder.encode(ref2, forKey: kRef2Key)
                     coder.encodeConditionalObject(ref3, forKey: kRef3Key)
                     coder.encode(foo, forKey: kFooKey)
+                    coder.encode(ref4, forKey: kRef4Key)
                 }
 
                 public required convenience init?(coder: NSCoder) {
@@ -523,7 +557,10 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     guard let foo = coder.decodeObject(forKey: kFooKey) as? FooObjc else {
                         return nil
                     }
-                    self.init(doubleValue: doubleValue, ref: ref, ref2: ref2, ref3: ref3, foo: foo)
+                    guard let ref4 = coder.decodeObject(forKey: kRef4Key) as? Set<BarObjc> else {
+                        return nil
+                    }
+                    self.init(doubleValue: doubleValue, ref: ref, ref2: ref2, ref3: ref3, foo: foo, ref4: ref4)
                 }
 
                 public override var description: String {
@@ -536,6 +573,25 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
             }
 
+            extension Value {
+                public init(_ wrapper: ValueObjc) {
+                    self.doubleValue = wrapper.doubleValue
+                    self.ref = Value2(wrapper.ref)
+                    self.ref2 = wrapper.ref2.mapValues({ a0 in
+                            a0.map({ a1 in
+                                    Bar(a1)
+                                })
+                        })
+                    self.ref3 = wrapper.ref3?.map({ a0 in
+                            Bar(a0)
+                        })
+                    self.foo = Foo(wrapper.foo)
+                    self.ref4 = Set(wrapper.ref4.map({ a0 in
+                                Bar(a0)
+                            }))
+                }
+            }
+
             extension ValueObjc {
                 @objc
                 public class ValueBuilder: NSObject {
@@ -544,7 +600,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     }
 
                     @objc public class func value(existingValue: ValueObjc) -> ValueObjc {
-                        ValueBuilder.value().withDoubleValue(existingValue.doubleValue).withRef(existingValue.ref).withRef2(existingValue.ref2).withRef3(existingValue.ref3).withFoo(existingValue.foo).build()
+                        ValueBuilder.value().withDoubleValue(existingValue.doubleValue).withRef(existingValue.ref).withRef2(existingValue.ref2).withRef3(existingValue.ref3).withFoo(existingValue.foo).withRef4(existingValue.ref4).build()
                     }
 
                     private var doubleValue: Double?
@@ -587,6 +643,14 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                         return self
                     }
 
+                    private var ref4: Set<BarObjc>?
+
+                    @objc @discardableResult
+                    public func withRef4(_ ref4: Set<BarObjc>) -> ValueBuilder {
+                        self.ref4 = ref4
+                        return self
+                    }
+
                     private func error(field: String) -> Error {
                         NSError(
                             domain: "ValueType.Builder.NonnullFieldUnset",
@@ -613,8 +677,11 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                         guard let foo = foo else {
                             throw error(field: "foo")
                         }
+                        guard let ref4 = ref4 else {
+                            throw error(field: "ref4")
+                        }
 
-                        return ValueObjc(doubleValue: doubleValue, ref: ref, ref2: ref2, ref3: ref3, foo: foo)
+                        return ValueObjc(doubleValue: doubleValue, ref: ref, ref2: ref2, ref3: ref3, foo: foo, ref4: ref4)
                     }
                 }
             }
@@ -671,6 +738,12 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 @available(*, unavailable)
                 public override init() {
                     fatalError()
+                }
+            }
+
+            extension Value {
+                public init(_ wrapper: ValueObjc) {
+                    self.doubleValue = wrapper.doubleValue
                 }
             }
             """
@@ -774,6 +847,12 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 @available(*, unavailable)
                 public override init() {
                     fatalError()
+                }
+            }
+
+            extension ABValue {
+                public init(_ wrapper: ABValueObjc) {
+                    self.value = wrapper.value
                 }
             }
 
@@ -923,6 +1002,15 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 @available(*, unavailable)
                 public override init() {
                     fatalError()
+                }
+            }
+
+            extension Value {
+                public init(_ wrapper: ValueObjc) {
+                    self.doubleValue = wrapper.doubleValue
+                    self.optInt = wrapper.optInt.map(\.int64Value)
+                    self.stringArray = wrapper.stringArray
+                    self.map = wrapper.map
                 }
             }
 
@@ -1144,6 +1232,14 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
             }
 
+            extension StoriesOther {
+                public init(_ wrapper: StoriesOtherObjc) {
+                    self.productImageSize = wrapper.productImageSize
+                    self.frame = wrapper.frame
+                    self.rotationAngle = wrapper.rotationAngle
+                }
+            }
+
             extension StoriesOtherObjc {
                 @objc(SCStoriesOtherBuilder)
                 public class StoriesOtherBuilder: NSObject {
@@ -1352,15 +1448,29 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
 
                 @objc
-                public func matchSaveBegan(_ saveBegan: SaveUpdatesSaveBeganMatchHandler?, saveSucceeded: SaveUpdatesSaveSucceededMatchHandler?, saveFailed: SaveUpdatesSaveFailedMatchHandler?) {
+                public func matchSaveBegan(_ saveBegan: SaveUpdatesSaveBeganMatchHandler, saveSucceeded: SaveUpdatesSaveSucceededMatchHandler, saveFailed: SaveUpdatesSaveFailedMatchHandler) {
                     switch subtype {
                     case .saveBegan:
-                        saveBegan?(saveBeganSavingToAlpha!)
+                        saveBegan(saveBeganSavingToAlpha!)
                     case .saveSucceeded:
-                        saveSucceeded?(saveSucceededSavedToAlpha!, saveSucceededSavedToBeta!, saveSucceededOptFloat.map(NSNumber.init), saveSucceededDisplayName)
+                        saveSucceeded(saveSucceededSavedToAlpha!, saveSucceededSavedToBeta!, saveSucceededOptFloat.map(NSNumber.init), saveSucceededDisplayName)
                     case .saveFailed:
-                        saveFailed?(saveFailedError)
+                        saveFailed(saveFailedError)
                     }
+                }
+            }
+
+            extension SaveUpdates {
+                public init(_ wrapper: SaveUpdatesObjc) {
+                    var original: SaveUpdates!
+                    wrapper.matchSaveBegan({ savingToAlpha in
+                            original = .saveBegan(savingToAlpha: savingToAlpha)
+                        }, saveSucceeded: { savedToAlpha, savedToBeta, optFloat, displayName in
+                            original = .saveSucceeded(savedToAlpha: savedToAlpha, savedToBeta: savedToBeta, optFloat: optFloat.map(\.floatValue), displayName: displayName)
+                        }, saveFailed: { error in
+                            original = .saveFailed(error: error)
+                        })
+                    self = original
                 }
             }
             """#

@@ -19,6 +19,16 @@ extension TypeSyntaxProtocol {
         }
     }
 
+    func aliasingIfSiblingSwiftType(_ referencedSwiftTypes: Set<String>, swiftToObjc: Bool) -> any TypeSyntaxProtocol {
+        return mapTypeName { prevName in
+            if swiftToObjc && referencedSwiftTypes.contains(prevName) {
+                return "\(prevName)Objc"
+            } else {
+                return prevName
+            }
+        }
+    }
+
     func isSiblingSwiftType(_ referencedSwiftTypes: Set<String>) -> Bool {
         conainsTypeName { prevName in
             return referencedSwiftTypes.contains(prevName)
@@ -222,8 +232,9 @@ extension ExprSyntaxProtocol {
         referencedSwiftTypes: Set<String>
     ) -> any ExprSyntaxProtocol {
         var argIndex = 0
-        return convertingToObjcType(
+        return convertingType(
             type: type,
+            swiftToObjc: true,
             referencedSwiftTypes: referencedSwiftTypes,
             nextArgIndex: {
                 let currentArgIndex = argIndex
@@ -233,9 +244,26 @@ extension ExprSyntaxProtocol {
         )
     }
 
-    /// Otherwise it will recursively probe into each subcomponent of the type.
-    private func convertingToObjcType(
+    func convertingToSwiftType(
         type: some TypeSyntaxProtocol,
+        referencedSwiftTypes: Set<String>
+    ) -> any ExprSyntaxProtocol {
+        var argIndex = 0
+        return convertingType(
+            type: type,
+            swiftToObjc: false,
+            referencedSwiftTypes: referencedSwiftTypes,
+            nextArgIndex: {
+                let currentArgIndex = argIndex
+                argIndex += 1
+                return currentArgIndex
+            }
+        )
+    }
+
+    private func convertingType(
+        type: some TypeSyntaxProtocol,
+        swiftToObjc: Bool,
         referencedSwiftTypes: Set<String>,
         temporaryDeclReferenceExpr: DeclReferenceExprSyntax? = nil,
         needsUnwrapRoot: Bool = false,
@@ -247,7 +275,7 @@ extension ExprSyntaxProtocol {
         }
 
         if let identifierType = type.as(IdentifierTypeSyntax.self) {
-            // TODO: Add Set<>, and Array<>, Dictionary<> support
+            // TODO: Add Dictionary<> support
             if useMapOptional {
                 // .map(<Type>Objc.init)
                 return FunctionCallExprSyntax(
@@ -262,7 +290,7 @@ extension ExprSyntaxProtocol {
                     LabeledExprSyntax(
                         expression: MemberAccessExprSyntax(
                             base: DeclReferenceExprSyntax(
-                                baseName: identifierType.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes).as(IdentifierTypeSyntax.self)!.name
+                                baseName: identifierType.aliasingIfSiblingSwiftType(referencedSwiftTypes, swiftToObjc: swiftToObjc).as(IdentifierTypeSyntax.self)!.name
                             ),
                             period: .periodToken(),
                             declName: DeclReferenceExprSyntax(baseName: .keyword(.`init`))
@@ -270,10 +298,60 @@ extension ExprSyntaxProtocol {
                     )
                 }
             } else {
+                if identifierType.trimmed.name.text == "Set" || identifierType.trimmed.name.text == "Array" {
+                    let genericType = identifierType.genericArgumentClause?.arguments.first?.argument ?? TypeSyntax(IdentifierTypeSyntax(name: .identifier("NSObject")))
+                    // Append `.map({ e in ... })` and add Set(...) cast
+                    return FunctionCallExprSyntax(
+                        calledExpression: DeclReferenceExprSyntax(baseName: identifierType.name),
+                        leftParen: .leftParenToken(),
+                        arguments: LabeledExprListSyntax {
+                            LabeledExprSyntax(
+                                expression: FunctionCallExprSyntax(
+                                    calledExpression: MemberAccessExprSyntax(
+                                        base: ExprSyntax(temporaryDeclReferenceExpr) ?? (needsUnwrapRoot ? ExprSyntax(OptionalChainingExprSyntax(expression: self)) : ExprSyntax(self)),
+                                        period: .periodToken(),
+                                        declName: DeclReferenceExprSyntax(baseName: .identifier("map"))
+                                    ),
+                                    leftParen: .leftParenToken(),
+                                    arguments: LabeledExprListSyntax {
+                                        let argIndex = nextArgIndex()
+                                        LabeledExprSyntax(
+                                            expression: ClosureExprSyntax(
+                                                leftBrace: .leftBraceToken(),
+                                                signature: ClosureSignatureSyntax(
+                                                    parameterClause: .simpleInput(
+                                                        ClosureShorthandParameterListSyntax {
+                                                            ClosureShorthandParameterSyntax(
+                                                                name: .identifier("a\(argIndex)")
+                                                            )
+                                                        }
+                                                    ),
+                                                    inKeyword: .keyword(.in)
+                                                ),
+                                                statements: CodeBlockItemListSyntax {
+                                                    convertingType(
+                                                        type: genericType,
+                                                        swiftToObjc: swiftToObjc,
+                                                        referencedSwiftTypes: referencedSwiftTypes,
+                                                        temporaryDeclReferenceExpr: DeclReferenceExprSyntax(baseName: .identifier("a\(argIndex)")),
+                                                        needsUnwrapRoot: needsUnwrapRoot,
+                                                        nextArgIndex: nextArgIndex
+                                                    )
+                                                }
+                                            )
+                                        )
+                                    },
+                                    rightParen: .rightParenToken()
+                                )
+                            )
+                        },
+                        rightParen: .rightParenToken()
+                    )
+                }
                 // Wrapping the expr with `<Type>Objc(<expr>)`.
                 return FunctionCallExprSyntax(
                     calledExpression: DeclReferenceExprSyntax(
-                        baseName: identifierType.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes).as(IdentifierTypeSyntax.self)!.name
+                        baseName: identifierType.aliasingIfSiblingSwiftType(referencedSwiftTypes, swiftToObjc: swiftToObjc).as(IdentifierTypeSyntax.self)!.name
                     ),
                     leftParen: .leftParenToken(),
                     arguments: LabeledExprListSyntax {
@@ -286,16 +364,18 @@ extension ExprSyntaxProtocol {
             }
         } else if let optionalTypeSyntax = type.as(OptionalTypeSyntax.self) {
             if optionalTypeSyntax.wrappedType.is(IdentifierTypeSyntax.self) {
-                return convertingToObjcType(
+                return convertingType(
                     type: optionalTypeSyntax.wrappedType,
+                    swiftToObjc: swiftToObjc,
                     referencedSwiftTypes: referencedSwiftTypes,
                     useMapOptional: true,
                     nextArgIndex: nextArgIndex
                 )
             } else {
                 // Append `?`
-                return convertingToObjcType(
+                return convertingType(
                     type: optionalTypeSyntax.wrappedType,
+                    swiftToObjc: swiftToObjc,
                     referencedSwiftTypes: referencedSwiftTypes,
                     needsUnwrapRoot: true,
                     nextArgIndex: nextArgIndex
@@ -326,8 +406,9 @@ extension ExprSyntaxProtocol {
                                 inKeyword: .keyword(.in)
                             ),
                             statements: CodeBlockItemListSyntax {
-                                convertingToObjcType(
+                                convertingType(
                                     type: arrayTypeSyntax.element,
+                                    swiftToObjc: swiftToObjc,
                                     referencedSwiftTypes: referencedSwiftTypes,
                                     temporaryDeclReferenceExpr: DeclReferenceExprSyntax(baseName: .identifier("a\(argIndex)")),
                                     needsUnwrapRoot: needsUnwrapRoot,
@@ -370,8 +451,9 @@ extension ExprSyntaxProtocol {
                                     inKeyword: .keyword(.in)
                                 ),
                                 statements: CodeBlockItemListSyntax {
-                                    convertingToObjcType(
+                                    convertingType(
                                         type: dictTypeSyntax.value,
+                                        swiftToObjc: swiftToObjc,
                                         referencedSwiftTypes: referencedSwiftTypes,
                                         temporaryDeclReferenceExpr: DeclReferenceExprSyntax(baseName: .identifier("a\(argIndex)")),
                                         needsUnwrapRoot: needsUnwrapRoot,
@@ -387,25 +469,6 @@ extension ExprSyntaxProtocol {
         } else if let _ = type.as(FunctionTypeSyntax.self) {
             // Unsupported
             fatalError("Value type as an argument in function type is not supported; function args should be value type anyway")
-        } else {
-            return self
-        }
-
-        if type.isSiblingSwiftType(referencedSwiftTypes) {
-            return FunctionCallExprSyntax(
-                calledExpression: DeclReferenceExprSyntax(
-                    baseName: type.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes).as(IdentifierTypeSyntax.self)!.name
-                ),
-                leftParen: .leftParenToken(),
-                arguments: LabeledExprListSyntax {
-                    LabeledExprSyntax(
-                        label: .identifier("wrapped"),
-                        colon: .colonToken(),
-                        expression: self
-                    )
-                },
-                rightParen: .rightParenToken()
-            )
         } else {
             return self
         }
@@ -437,6 +500,49 @@ extension ExprSyntaxProtocol {
                         base: DeclReferenceExprSyntax(baseName: .identifier("NSNumber")),
                         period: .periodToken(),
                         declName: DeclReferenceExprSyntax(baseName: .keyword(.`init`))
+                    )
+                )
+            }
+        default:
+            return self
+        }
+    }
+
+    /// Append a `.map(\<numeral>Value)` to an identifier if it is an optional `NSNumber`. An
+    /// example is `.map(\.doubleValue)`.
+    /// - Parameter identifierType: The identifier type.
+    /// - Returns: A function expression call of `.map(\<numeral>Value)`.
+    func unmappingNumeralValueFromNSNumber(
+        type: some TypeSyntaxProtocol
+    ) -> any ExprSyntaxProtocol {
+        guard let optional = type.as(OptionalTypeSyntax.self), optional.wrappedType.isNSNumberBridged, let identifierType = optional.wrappedType.as(IdentifierTypeSyntax.self) else {
+            return self
+        }
+
+        switch identifierType.name.trimmed.text {
+        case "Int8", "UInt8", "Int16", "UInt16", "Int32", "UInt32", "Int64", "UInt64", "Float", "Double", "Bool", "Int", "UInt":
+            return FunctionCallExprSyntax(
+                calledExpression: MemberAccessExprSyntax(
+                    base: self,
+                    period: .periodToken(),
+                    declName: DeclReferenceExprSyntax(baseName: "map")
+                ),
+                leftParen: .leftParenToken(),
+                rightParen: .rightParenToken()
+            ) {
+                LabeledExprSyntax(
+                    expression: KeyPathExprSyntax(
+                        backslash: .backslashToken(),
+                        components: KeyPathComponentListSyntax {
+                            KeyPathComponentSyntax(
+                                period: .periodToken(),
+                                component: .property(
+                                    KeyPathPropertyComponentSyntax(
+                                        declName: DeclReferenceExprSyntax(baseName: .identifier("\(identifierType.name.trimmed.text.lowercasingFirst)Value"))
+                                    )
+                                )
+                            )
+                        }
                     )
                 )
             }
@@ -546,6 +652,12 @@ extension EnumDeclSyntax {
         @LabeledExprListBuilder caseElementBlock: (EnumCaseElementSyntax) throws -> LabeledExprListSyntax
     ) rethrows -> LabeledExprListSyntax {
         try forEachCaseElementGeneric(caseElementBlock: caseElementBlock)
+    }
+
+    func enumerateCaseElement(
+        @LabeledExprListBuilder caseElementBlock: (Int, EnumCaseElementSyntax) throws -> LabeledExprListSyntax
+    ) rethrows -> LabeledExprListSyntax {
+        try enumerateCaseElementGeneric(caseElementBlock: caseElementBlock)
     }
 
     func enumerateCaseElement(

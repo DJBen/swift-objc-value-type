@@ -235,6 +235,18 @@ public struct SwiftObjcValueTypeFactory {
             .with(\.leadingTrivia, .newlines(2))
         )
 
+        decls.append(
+            try ExtensionDeclSyntax(
+                extendedType: IdentifierTypeSyntax(name: structDecl.name.trimmed)
+            ) {
+                try swiftInitializerFromObjcWrapper(
+                    structDecl: structDecl,
+                    referencedSwiftTypes: referencedSwiftTypes
+                )
+            }
+            .with(\.leadingTrivia, .newlines(2))
+        )
+
         if shouldSynthesizeObjCBuilder {
             decls.append(
                 try objcBuilderExtensionDecl(
@@ -474,6 +486,18 @@ public struct SwiftObjcValueTypeFactory {
             .with(\.leadingTrivia, .newlines(2))
         )
 
+        decls.append(
+            try ExtensionDeclSyntax(
+                extendedType: IdentifierTypeSyntax(name: enumDecl.name.trimmed)
+            ) {
+                try swiftInitializerFromObjcWrapper(
+                    enumDecl: enumDecl,
+                    referencedSwiftTypes: referencedSwiftTypes
+                )
+            }
+            .with(\.leadingTrivia, .newlines(2))
+        )
+
         return decls
     }
 
@@ -504,10 +528,8 @@ public struct SwiftObjcValueTypeFactory {
                         FunctionParameterSyntax(
                             firstName: index == 0 ? .wildcardToken() : caseElement.name,
                             secondName: index == 0 ? caseElement.name : nil,
-                            type: OptionalTypeSyntax(
-                                wrappedType: IdentifierTypeSyntax(
-                                    name: .identifier("\(enumName)\(caseElement.name.trimmed.text.uppercasingFirst)MatchHandler")
-                                )
+                            type:IdentifierTypeSyntax(
+                                name: .identifier("\(enumName)\(caseElement.name.trimmed.text.uppercasingFirst)MatchHandler")
                             )
                         )
                     }
@@ -531,10 +553,8 @@ public struct SwiftObjcValueTypeFactory {
                         )
                     ) {
                         FunctionCallExprSyntax(
-                            calledExpression: OptionalChainingExprSyntax(
-                                expression: DeclReferenceExprSyntax(
-                                    baseName: caseElement.name
-                                )
+                            calledExpression: DeclReferenceExprSyntax(
+                                baseName: caseElement.name
                             ),
                             leftParen: .leftParenToken(),
                             rightParen: .rightParenToken()
@@ -701,173 +721,6 @@ public struct SwiftObjcValueTypeFactory {
                 "super.init()"
             )
             .with(\.leadingTrivia, .newlines(2))
-        }
-    }
-
-
-    /*
-     public init(_ original: Foo) {
-         self.prop1 = original.prop1,
-         self.arrayOfBar = original.array.map({ a0 in BarObjc(a0) }),
-         self.optMapOfIntToBaz = original.optMap?.mapValue({ a0 in Baz(a0) })
-
-         super.init()
-     }
-     */
-    @MemberBlockItemListBuilder
-    private func objcInitializerFromSwiftType(
-        structDecl: StructDeclSyntax,
-        referencedSwiftTypes: Set<String>
-    ) throws -> MemberBlockItemListSyntax {
-        InitializerDeclSyntax(
-            modifiers: DeclModifierListSyntax {
-                structDecl.modifiers.trimmed
-            },
-            signature: FunctionSignatureSyntax(
-                parameterClause: FunctionParameterClauseSyntax(
-                    parametersBuilder: {
-                        FunctionParameterSyntax(
-                            firstName: .wildcardToken(),
-                            secondName: .identifier("original"),
-                            type: IdentifierTypeSyntax(
-                                name: structDecl.name.trimmed
-                            )
-                        )
-                    }
-                )
-            )
-        ) {
-            structDecl.forEachBinding { binding in
-                SequenceExprSyntax {
-                    if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let typeAnnotation = binding.typeAnnotation {
-                        MemberAccessExprSyntax(
-                            base: DeclReferenceExprSyntax(baseName: .keyword(.self)),
-                            declName: DeclReferenceExprSyntax(baseName: identifierPattern.identifier)
-                        )
-
-                        AssignmentExprSyntax()
-
-                        MemberAccessExprSyntax(
-                            base: DeclReferenceExprSyntax(
-                                baseName: .identifier("original")
-                            ),
-                            declName: DeclReferenceExprSyntax(
-                                baseName: identifierPattern.identifier
-                            )
-                        )
-                        .mappingNumeralValueToNSNumber(
-                            type: typeAnnotation.type
-                        )
-                        .convertingToObjcType(
-                            type: typeAnnotation.type,
-                            referencedSwiftTypes: referencedSwiftTypes
-                        )
-                    }
-                }
-            }
-
-            ExprSyntax(
-                "super.init()"
-            )
-            .with(\.leadingTrivia, .newlines(2))
-        }
-    }
-
-    @MemberBlockItemListBuilder
-    private func objcInitializerFromSwiftType(
-        enumDecl: EnumDeclSyntax,
-        referencedSwiftTypes: Set<String>
-    ) throws -> MemberBlockItemListSyntax {
-        try InitializerDeclSyntax(
-            modifiers: DeclModifierListSyntax {
-                enumDecl.modifiers.trimmed
-
-                DeclModifierSyntax(name: .keyword(.convenience))
-            },
-            signature: FunctionSignatureSyntax(
-                parameterClause: FunctionParameterClauseSyntax(
-                    parametersBuilder: {
-                        FunctionParameterSyntax(
-                            firstName: .wildcardToken(),
-                            secondName: .identifier("original"),
-                            type: IdentifierTypeSyntax(
-                                name: enumDecl.name.trimmed
-                            )
-                        )
-                    }
-                )
-            )
-        ) {
-            try SwitchExprSyntax("switch original") {
-                enumDecl.forEachCaseElement { caseElement in
-                    SwitchCaseSyntax(
-                        label: .case(
-                            SwitchCaseLabelSyntax {
-                                SwitchCaseItemSyntax(
-                                    pattern: ExpressionPatternSyntax(
-                                        expression: FunctionCallExprSyntax(
-                                            calledExpression: MemberAccessExprSyntax(
-                                                period: .periodToken(),
-                                                declName: DeclReferenceExprSyntax(baseName: caseElement.name)
-                                            ),
-                                            leftParen: .leftParenToken(),
-                                            arguments: LabeledExprListSyntax {
-                                                let params = caseElement.parameterClause?.parameters ?? []
-                                                for (index, caseParam) in params.enumerated() {
-                                                    LabeledExprSyntax(
-                                                        expression: PatternExprSyntax(
-                                                            pattern: ValueBindingPatternSyntax(
-                                                                bindingSpecifier: .keyword(.let),
-                                                                pattern: IdentifierPatternSyntax(identifier: caseParam.properName(index: index))
-                                                            )
-                                                        )
-                                                    )
-                                                }
-                                            },
-                                            rightParen: .rightParenToken()
-                                        )
-                                    )
-                                )
-                            }
-                        )
-                    ) {
-                        FunctionCallExprSyntax(
-                            calledExpression: MemberAccessExprSyntax(
-                                base: DeclReferenceExprSyntax(baseName: .keyword(.`self`)),
-                                period: .periodToken(),
-                                declName: DeclReferenceExprSyntax(baseName: .keyword(.`init`))
-                            ),
-                            leftParen: .leftParenToken(),
-                            rightParen: .rightParenToken()
-                        ) {
-                            LabeledExprListSyntax {
-                                LabeledExprSyntax(
-                                    label: .identifier("subtype"),
-                                    colon: .colonToken(),
-                                    expression: ExprSyntax(".\(raw: caseElement.name.trimmed.text.lowercasingFirst)")
-                                )
-                            }
-
-                            let params = caseElement.parameterClause?.parameters ?? []
-                            let caseName = caseElement.name.trimmed.text.uppercasingFirst
-                            for (index, caseParam) in params.enumerated() {
-                                LabeledExprSyntax(
-                                    label: .identifier(caseName.lowercasingFirst + caseParam.properName(index: index).trimmed.text.uppercasingFirst),
-                                    colon: .colonToken(),
-                                    expression: DeclReferenceExprSyntax(
-                                        baseName: caseParam.properName(index: index)
-                                    )
-                                    .convertingToObjcType(
-                                        type: caseParam.type,
-                                        referencedSwiftTypes: referencedSwiftTypes
-                                    )
-                                    .mappingNumeralValueToNSNumber(type: caseParam.type)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 
