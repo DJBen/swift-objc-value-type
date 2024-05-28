@@ -32,7 +32,7 @@ struct ValueObjectConfig: Hashable {
             for piece in trivia.pieces {
                 switch piece {
                 case .blockComment(let comment), .lineComment(let comment), .docLineComment(let comment), .docBlockComment(let comment):
-                    for match in comment.matches(of: /@value_object\s+swift_types_with_wrapper\s+([\w"\[\] :]+)/) {
+                    for match in comment.matches(of: /@value_object\s+swift_types_with_wrapper\s+(\[[^\]]+\])/) {
                         let json = String(match.1).trimmingCharacters(in: .whitespaces)
                         // parse and insert json into mappings
                         if let data = json.data(using: .utf8) {

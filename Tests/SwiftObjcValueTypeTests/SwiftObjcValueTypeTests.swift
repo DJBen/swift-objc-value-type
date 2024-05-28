@@ -450,9 +450,14 @@ final class SwiftObjcValueTypeTests: XCTestCase {
     func testValueObjc_aliasedSwiftTypes() throws {
         let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
             codeBlocks: CodeBlockItemListSyntax {
+                """
+                import ABC
+                """
+
                 #"""
-                // Some other comments
-                // @value_object swift_types_with_wrapper ["Foo"] // TODO: remove
+
+                /// Some other comments
+                /// @value_object swift_types_with_wrapper ["Foo", "Bab"] // TODO: remove
                 public struct Value: CustomStringConvertible {
                     public let doubleValue: Double
 
@@ -462,7 +467,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
                     public let ref3: [Bar]?
 
-                    public let foo: Foo
+                    public let foo: [Foo]
 
                     public let ref4: Set<Bar>
                 }
@@ -478,7 +483,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
         assertBuildResult(
             result,
             #"""
-
+            import ABC
 
             private let kDoubleValueKey = "DOUBLE_VALUE"
             private let kRefKey = "REF"
@@ -497,12 +502,12 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
                 @objc public let ref3: [BarObjc]?
 
-                @objc public let foo: FooObjc
+                @objc public let foo: [FooObjc]
 
                 @objc public let ref4: Set<BarObjc>
 
                 @objc
-                public init(doubleValue: Double, ref: Value2Objc, ref2: [Int: [BarObjc]], ref3: [BarObjc]?, foo: FooObjc, ref4: Set<BarObjc>) {
+                public init(doubleValue: Double, ref: Value2Objc, ref2: [Int: [BarObjc]], ref3: [BarObjc]?, foo: [FooObjc], ref4: Set<BarObjc>) {
                     self.doubleValue = doubleValue
                     self.ref = ref
                     self.ref2 = ref2
@@ -524,7 +529,9 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     self.ref3 = original.ref3?.map({ a0 in
                             BarObjc(a0)
                         })
-                    self.foo = FooObjc(original.foo)
+                    self.foo = original.foo.map({ a0 in
+                            FooObjc(a0)
+                        })
                     self.ref4 = Set(original.ref4.map({ a0 in
                                 BarObjc(a0)
                             }))
@@ -554,7 +561,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                         return nil
                     }
                     let ref3 = coder.decodeObject(forKey: kRef3Key) as? [BarObjc]
-                    guard let foo = coder.decodeObject(forKey: kFooKey) as? FooObjc else {
+                    guard let foo = coder.decodeObject(forKey: kFooKey) as? [FooObjc] else {
                         return nil
                     }
                     guard let ref4 = coder.decodeObject(forKey: kRef4Key) as? Set<BarObjc> else {
@@ -585,7 +592,9 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     self.ref3 = wrapper.ref3?.map({ a0 in
                             Bar(a0)
                         })
-                    self.foo = Foo(wrapper.foo)
+                    self.foo = wrapper.foo.map({ a0 in
+                            Foo(a0)
+                        })
                     self.ref4 = Set(wrapper.ref4.map({ a0 in
                                 Bar(a0)
                             }))
@@ -635,10 +644,10 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                         return self
                     }
 
-                    private var foo: FooObjc?
+                    private var foo: [FooObjc]?
 
                     @objc @discardableResult
-                    public func withFoo(_ foo: FooObjc) -> ValueBuilder {
+                    public func withFoo(_ foo: [FooObjc]) -> ValueBuilder {
                         self.foo = foo
                         return self
                     }
