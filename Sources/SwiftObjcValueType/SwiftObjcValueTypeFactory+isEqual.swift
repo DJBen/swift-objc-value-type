@@ -51,12 +51,15 @@ extension SwiftObjcValueTypeFactory {
     @ExprListBuilder
     private func propertyIsEqualExprs(
         identifier: TokenSyntax,
-        type: some TypeSyntaxProtocol
+        type: some TypeSyntaxProtocol,
+        valueObjectConfig: ValueObjectConfig
     ) -> ExprListSyntax {
         // Use `a == other.a` if primitive type
         // Otherwise use `a.isEqual(other.a)` if not optional
         // `a?.isEqual(other?.a) == true` if optional
-        if type.shouldUseEqualSignForEqualityCheck {
+        if type.asEnumTypeIfKnown(
+            nsEnumTypes: valueObjectConfig.nsEnumTypes
+        ).0.shouldUseEqualSignForEqualityCheck {
             DeclReferenceExprSyntax(
                 baseName: identifier
             )
@@ -156,7 +159,8 @@ extension SwiftObjcValueTypeFactory {
 
                             propertyIsEqualExprs(
                                 identifier: identifierPattern.identifier,
-                                type: typeAnnotation.type
+                                type: typeAnnotation.type,
+                                valueObjectConfig: structDecl.valueObjectConfig
                             )
 
                             if index + 1 < bindingsCount {
@@ -191,7 +195,8 @@ extension SwiftObjcValueTypeFactory {
 
                             propertyIsEqualExprs(
                                 identifier: .identifier(propertyName),
-                                type: caseParam.type.optionalized
+                                type: caseParam.type.optionalized,
+                                valueObjectConfig: enumDecl.valueObjectConfig
                             )
 
                             if paramIndex + 1 < params.count || index + 1 < enumDecl.caseCount {

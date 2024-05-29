@@ -875,7 +875,7 @@ private extension Trivia {
     }
 }
 
-private extension StructDeclSyntax {
+extension StructDeclSyntax {
     var valueObjectConfig: ValueObjectConfig {
         attributes.leadingTrivia.valueObjectConfig
             .union(modifiers.leadingTrivia.valueObjectConfig)
@@ -883,7 +883,7 @@ private extension StructDeclSyntax {
     }
 }
 
-private extension EnumDeclSyntax {
+extension EnumDeclSyntax {
     var valueObjectConfig: ValueObjectConfig {
         attributes.leadingTrivia.valueObjectConfig
             .union(modifiers.leadingTrivia.valueObjectConfig)

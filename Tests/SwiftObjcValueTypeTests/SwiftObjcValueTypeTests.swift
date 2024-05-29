@@ -699,6 +699,106 @@ final class SwiftObjcValueTypeTests: XCTestCase {
         )
     }
 
+    func testValueObjc_nsEnumTypes() throws {
+        let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
+            codeBlocks: CodeBlockItemListSyntax {
+                """
+                import ABC
+                """
+
+                #"""
+
+                /// Some other comments
+                /// @value_object ns_enum_types {"EnumType": "UInt"}
+                /// @value_object NSCoding
+                public struct Value: Equatable {
+                    public let doubleValue: Double
+
+                    public let enumType: EnumType
+                }
+
+                """#
+            },
+            externalHashSettings: ExternalHashSettings(
+                hashFunc: "HashImpl",
+                hashFloatFunc: "HashFloat",
+                hashDoubleFunc: "HashDouble",
+                isUnsafePointer: true
+            )
+        )
+
+        assertBuildResult(
+            result,
+            #"""
+            import ABC
+
+            private let kDoubleValueKey = "DOUBLE_VALUE"
+            private let kEnumTypeKey = "ENUM_TYPE"
+
+            @objc(Value)
+            public class ValueObjc: NSObject, NSCoding {
+                @objc public let doubleValue: Double
+
+                @objc public let enumType: EnumType
+
+                @objc
+                public init(doubleValue: Double, enumType: EnumType) {
+                    self.doubleValue = doubleValue
+                    self.enumType = enumType
+
+                    super.init()
+                }
+
+                public init(_ original: Value) {
+                    self.doubleValue = original.doubleValue
+                    self.enumType = original.enumType
+
+                    super.init()
+                }
+
+                public override var hash: Int {
+                    var hashes: [UInt] = [HashDouble(doubleValue), UInt(bitPattern: enumType)]
+                    return Int(hashes.withUnsafeMutableBufferPointer { p in
+                        HashImpl(p.baseAddress, 2)
+                        })
+                }
+
+                public override func isEqual(_ object: Any?) -> Bool {
+                    guard let other = object as? ValueObjc else {
+                        return false
+                    }
+                    return doubleValue == other.doubleValue && enumType == other.enumType
+                }
+
+                public func encode(with coder: NSCoder) {
+                    coder.encode(doubleValue, forKey: kDoubleValueKey)
+                    coder.encode(enumType.rawValue, forKey: kEnumTypeKey)
+                }
+
+                public required convenience init?(coder: NSCoder) {
+                    let doubleValue = coder.decodeDouble(forKey: kDoubleValueKey)
+                    guard let enumType = EnumType(rawValue: coder.decodeInteger(forKey: kEnumTypeKey)) else {
+                        return nil
+                    }
+                    self.init(doubleValue: doubleValue, enumType: enumType)
+                }
+
+                @available(*, unavailable)
+                public override init() {
+                    fatalError()
+                }
+            }
+
+            extension Value {
+                public init(_ wrapper: ValueObjc) {
+                    self.doubleValue = wrapper.doubleValue
+                    self.enumType = wrapper.enumType
+                }
+            }
+            """#
+        )
+    }
+
     func testValueObjc_customStringConvertible() throws {
         let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
             codeBlocks: CodeBlockItemListSyntax {

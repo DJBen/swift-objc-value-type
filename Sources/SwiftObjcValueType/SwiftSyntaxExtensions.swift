@@ -62,9 +62,12 @@ extension TypeSyntaxProtocol {
         return OptionalTypeSyntax(wrappedType: self)
     }
 
-    var nsCodableDecodingFunction: TokenSyntax {
+    func nsCodableDecodingFunction(
+        nsEnumTypes: [String: String]
+    ) -> TokenSyntax {
         if let identifierType = self.as(IdentifierTypeSyntax.self) {
-            switch identifierType.name.trimmed.text {
+            let mappedType = nsEnumTypes[identifierType.name.trimmed.text]
+            switch mappedType ?? identifierType.name.trimmed.text {
             case "Int8", "UInt8", "Int16", "UInt16":
                 return .identifier("decodeCInt")
             case "Int32", "UInt32":
@@ -109,11 +112,23 @@ extension TypeSyntaxProtocol {
         }
     }
 
+    func isKnownNSEnumType(nsEnumTypes: [String: String]) -> Bool {
+        asEnumTypeIfKnown(nsEnumTypes: nsEnumTypes).1
+    }
+
+    /// If contained with a set of known enum types, the type will be converted to `Int`.
+    func asEnumTypeIfKnown(nsEnumTypes: [String: String]) -> (any TypeSyntaxProtocol, Bool) {
+        if let idType = self.as(IdentifierTypeSyntax.self), let type = nsEnumTypes[idType.name.trimmed.text] {
+            return (IdentifierTypeSyntax(name: .identifier(type)), true)
+        }
+        return (self, false)
+    }
+
     /// Whether this property can be expressed as a primitive in Objective-C.
     var isObjcPrimitive: Bool {
         if let identifierType = self.as(IdentifierTypeSyntax.self) {
             switch identifierType.name.trimmed.text {
-            case "Int", "UInt8", "Int8", "Int16", "UInt16", "Int32", "UInt32", "Int64", "UInt64", "Float", "Double", "Bool":
+            case "Int", "UInt", "UInt8", "Int8", "Int16", "UInt16", "Int32", "UInt32", "Int64", "UInt64", "Float", "Double", "Bool":
                 return true
             case "CGFloat", "CGPoint", "CGRect", "CGSize", "CGVector", "CGAffineTransform":
                 // Core graphics
@@ -752,6 +767,12 @@ extension StructDeclSyntax {
     func forEachVariableDecl(
         @CodeBlockItemListBuilder memberBlockItem: (VariableDeclSyntax) throws -> CodeBlockItemListSyntax
     ) rethrows -> CodeBlockItemListSyntax {
+        try forEachVariableDeclGeneric(memberBlockItem: memberBlockItem)
+    }
+
+    func forEachVariableDecl(
+        @ArrayElementListBuilder memberBlockItem: (VariableDeclSyntax) throws -> ArrayElementListSyntax
+    ) rethrows -> ArrayElementListSyntax {
         try forEachVariableDeclGeneric(memberBlockItem: memberBlockItem)
     }
 

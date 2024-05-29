@@ -14,7 +14,8 @@ extension SwiftObjcValueTypeFactory {
         identifier: TokenSyntax,
         type: some TypeSyntaxProtocol,
         externalHashSettings: ExternalHashSettings?,
-        needsUnwrap: Bool = false
+        needsUnwrap: Bool = false,
+        needsAppendRawValue: Bool = false
     ) -> ArrayElementListSyntax {
         let numeralUnwrapSuffix = needsUnwrap ? " ?? 0" : ""
         if type.isBool {
@@ -33,7 +34,11 @@ extension SwiftObjcValueTypeFactory {
                 ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: (\(identifier) as NSArray).hash)"))
             }
         } else if type.isSignedInt {
-            ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: abs(\(identifier)\(raw: numeralUnwrapSuffix)))"))
+            if needsAppendRawValue {
+                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: abs(\(identifier)\(raw: numeralUnwrapSuffix).rawValue))"))
+            } else {
+                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: abs(\(identifier)\(raw: numeralUnwrapSuffix)))"))
+            }
         } else if type.isFloat {
             let floatHashFunc = externalHashSettings?.hashFloatFunc ?? "hashFloat"
             ArrayElementSyntax(expression: ExprSyntax("\(raw: floatHashFunc)(\(identifier))"))
@@ -77,6 +82,8 @@ extension SwiftObjcValueTypeFactory {
         } else {
             if needsUnwrap {
                 ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: \(identifier)?.hash\(raw: numeralUnwrapSuffix))"))
+            } else if needsAppendRawValue {
+                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: \(identifier).rawValue.hash)"))
             } else {
                 ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: \(identifier).hash)"))
             }
@@ -86,6 +93,7 @@ extension SwiftObjcValueTypeFactory {
     @CodeBlockItemListBuilder
     private func hashInvocation<StructOrEnum: DeclSyntaxProtocol>(
         container: StructOrEnum,
+        valueObjectConfig: ValueObjectConfig,
         externalHashSettings: ExternalHashSettings?
     ) -> CodeBlockItemListSyntax {
         let count: Int = {
@@ -111,10 +119,12 @@ extension SwiftObjcValueTypeFactory {
                             if let structDecl = container.as(StructDeclSyntax.self) {
                                 structDecl.forEachBinding { binding in
                                     if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let type = binding.typeAnnotation?.type {
+                                        let (newType, needsAppendRawValue) = type.asEnumTypeIfKnown(nsEnumTypes: valueObjectConfig.nsEnumTypes)
                                         arrayElement(
                                             identifier: identifierPattern.identifier,
-                                            type: type,
-                                            externalHashSettings: externalHashSettings
+                                            type: newType,
+                                            externalHashSettings: externalHashSettings,
+                                            needsAppendRawValue: needsAppendRawValue
                                         )
 
                                     }
@@ -126,10 +136,12 @@ extension SwiftObjcValueTypeFactory {
                                 enumDecl.forEachCaseElement { caseElement in
                                     let caseName = caseElement.name.trimmed.text.uppercasingFirst
                                     for (index, caseParam) in (caseElement.parameterClause?.parameters ?? []).enumerated() {
+                                        let (newType, needsAppendRawValue) = caseParam.type.asEnumTypeIfKnown(nsEnumTypes: valueObjectConfig.nsEnumTypes)
                                         arrayElement(
                                             identifier: .identifier(caseName.lowercasingFirst + caseParam.properName(index: index).trimmed.text.uppercasingFirst),
-                                            type: caseParam.type.optionalized,
-                                            externalHashSettings: externalHashSettings
+                                            type: newType.optionalized,
+                                            externalHashSettings: externalHashSettings,
+                                            needsAppendRawValue: needsAppendRawValue
                                         )
                                     }
                                 }
@@ -156,6 +168,7 @@ extension SwiftObjcValueTypeFactory {
     @MemberBlockItemListBuilder
     private func hashFunc<StructOrEnum: DeclSyntaxProtocol>(
         container: StructOrEnum,
+        valueObjectConfig: ValueObjectConfig,
         modifiers: DeclModifierListSyntax,
         externalHashSettings: ExternalHashSettings?
     ) -> MemberBlockItemListSyntax {
@@ -180,6 +193,7 @@ extension SwiftObjcValueTypeFactory {
                     accessors: .getter(
                         hashInvocation(
                             container: container,
+                            valueObjectConfig: valueObjectConfig,
                             externalHashSettings: externalHashSettings
                         )
                     )
@@ -264,6 +278,7 @@ extension SwiftObjcValueTypeFactory {
     ) -> MemberBlockItemListSyntax {
         hashFunc(
             container: structDecl,
+            valueObjectConfig: structDecl.valueObjectConfig,
             modifiers: structDecl.modifiers,
             externalHashSettings: externalHashSettings
         )
@@ -276,6 +291,7 @@ extension SwiftObjcValueTypeFactory {
     ) -> MemberBlockItemListSyntax {
         hashFunc(
             container: enumDecl,
+            valueObjectConfig: enumDecl.valueObjectConfig,
             modifiers: enumDecl.modifiers,
             externalHashSettings: externalHashSettings
         )

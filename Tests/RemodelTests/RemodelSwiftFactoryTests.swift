@@ -206,10 +206,11 @@ final class RemodelSwiftFactoryTests: XCTestCase {
 
         assertBuildResult(
             result,
-            """
+            #"""
             import ActionLib
             import MediaModels
 
+            // @value_object ns_enum_types {"MediaType":"Int"}
             /// Some comments
             public struct Config {
 
@@ -236,7 +237,7 @@ final class RemodelSwiftFactoryTests: XCTestCase {
                 }
             }
 
-            """
+            """#
         )
     }
 

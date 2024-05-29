@@ -109,7 +109,8 @@ extension SwiftObjcValueTypeFactory {
     // let optInt = coder.decodeObject(forKey: kOptIntKey) as? NSNumber
     private func nsCodingDecodeAssignmentCall(
         type: some TypeSyntaxProtocol,
-        constantName: String
+        constantName: String,
+        nsEnumTypes: [String: String]
     ) -> InitializerClauseSyntax {
         InitializerClauseSyntax(
             value: SequenceExprSyntax {
@@ -118,7 +119,7 @@ extension SwiftObjcValueTypeFactory {
                         base: DeclReferenceExprSyntax(baseName: .identifier("coder")),
                         period: .periodToken(),
                         declName: DeclReferenceExprSyntax(
-                            baseName: type.nsCodableDecodingFunction
+                            baseName: type.nsCodableDecodingFunction(nsEnumTypes: nsEnumTypes)
                         )
                     ),
                     leftParen: .leftParenToken(),
@@ -138,6 +139,10 @@ extension SwiftObjcValueTypeFactory {
                     to: "CGFloat",
                     ifEqual: "CGFloat"
                 )
+                .casted(
+                    type: type,
+                    nsEnumTypes: nsEnumTypes
+                )
 
                 if let optionalType = type.as(OptionalTypeSyntax.self), optionalType.wrappedType.isNSNumberBridged {
                     UnresolvedAsExprSyntax(
@@ -149,7 +154,7 @@ extension SwiftObjcValueTypeFactory {
                             name: .identifier("NSNumber")
                         )
                     )
-                } else if !type.isObjcPrimitive {
+                } else if !type.isObjcPrimitive && !type.isKnownNSEnumType(nsEnumTypes: nsEnumTypes) {
                     UnresolvedAsExprSyntax(
                         questionOrExclamationMark: .postfixQuestionMarkToken()
                     )
@@ -167,7 +172,8 @@ extension SwiftObjcValueTypeFactory {
     private func coderEncodeCall(
         type: some TypeSyntaxProtocol,
         propertyExpr: some ExprSyntaxProtocol,
-        constantName: String
+        constantName: String,
+        valueObjectConfig: ValueObjectConfig
     ) -> FunctionCallExprSyntax {
         FunctionCallExprSyntax(
             calledExpression: MemberAccessExprSyntax(
@@ -189,6 +195,10 @@ extension SwiftObjcValueTypeFactory {
                         to: "Double",
                         ifEqual: "CGFloat"
                     )
+                    .appendingRawValueIfNSEnumType(
+                        nsEnumTypes: valueObjectConfig.nsEnumTypes,
+                        type: type
+                    )
                 )
 
                 LabeledExprSyntax(
@@ -207,12 +217,14 @@ extension SwiftObjcValueTypeFactory {
     private func coderEncodeCall(
         type: some TypeSyntaxProtocol,
         propertyName: String,
-        constantName: String
+        constantName: String,
+        valueObjectConfig: ValueObjectConfig
     ) -> FunctionCallExprSyntax {
         coderEncodeCall(
             type: type,
             propertyExpr: DeclReferenceExprSyntax(baseName: .identifier(propertyName)),
-            constantName: constantName
+            constantName: constantName,
+            valueObjectConfig: valueObjectConfig
         )
     }
 
@@ -223,10 +235,16 @@ extension SwiftObjcValueTypeFactory {
     private func decodeCall(
         type: some TypeSyntaxProtocol,
         identifierPattern: IdentifierPatternSyntax,
+        valueObjectConfig: ValueObjectConfig,
         constantEnumPrefix: String? = nil
     ) -> CodeBlockItemListSyntax {
         let constantEnumPrefix = constantEnumPrefix?.uppercasingFirst ?? ""
         let constantName = "k\(constantEnumPrefix)\(identifierPattern.identifier.trimmed.text.uppercasingFirst)Key"
+
+        // If type is one of below, use special treatment
+        // - type is optional
+        // - type is primitive objective-C types
+        // - type is known to be an NS_ENUM type
         if type.is(OptionalTypeSyntax.self) || type.isObjcPrimitive {
             VariableDeclSyntax(
                 bindingSpecifier: .keyword(SwiftSyntax.Keyword.let),
@@ -235,7 +253,8 @@ extension SwiftObjcValueTypeFactory {
                         pattern: identifierPattern,
                         initializer: nsCodingDecodeAssignmentCall(
                             type: type,
-                            constantName: constantName
+                            constantName: constantName,
+                            nsEnumTypes: valueObjectConfig.nsEnumTypes
                         )
                     )
                 }
@@ -251,7 +270,8 @@ extension SwiftObjcValueTypeFactory {
                                 pattern: identifierPattern,
                                 initializer: nsCodingDecodeAssignmentCall(
                                     type: type,
-                                    constantName: constantName
+                                    constantName: constantName,
+                                    nsEnumTypes: valueObjectConfig.nsEnumTypes
                                 )
                             )
                         )
@@ -311,7 +331,8 @@ extension SwiftObjcValueTypeFactory {
                             coderEncodeCall(
                                 type: caseParam.type,
                                 propertyName: caseName.lowercasingFirst + propertyName.uppercasingFirst,
-                                constantName: "k\(caseName)\(propertyName.uppercasingFirst)Key"
+                                constantName: "k\(caseName)\(propertyName.uppercasingFirst)Key",
+                                valueObjectConfig: enumDecl.valueObjectConfig
                             )
                         }
 
@@ -330,7 +351,8 @@ extension SwiftObjcValueTypeFactory {
                                 },
                                 closingQuote: .stringQuoteToken()
                             ),
-                            constantName: "kCodedSubtypeKey"
+                            constantName: "kCodedSubtypeKey",
+                            valueObjectConfig: enumDecl.valueObjectConfig
                         )
                     }
                 }
@@ -399,6 +421,7 @@ extension SwiftObjcValueTypeFactory {
                                 identifierPattern: IdentifierPatternSyntax(
                                     identifier: .identifier(caseParam.properName(index: index).trimmed.text)
                                 ),
+                                valueObjectConfig: enumDecl.valueObjectConfig,
                                 constantEnumPrefix: caseElement.name.trimmed.text
                             )
                         }
@@ -483,7 +506,8 @@ extension SwiftObjcValueTypeFactory {
                     coderEncodeCall(
                         type: typeAnnotation.type,
                         propertyName: identifierPattern.identifier.trimmed.text,
-                        constantName: "k\(identifierPattern.identifier.trimmed.text.uppercasingFirst)Key"
+                        constantName: "k\(identifierPattern.identifier.trimmed.text.uppercasingFirst)Key",
+                        valueObjectConfig: structDecl.valueObjectConfig
                     )
                 }
             }
@@ -524,7 +548,8 @@ extension SwiftObjcValueTypeFactory {
                     // - guard let <variable> = coder.decode<...>(forKey: <key>) as? <type> else { return nil }
                     decodeCall(
                         type: typeAnnotation.type.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes),
-                        identifierPattern: identifierPattern
+                        identifierPattern: identifierPattern,
+                        valueObjectConfig: structDecl.valueObjectConfig
                     )
                 }
             }
@@ -561,7 +586,7 @@ extension SwiftObjcValueTypeFactory {
     }
 }
 
-extension ExprSyntaxProtocol {
+private extension ExprSyntaxProtocol {
     func casted(
         type: some TypeSyntaxProtocol,
         to castedType: String = "CGFloat",
@@ -583,5 +608,42 @@ extension ExprSyntaxProtocol {
         } else {
             return self
         }
+    }
+
+    func casted(
+        type: some TypeSyntaxProtocol,
+        nsEnumTypes: [String: String]
+    ) -> any ExprSyntaxProtocol {
+        if let idType = type.as(IdentifierTypeSyntax.self), let _ = nsEnumTypes[idType.name.trimmed.text] {
+            return FunctionCallExprSyntax(
+                calledExpression: DeclReferenceExprSyntax(
+                    baseName: idType.name
+                ),
+                leftParen: .leftParenToken(),
+                arguments: LabeledExprListSyntax {
+                    LabeledExprSyntax(
+                        label: "rawValue",
+                        expression: self
+                    )
+                },
+                rightParen: .rightParenToken()
+            )
+
+        }
+        return self
+    }
+
+    func appendingRawValueIfNSEnumType(
+        nsEnumTypes: [String: String],
+        type: some TypeSyntaxProtocol
+    ) -> any ExprSyntaxProtocol {
+        if let identifierType = type.as(IdentifierTypeSyntax.self), let _ = nsEnumTypes[identifierType.name.trimmed.text] {
+            return MemberAccessExprSyntax(
+                base: self,
+                period: .periodToken(),
+                declName: DeclReferenceExprSyntax(baseName: .identifier("rawValue"))
+            )
+        }
+        return self
     }
 }

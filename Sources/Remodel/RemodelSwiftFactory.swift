@@ -56,14 +56,47 @@ public class RemodelSwiftFactory {
         if model.includes.contains("RMBuilder") {
             flags.append("Builder")
         }
-        if flags.isEmpty {
-            return []
-        } else {
-            return [
+        var pieces = [TriviaPiece]()
+        if !flags.isEmpty {
+            pieces += [
                 .docLineComment("// @value_object \(flags.joined(separator: " "))"),
                 .newlines(1)
             ]
         }
+
+        let nsEnumTypeMap = model.properties.flatMap { property -> [String] in
+            switch property.value {
+            case .value(let structValue):
+                return [structValue.type]
+            case .adt(let adtValue):
+                return adtValue.innerValues.map(\.type)
+            }
+        }.compactMap { type -> (String, String)? in
+            guard let match = type.firstMatch(of: aliasedPrimitiveTypeRegex) else {
+                return nil
+            }
+            let actualType: String
+            if ["NSInteger", "int"].contains(String(match.2).trimmingCharacters(in: .whitespaces)) {
+                actualType = "Int"
+            } else if ["NSUInteger"].contains(String(match.2).trimmingCharacters(in: .whitespaces)) {
+                actualType = "UInt"
+            } else {
+                actualType = "Int"
+            }
+            return (String(match.1), actualType)
+        }.reduce(into: [:]) { $0[$1.0] = $1.1 }
+
+        if !nsEnumTypeMap.isEmpty {
+            let jsonData = try! JSONEncoder().encode(nsEnumTypeMap)
+            if let jsonString = String(data: jsonData, encoding: .utf8) {
+                pieces += [
+                    .docLineComment("// @value_object ns_enum_types \(jsonString)"),
+                    .newlines(1)
+                ]
+            }
+        }
+
+        return Trivia(pieces: pieces)
     }
 
     func generateValue(
@@ -297,8 +330,8 @@ public class RemodelSwiftFactory {
             var result = remodelType
             result.removeLast()
             return mapType(result.trimmingCharacters(in: .whitespacesAndNewlines), existingPrefix: existingPrefix)
-        } else if let aliasedType = remodelType.firstMatch(of: aliasedPrimitiveTypeRegex) {
-            return String(aliasedType.1)
+        } else if let aliasedPrimitiveType = remodelType.firstMatch(of: aliasedPrimitiveTypeRegex) {
+            return String(aliasedPrimitiveType.1)
         } else if remodelType.lowercased() == "bool" {
             return "Bool"
         } else if remodelType == "char" {
