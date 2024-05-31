@@ -236,8 +236,8 @@ private extension TypeSyntaxProtocol {
             return true
         }
 
-        if let optional = self.as(OptionalTypeSyntax.self), optional.wrappedType.shouldUseEqualSignForEqualityCheck {
-            return true
+        if let optional = self.as(OptionalTypeSyntax.self), !optional.wrappedType.isNSNumberBridged {
+            return optional.wrappedType.shouldUseEqualSignForEqualityCheck
         }
 
         return false

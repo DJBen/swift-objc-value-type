@@ -17,27 +17,40 @@ extension SwiftObjcValueTypeFactory {
         needsUnwrap: Bool = false,
         needsAppendRawValue: Bool = false
     ) -> ArrayElementListSyntax {
-        let numeralUnwrapSuffix = needsUnwrap ? " ?? 0" : ""
-        if type.isBool {
-            ArrayElementSyntax(expression: ExprSyntax("(\(identifier) ? 1 : 0)\(raw: numeralUnwrapSuffix)"))
-        } else if let optionalType = type.as(OptionalTypeSyntax.self) {
-            arrayElement(
-                identifier: identifier,
-                type: optionalType.wrappedType,
-                externalHashSettings: externalHashSettings,
-                needsUnwrap: true
-            )
+        if let optionalType = type.as(OptionalTypeSyntax.self) {
+            if optionalType.wrappedType.isNSNumberBridged {
+                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: \(identifier)?.hash ?? 0)"))
+            } else {
+                arrayElement(
+                    identifier: identifier,
+                    type: optionalType.wrappedType,
+                    externalHashSettings: externalHashSettings,
+                    needsUnwrap: true
+                )
+            }
+        } else if type.isBool {
+            if needsUnwrap {
+                ArrayElementSyntax(expression: ExprSyntax("(\(identifier) ? 1 : 0) ?? 0"))
+            } else {
+                ArrayElementSyntax(expression: ExprSyntax("(\(identifier) ? 1 : 0)"))
+            }
         } else if type.isArray {
             if needsUnwrap {
                 ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: (\(identifier) as? NSArray)?.hash ?? 0)"))
             } else {
                 ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: (\(identifier) as NSArray).hash)"))
             }
+        } else if type.isDict {
+            if needsUnwrap {
+                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: (\(identifier) as? NSDictionary)?.hash ?? 0)"))
+            } else {
+                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: (\(identifier) as NSDictionary).hash)"))
+            }
         } else if type.isSignedInt {
             if needsAppendRawValue {
-                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: abs(\(identifier)\(raw: numeralUnwrapSuffix).rawValue))"))
+                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: abs(\(identifier).rawValue))"))
             } else {
-                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: abs(\(identifier)\(raw: numeralUnwrapSuffix)))"))
+                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: abs(\(identifier)))"))
             }
         } else if type.isFloat {
             let floatHashFunc = externalHashSettings?.hashFloatFunc ?? "hashFloat"
@@ -77,15 +90,57 @@ extension SwiftObjcValueTypeFactory {
             } else {
                 ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: (\(identifier) as \(raw: objcType)).hash)"))
             }
-        } else if type.isObjcPrimitive {
-            ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: \(identifier)\(raw: numeralUnwrapSuffix))"))
+        } else if type.isObjcPrimitive { // only unsigned int satisfy this criteria
+            if needsAppendRawValue {
+                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: \(identifier).rawValue)"))
+            } else {
+                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: \(identifier))"))
+            }
         } else {
             if needsUnwrap {
-                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: \(identifier)?.hash\(raw: numeralUnwrapSuffix))"))
+                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: \(identifier)?.hash ?? 0)"))
             } else if needsAppendRawValue {
                 ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: \(identifier).rawValue.hash)"))
             } else {
                 ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: \(identifier).hash)"))
+            }
+        }
+    }
+
+    @ArrayElementListBuilder
+    private func arrayElements<StructOrEnum: DeclSyntaxProtocol>(
+        container: StructOrEnum,
+        valueObjectConfig: ValueObjectConfig,
+        externalHashSettings: ExternalHashSettings?
+    ) -> ArrayElementListSyntax {
+        if let structDecl = container.as(StructDeclSyntax.self) {
+            structDecl.forEachBinding { binding in
+                if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let type = binding.typeAnnotation?.type {
+                    let (newType, needsAppendRawValue) = type.asEnumTypeIfKnown(nsEnumTypes: valueObjectConfig.nsEnumTypes)
+                    arrayElement(
+                        identifier: identifierPattern.identifier,
+                        type: newType,
+                        externalHashSettings: externalHashSettings,
+                        needsAppendRawValue: needsAppendRawValue
+                    )
+                }
+            }
+        } else if let enumDecl = container.as(EnumDeclSyntax.self) {
+            ArrayElementSyntax(
+                expression: ExprSyntax("UInt(bitPattern: subtype.rawValue)")
+            )
+
+            enumDecl.forEachCaseElement { caseElement in
+                let caseName = caseElement.name.trimmed.text.uppercasingFirst
+                for (index, caseParam) in (caseElement.parameterClause?.parameters ?? []).enumerated() {
+                    let (newType, needsAppendRawValue) = caseParam.type.asEnumTypeIfKnown(nsEnumTypes: valueObjectConfig.nsEnumTypes)
+                    arrayElement(
+                        identifier: .identifier(caseName.lowercasingFirst + caseParam.properName(index: index).trimmed.text.uppercasingFirst),
+                        type: newType.optionalized,
+                        externalHashSettings: externalHashSettings,
+                        needsAppendRawValue: needsAppendRawValue
+                    )
+                }
             }
         }
     }
@@ -96,15 +151,11 @@ extension SwiftObjcValueTypeFactory {
         valueObjectConfig: ValueObjectConfig,
         externalHashSettings: ExternalHashSettings?
     ) -> CodeBlockItemListSyntax {
-        let count: Int = {
-            if let structDecl = container.as(StructDeclSyntax.self) {
-                return structDecl.bindingsCount
-            } else if let enumDecl = container.as(EnumDeclSyntax.self) {
-                return enumDecl.caseCount
-            } else {
-                return 0
-            }
-        }()
+        let arrayElements = arrayElements(
+            container: container,
+            valueObjectConfig: valueObjectConfig,
+            externalHashSettings: externalHashSettings
+        )
 
         VariableDeclSyntax(
             bindingSpecifier: (externalHashSettings?.isUnsafePointer ?? false) ? .keyword(.var) : .keyword(.let),
@@ -116,36 +167,7 @@ extension SwiftObjcValueTypeFactory {
                     ),
                     initializer: InitializerClauseSyntax(
                         value: ArrayExprSyntax {
-                            if let structDecl = container.as(StructDeclSyntax.self) {
-                                structDecl.forEachBinding { binding in
-                                    if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let type = binding.typeAnnotation?.type {
-                                        let (newType, needsAppendRawValue) = type.asEnumTypeIfKnown(nsEnumTypes: valueObjectConfig.nsEnumTypes)
-                                        arrayElement(
-                                            identifier: identifierPattern.identifier,
-                                            type: newType,
-                                            externalHashSettings: externalHashSettings,
-                                            needsAppendRawValue: needsAppendRawValue
-                                        )
-
-                                    }
-                                }
-                            } else if let enumDecl = container.as(EnumDeclSyntax.self) {
-                                ArrayElementSyntax(
-                                    expression: ExprSyntax("UInt(bitPattern: subtype.rawValue)")
-                                )
-                                enumDecl.forEachCaseElement { caseElement in
-                                    let caseName = caseElement.name.trimmed.text.uppercasingFirst
-                                    for (index, caseParam) in (caseElement.parameterClause?.parameters ?? []).enumerated() {
-                                        let (newType, needsAppendRawValue) = caseParam.type.asEnumTypeIfKnown(nsEnumTypes: valueObjectConfig.nsEnumTypes)
-                                        arrayElement(
-                                            identifier: .identifier(caseName.lowercasingFirst + caseParam.properName(index: index).trimmed.text.uppercasingFirst),
-                                            type: newType.optionalized,
-                                            externalHashSettings: externalHashSettings,
-                                            needsAppendRawValue: needsAppendRawValue
-                                        )
-                                    }
-                                }
-                            }
+                            arrayElements
                         }
                     )
                 )
@@ -157,11 +179,11 @@ extension SwiftObjcValueTypeFactory {
         if externalHashSettings?.isUnsafePointer ?? false {
             #"""
             return Int(hashes.withUnsafeMutableBufferPointer { p in
-                \#(raw: hashFunc)(p.baseAddress, \#(raw: count))
+                \#(raw: hashFunc)(p.baseAddress, \#(raw: arrayElements.count))
             })
             """#
         } else {
-            "return Int(\(raw: hashFunc)(hashes, \(raw: count)))"
+            "return Int(\(raw: hashFunc)(hashes, \(raw: arrayElements.count)))"
         }
     }
 
@@ -201,7 +223,7 @@ extension SwiftObjcValueTypeFactory {
             )
         }
 
-        if container.propertyHasFloat && externalHashSettings?.hashFloatFunc == nil {
+        if container.propertyNeedsHashFloat && externalHashSettings?.hashFloatFunc == nil {
             DeclSyntax(
             #"""
             private func hashFloat(_ givenFloat: Float) -> UInt {
@@ -225,7 +247,7 @@ extension SwiftObjcValueTypeFactory {
             .with(\.leadingTrivia, .newlines(2))
         }
 
-        if container.propertyHasDouble && externalHashSettings?.hashDoubleFunc == nil {
+        if container.propertyNeedsHashDouble && externalHashSettings?.hashDoubleFunc == nil {
             DeclSyntax(
             #"""
             private func hashDouble(_ givenDouble: Double) -> UInt {
@@ -299,21 +321,21 @@ extension SwiftObjcValueTypeFactory {
 }
 
 extension DeclSyntaxProtocol {
-    var propertyHasFloat: Bool {
+    var propertyNeedsHashFloat: Bool {
         if let enumDecl = self.as(EnumDeclSyntax.self) {
-            return enumDecl.propertyHasFloat
+            return enumDecl.propertyNeedsHashFloat
         } else if let structDecl = self.as(StructDeclSyntax.self) {
-            return structDecl.propertyHasFloat
+            return structDecl.propertyNeedsHashFloat
         } else {
             return false
         }
     }
 
-    var propertyHasDouble: Bool {
+    var propertyNeedsHashDouble: Bool {
         if let enumDecl = self.as(EnumDeclSyntax.self) {
-            return enumDecl.propertyHasDouble
+            return enumDecl.propertyNeedsHashDouble
         } else if let structDecl = self.as(StructDeclSyntax.self) {
-            return structDecl.propertyHasDouble
+            return structDecl.propertyNeedsHashDouble
         } else {
             return false
         }
@@ -321,20 +343,20 @@ extension DeclSyntaxProtocol {
 }
 
 extension StructDeclSyntax {
-    var propertyHasFloat: Bool {
+    var propertyNeedsHashFloat: Bool {
         var contains = false
         forEachBinding { binding in
-            if let type = binding.typeAnnotation?.type, type.isFloat {
+            if let type = binding.typeAnnotation?.type, type.needsHashFloat {
                 contains = true
             }
         }
         return contains
     }
 
-    var propertyHasDouble: Bool {
+    var propertyNeedsHashDouble: Bool {
         var contains = false
         forEachBinding { binding in
-            if let type = binding.typeAnnotation?.type, type.isDouble {
+            if let type = binding.typeAnnotation?.type, type.needsHashDouble {
                 contains = true
             }
         }
@@ -343,7 +365,7 @@ extension StructDeclSyntax {
 }
 
 extension EnumDeclSyntax {
-    var propertyHasFloat: Bool {
+    var propertyNeedsHashFloat: Bool {
         var contains = false
         forEachCaseElement { caseElement in
             let params = caseElement.parameterClause?.parameters ?? []
@@ -356,7 +378,7 @@ extension EnumDeclSyntax {
         return contains
     }
 
-    var propertyHasDouble: Bool {
+    var propertyNeedsHashDouble: Bool {
         var contains = false
         forEachCaseElement { caseElement in
             let params = caseElement.parameterClause?.parameters ?? []

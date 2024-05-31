@@ -4,11 +4,6 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 
 extension TypeSyntaxProtocol {
-    // When these types are wrapped as Optional, they can't be bridged to Objective-C, instead they need to be wrapped as NSNumber.
-    var isNSNumberBridged: Bool {
-        asNSNumberBridged() != nil
-    }
-
     func aliasingToObjcIfSiblingSwiftType(_ referencedSwiftTypes: Set<String>) -> any TypeSyntaxProtocol {
         return mapTypeName { prevName in
             if referencedSwiftTypes.contains(prevName) {
@@ -35,10 +30,15 @@ extension TypeSyntaxProtocol {
         }
     }
 
+    // When these types are wrapped as Optional, they can't be bridged to Objective-C, instead they need to be wrapped as NSNumber.
+    var isNSNumberBridged: Bool {
+        asNSNumberBridged() != nil
+    }
+
     func asNSNumberBridged() -> IdentifierTypeSyntax? {
         if let identifierType = self.as(IdentifierTypeSyntax.self) {
             switch identifierType.name.trimmed.text {
-            case "Int8", "UInt8", "Int16", "UInt16", "Int32", "UInt32", "Int64", "UInt64", "Float", "CGFloat", "Double", "Bool", "Int", "UInt":
+            case "Int8", "UInt8", "Int16", "UInt16", "Int32", "UInt32", "Int64", "UInt64", "Float", "CGFloat", "Double", "Bool", "Int", "UInt", "TimeInterval":
                 return identifierType
             default:
                 return nil
@@ -128,7 +128,7 @@ extension TypeSyntaxProtocol {
     var isObjcPrimitive: Bool {
         if let identifierType = self.as(IdentifierTypeSyntax.self) {
             switch identifierType.name.trimmed.text {
-            case "Int", "UInt", "UInt8", "Int8", "Int16", "UInt16", "Int32", "UInt32", "Int64", "UInt64", "Float", "Double", "Bool":
+            case "Int", "UInt", "UInt8", "Int8", "Int16", "UInt16", "Int32", "UInt32", "Int64", "UInt64", "Float", "Double", "Bool", "TimeInterval":
                 return true
             case "CGFloat", "CGPoint", "CGRect", "CGSize", "CGVector", "CGAffineTransform":
                 // Core graphics
@@ -150,13 +150,39 @@ extension TypeSyntaxProtocol {
     }
 
     var isFloat: Bool {
-        isIdentifierTypeEqual("Float")
+        return isIdentifierTypeEqual("Float")
+    }
+
+    var needsHashFloat: Bool {
+        if let optType = self.as(OptionalTypeSyntax.self) {
+            return optType.wrappedType.needsHashFloat
+        }
+        return isFloat
     }
 
     var isDouble: Bool {
         if let identifierType = self.as(IdentifierTypeSyntax.self) {
             switch identifierType.name.trimmed.text {
             case "CGFloat", "TimeInterval", "Double":
+                return true
+            default:
+                return false
+            }
+        } else {
+            return false
+        }
+    }
+
+    var needsHashDouble: Bool {
+        if let optType = self.as(OptionalTypeSyntax.self) {
+            return optType.wrappedType.needsHashDouble
+        }
+        if isDouble {
+            return true
+        }
+        if let identifierType = self.as(IdentifierTypeSyntax.self) {
+            switch identifierType.name.trimmed.text {
+            case "CGRect", "CGVector", "CGSize", "CGPoint":
                 return true
             default:
                 return false
@@ -189,6 +215,18 @@ extension TypeSyntaxProtocol {
             return true
         } else if let idType = self.as(IdentifierTypeSyntax.self), idType.name.trimmed.text == "Array" {
             // Array<SomeType>
+            return true
+        }
+
+        return false
+    }
+
+    var isDict: Bool {
+        if self.is(DictionaryTypeSyntax.self) {
+            // [KeyType: ValueType]
+            return true
+        } else if let idType = self.as(IdentifierTypeSyntax.self), idType.name.trimmed.text == "Dictionary" {
+            // Dictionary<KeyType, ValueType>
             return true
         }
 
@@ -500,7 +538,7 @@ extension ExprSyntaxProtocol {
         }
 
         switch identifierType.name.trimmed.text {
-        case "Int8", "UInt8", "Int16", "UInt16", "Int32", "UInt32", "Int64", "UInt64", "Float", "Double", "Bool", "Int", "UInt":
+        case "Int8", "UInt8", "Int16", "UInt16", "Int32", "UInt32", "Int64", "UInt64", "Float", "Double", "Bool", "Int", "UInt", "TimeInterval":
             return FunctionCallExprSyntax(
                 calledExpression: MemberAccessExprSyntax(
                     base: self,
@@ -561,6 +599,32 @@ extension ExprSyntaxProtocol {
                     )
                 )
             }
+        case "TimeInterval", "CGFloat":
+            return FunctionCallExprSyntax(
+                calledExpression: MemberAccessExprSyntax(
+                    base: self,
+                    period: .periodToken(),
+                    declName: DeclReferenceExprSyntax(baseName: "map")
+                ),
+                leftParen: .leftParenToken(),
+                rightParen: .rightParenToken()
+            ) {
+                LabeledExprSyntax(
+                    expression: KeyPathExprSyntax(
+                        backslash: .backslashToken(),
+                        components: KeyPathComponentListSyntax {
+                            KeyPathComponentSyntax(
+                                period: .periodToken(),
+                                component: .property(
+                                    KeyPathPropertyComponentSyntax(
+                                        declName: DeclReferenceExprSyntax(baseName: .identifier("doubleValue"))
+                                    )
+                                )
+                            )
+                        }
+                    )
+                )
+            }
         default:
             return self
         }
@@ -597,6 +661,22 @@ extension EnumDeclSyntax {
                 }
             }
         }
+    }
+
+    func compactMapCaseElement<T>(
+        caseElementBlock: (EnumCaseElementSyntax) throws -> T?
+    ) rethrows -> [T] {
+        var collection = [T]()
+        for member in memberBlock.members {
+            if let caseDecl = member.decl.as(EnumCaseDeclSyntax.self) {
+                for caseElement in caseDecl.elements {
+                    if let result = try caseElementBlock(caseElement) {
+                        collection.append(result)
+                    }
+                }
+            }
+        }
+        return collection
     }
 
     func enumerateCaseElement(
@@ -822,6 +902,18 @@ extension StructDeclSyntax {
         memberBlockItem: (PatternBindingSyntax) throws -> Void
     ) rethrows {
         try enumerateBinding { try memberBlockItem($1) }
+    }
+
+    func compactMapBinding<T>(
+        memberBlockItem: (PatternBindingSyntax) throws -> T?
+    ) rethrows -> [T] {
+        var collection = [T]()
+        try forEachBinding { binding in
+            if let result = try memberBlockItem(binding) {
+                collection.append(result)
+            }
+        }
+        return collection
     }
 
     func enumerateBinding(

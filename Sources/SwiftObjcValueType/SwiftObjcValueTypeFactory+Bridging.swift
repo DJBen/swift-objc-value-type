@@ -304,9 +304,12 @@ extension SwiftObjcValueTypeFactory {
                                         ) {
                                             let params = caseElement.parameterClause?.parameters ?? []
                                             for (index, caseParam) in params.enumerated() {
+                                                // Do not include label for unlabeled case params
+                                                let label = caseParam.firstName ?? caseParam.secondName
+
                                                 LabeledExprSyntax(
-                                                    label:  caseParam.properName(index: index),
-                                                    colon: .colonToken(),
+                                                    label: label,
+                                                    colon: label != nil ? .colonToken() : nil,
                                                     expression: DeclReferenceExprSyntax(
                                                         baseName: caseParam.properName(index: index)
                                                     )

@@ -72,7 +72,7 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
                 }
 
                 public override var hash: Int {
-                    let hashes: [UInt] = [hashDouble(doubleValue), UInt(bitPattern: abs(optInt ?? 0)), UInt(bitPattern: (stringArray as NSArray).hash), UInt(bitPattern: map.hash)]
+                    let hashes: [UInt] = [hashDouble(doubleValue), UInt(bitPattern: optInt?.hash ?? 0), UInt(bitPattern: (stringArray as NSArray).hash), UInt(bitPattern: (map as NSDictionary).hash)]
                     return Int(hashImpl(hashes, 4))
                 }
 
@@ -111,7 +111,7 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
                     guard let other = object as? ValueObjc else {
                         return false
                     }
-                    return doubleValue == other.doubleValue && optInt == other.optInt && stringArray == other.stringArray && map == other.map
+                    return doubleValue == other.doubleValue && optInt?.isEqual(other.optInt) == true && stringArray == other.stringArray && map == other.map
                 }
 
                 public func copy(with zone: NSZone? = nil) -> Any {
