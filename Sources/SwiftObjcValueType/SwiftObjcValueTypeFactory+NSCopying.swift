@@ -80,28 +80,6 @@ extension SwiftObjcValueTypeFactory {
             )
         ) {
             "return self"
-//            FunctionCallExprSyntax(
-//                calledExpression: DeclReferenceExprSyntax(baseName: .identifier("\(enumDecl.name.trimmed.text)Objc")),
-//                leftParen: .leftParenToken(),
-//                rightParen: .rightParenToken()
-//            ) {
-//                LabeledExprListSyntax {
-//                    enumDecl.forEachCaseElement { caseElement in
-//                        let caseName = caseElement.name.trimmed.text.uppercasingFirst
-//
-//                        let params = caseElement.parameterClause?.parameters ?? []
-//                        for (index, caseParam) in params.enumerated() {
-//                            LabeledExprSyntax(
-//                                label: .identifier(caseName.lowercasingFirst + caseParam.properName(index: index).trimmed.text.uppercasingFirst),
-//                                colon: .colonToken(),
-//                                expression: DeclReferenceExprSyntax(
-//                                    baseName: .identifier(caseName.lowercasingFirst + caseParam.properName(index: index).trimmed.text.uppercasingFirst)
-//                                )
-//                            )
-//                        }
-//                    }
-//                }
-//            }
         }
         .with(\.leadingTrivia, .newlines(2))
     }
