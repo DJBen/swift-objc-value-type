@@ -7,7 +7,7 @@ func typeProductions() -> [Production] {
                  <|> n("class_type") <+> (try! re("\\s*\\*\\s*")) <+> n("nullability_specifier")
                  <|> n("block_var_type") <+> n("nullability_specifier")
                  <|> n("var_pointer_type") <+> n("nullability_specifier")
-    
+
     "nullability_qualified_param_type" -%-%> n("param_nullability_specifier") <+> n("param_type")
 
     "param_type" -%-%> n("primitive_type")

@@ -8,6 +8,9 @@ precedencegroup ProductionPrecedence {
 // The production operator --> permitting whitespaces before and after
 infix operator -%-%> : ProductionPrecedence
 
+public let ws = try! re("\\s+")
+public let ows = try! re("\\s+") <|> t()
+
 /// Generates a production from a given non-terminal and produced sequence of symbols
 ///
 /// - Parameters:
@@ -17,8 +20,8 @@ infix operator -%-%> : ProductionPrecedence
 ///
 /// - Note: The returned array contains exactly 1 item. The operator returns array in order to ensure compatibility
 /// with the `GrammarBuilder`.
-public func -%-%> (lhs: NonTerminal, rhs: ProductionString) ->  [Production] {
-    lhs --> rhs <|> n(lhs.name) <+> t(.whitespaces) <|> t(.whitespaces) <+> n(lhs.name)
+public func -%-%> (lhs: NonTerminal, rhs: ProductionString) -> [Production] {
+    lhs --> rhs <|> n(lhs.name) <+> ws <|> ws <+> n(lhs.name)
 }
 
 /// Generates a set of productions from a given non-terminal and produced result
@@ -28,7 +31,7 @@ public func -%-%> (lhs: NonTerminal, rhs: ProductionString) ->  [Production] {
 ///   - rhs: Collection of possible produced strings of symbols
 /// - Returns: Productions with the given pattern and generated results
 public func -%-%> (lhs: NonTerminal, rhs: ProductionResult) -> [Production] {
-    lhs --> rhs <|> n(lhs.name) <+> t(.whitespaces) <|> t(.whitespaces) <+> n(lhs.name)
+    lhs --> rhs <|> n(lhs.name) <+> ws <|> ws <+> n(lhs.name)
 }
 
 /// Generates a production from the given non-terminal to the given symbol
@@ -41,6 +44,6 @@ public func -%-%> (lhs: NonTerminal, rhs: ProductionResult) -> [Production] {
 /// - Note: The returned array contains exactly 1 item. The operator returns array in order to ensure compatibility
 /// with the `GrammarBuilder`.
 public func -%-%> (lhs: NonTerminal, rhs: Symbol) -> [Production] {
-    lhs --> rhs <|> n(lhs.name) <+> t(.whitespaces) <|> t(.whitespaces) <+> n(lhs.name)
+    lhs --> rhs <|> n(lhs.name) <+> ws <|> ws <+> n(lhs.name)
 }
 
