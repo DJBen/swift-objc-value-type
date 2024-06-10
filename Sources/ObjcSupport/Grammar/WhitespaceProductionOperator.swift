@@ -9,7 +9,6 @@ precedencegroup ProductionPrecedence {
 infix operator -%-%> : ProductionPrecedence
 
 public let ws = try! re("\\s+")
-public let ows = try! re("\\s+") <|> t()
 
 /// Generates a production from a given non-terminal and produced sequence of symbols
 ///
@@ -20,6 +19,7 @@ public let ows = try! re("\\s+") <|> t()
 ///
 /// - Note: The returned array contains exactly 1 item. The operator returns array in order to ensure compatibility
 /// with the `GrammarBuilder`.
+@GrammarBuilder
 public func -%-%> (lhs: NonTerminal, rhs: ProductionString) -> [Production] {
     lhs --> rhs <|> n(lhs.name) <+> ws <|> ws <+> n(lhs.name)
 }
@@ -30,6 +30,7 @@ public func -%-%> (lhs: NonTerminal, rhs: ProductionString) -> [Production] {
 ///   - lhs: Non-terminal pattern
 ///   - rhs: Collection of possible produced strings of symbols
 /// - Returns: Productions with the given pattern and generated results
+@GrammarBuilder
 public func -%-%> (lhs: NonTerminal, rhs: ProductionResult) -> [Production] {
     lhs --> rhs <|> n(lhs.name) <+> ws <|> ws <+> n(lhs.name)
 }
@@ -43,6 +44,7 @@ public func -%-%> (lhs: NonTerminal, rhs: ProductionResult) -> [Production] {
 ///
 /// - Note: The returned array contains exactly 1 item. The operator returns array in order to ensure compatibility
 /// with the `GrammarBuilder`.
+@GrammarBuilder
 public func -%-%> (lhs: NonTerminal, rhs: Symbol) -> [Production] {
     lhs --> rhs <|> n(lhs.name) <+> ws <|> ws <+> n(lhs.name)
 }
