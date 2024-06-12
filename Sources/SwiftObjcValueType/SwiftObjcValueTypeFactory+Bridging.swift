@@ -97,6 +97,7 @@ extension SwiftObjcValueTypeFactory {
         ) {
             try SwitchExprSyntax("switch original") {
                 enumDecl.forEachCaseElement { caseElement in
+                    let params = caseElement.parameterClause?.parameters ?? []
                     SwitchCaseSyntax(
                         label: .case(
                             SwitchCaseLabelSyntax {
@@ -107,9 +108,8 @@ extension SwiftObjcValueTypeFactory {
                                                 period: .periodToken(),
                                                 declName: DeclReferenceExprSyntax(baseName: caseElement.name)
                                             ),
-                                            leftParen: .leftParenToken(),
+                                            leftParen: params.isEmpty ? nil : .leftParenToken(),
                                             arguments: LabeledExprListSyntax {
-                                                let params = caseElement.parameterClause?.parameters ?? []
                                                 for (index, caseParam) in params.enumerated() {
                                                     LabeledExprSyntax(
                                                         expression: PatternExprSyntax(
@@ -121,7 +121,7 @@ extension SwiftObjcValueTypeFactory {
                                                     )
                                                 }
                                             },
-                                            rightParen: .rightParenToken()
+                                            rightParen: params.isEmpty ? nil : .rightParenToken()
                                         )
                                     )
                                 )
@@ -273,15 +273,15 @@ extension SwiftObjcValueTypeFactory {
                 ) {
                     enumDecl.enumerateCaseElement { caseIndex, caseElement in
                         let caseName = caseElement.name.trimmed.text
+                        let params = caseElement.parameterClause?.parameters ?? []
 
                         LabeledExprListSyntax {
                             LabeledExprSyntax(
                                 label: caseIndex == 0 ? nil : .identifier(caseName.lowercasingFirst),
                                 colon: caseIndex == 0 ? nil : .colonToken(),
                                 expression: ClosureExprSyntax(
-                                    signature: ClosureSignatureSyntax(
+                                    signature: params.isEmpty ? nil : ClosureSignatureSyntax(
                                         parameterClause: .simpleInput(ClosureShorthandParameterListSyntax {
-                                            let params = caseElement.parameterClause?.parameters ?? []
                                             for (index, caseParam) in params.enumerated() {
                                                 ClosureShorthandParameterSyntax(name: caseParam.properName(index: index))
                                             }
@@ -294,31 +294,37 @@ extension SwiftObjcValueTypeFactory {
 
                                         AssignmentExprSyntax()
 
-                                        FunctionCallExprSyntax(
-                                            calledExpression: MemberAccessExprSyntax(
+                                        if params.isEmpty {
+                                            MemberAccessExprSyntax(
                                                 period: .periodToken(),
                                                 declName: DeclReferenceExprSyntax(baseName: .identifier(caseName.lowercasingFirst))
-                                            ),
-                                            leftParen: .leftParenToken(),
-                                            rightParen: .rightParenToken()
-                                        ) {
-                                            let params = caseElement.parameterClause?.parameters ?? []
-                                            for (index, caseParam) in params.enumerated() {
-                                                // Do not include label for unlabeled case params
-                                                let label = caseParam.firstName ?? caseParam.secondName
+                                            )
+                                        } else {
+                                            FunctionCallExprSyntax(
+                                                calledExpression: MemberAccessExprSyntax(
+                                                    period: .periodToken(),
+                                                    declName: DeclReferenceExprSyntax(baseName: .identifier(caseName.lowercasingFirst))
+                                                ),
+                                                leftParen: .leftParenToken(),
+                                                rightParen: .rightParenToken()
+                                            ) {
+                                                for (index, caseParam) in params.enumerated() {
+                                                    // Do not include label for unlabeled case params
+                                                    let label = caseParam.firstName ?? caseParam.secondName
 
-                                                LabeledExprSyntax(
-                                                    label: label,
-                                                    colon: label != nil ? .colonToken() : nil,
-                                                    expression: DeclReferenceExprSyntax(
-                                                        baseName: caseParam.properName(index: index)
+                                                    LabeledExprSyntax(
+                                                        label: label,
+                                                        colon: label != nil ? .colonToken() : nil,
+                                                        expression: DeclReferenceExprSyntax(
+                                                            baseName: caseParam.properName(index: index)
+                                                        )
+                                                        .unmappingNumeralValueFromNSNumber(type: caseParam.type)
+                                                        .convertingToSwiftType(
+                                                            type: caseParam.type,
+                                                            referencedSwiftTypes: referencedSwiftTypes
+                                                        )
                                                     )
-                                                    .unmappingNumeralValueFromNSNumber(type: caseParam.type)
-                                                    .convertingToSwiftType(
-                                                        type: caseParam.type,
-                                                        referencedSwiftTypes: referencedSwiftTypes
-                                                    )
-                                                )
+                                                }
                                             }
                                         }
                                     }

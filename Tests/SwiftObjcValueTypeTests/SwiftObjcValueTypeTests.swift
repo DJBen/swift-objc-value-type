@@ -1592,4 +1592,109 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             """#
         )
     }
+
+    func testEnum_caseWithoutArgs() throws {
+        let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
+            codeBlocks: CodeBlockItemListSyntax {
+                """
+                enum EncryptionType: Equatable, Hashable {
+                    case unencrypted
+                    case encrypted(String, key: String?)
+                }
+                """
+            },
+            externalHashSettings: ExternalHashSettings(hashFunc: "HashImpl", hashDoubleFunc: "HashDouble"),
+            shouldSynthesizeNSCoding: false,
+            shouldSynthesizeNSCopying: false
+        )
+
+        assertBuildResult(
+            result,
+            #"""
+
+
+            private enum EncryptionTypeSubtype: Int, Equatable {
+                case unencrypted
+                case encrypted
+            }
+
+            typealias EncryptionTypeUnencryptedMatchHandler = () -> Void
+
+            typealias EncryptionTypeEncryptedMatchHandler = (_ param0: String, _ key: String?) -> Void
+
+            @objc(EncryptionType)
+            class EncryptionTypeObjc: NSObject {
+                private let subtype: EncryptionTypeSubtype
+                private let encryptedParam0: String?
+                private let encryptedKey: String?
+
+                private init(subtype: EncryptionTypeSubtype, encryptedParam0: String? = nil, encryptedKey: String? = nil) {
+                    self.subtype = subtype
+                    self.encryptedParam0 = encryptedParam0
+                    self.encryptedKey = encryptedKey
+
+                    super.init()
+                }
+
+                convenience init(_ original: EncryptionType) {
+                    switch original {
+                    case .unencrypted:
+                        self.init(subtype: .unencrypted)
+                    case .encrypted(let param0, let key):
+                        self.init(subtype: .encrypted, encryptedParam0: param0, encryptedKey: key)
+                    }
+                }
+
+                @available(*, unavailable)
+                override init() {
+                    fatalError()
+                }
+
+                override var hash: Int {
+                    let hashes: [UInt] = [UInt(bitPattern: subtype.rawValue), UInt(bitPattern: (encryptedParam0 as? NSString)?.hash ?? 0), UInt(bitPattern: (encryptedKey as? NSString)?.hash ?? 0)]
+                    return Int(HashImpl(hashes, 3))
+                }
+
+                override func isEqual(_ object: Any?) -> Bool {
+                    guard let other = object as? EncryptionTypeObjc else {
+                        return false
+                    }
+                    return subtype == other.subtype && encryptedParam0 == other.encryptedParam0 && encryptedKey == other.encryptedKey
+                }
+
+                @objc
+                class func unencrypted() -> EncryptionTypeObjc {
+                    return EncryptionTypeObjc(subtype: .unencrypted)
+                }
+
+                @objc
+                class func encrypted(param0: String, key: String?) -> EncryptionTypeObjc {
+                    return EncryptionTypeObjc(subtype: .encrypted, encryptedParam0: param0, encryptedKey: key)
+                }
+
+                @objc
+                func matchUnencrypted(_ unencrypted: EncryptionTypeUnencryptedMatchHandler, encrypted: EncryptionTypeEncryptedMatchHandler) {
+                    switch subtype {
+                    case .unencrypted:
+                        unencrypted()
+                    case .encrypted:
+                        encrypted(encryptedParam0!, encryptedKey)
+                    }
+                }
+            }
+
+            extension EncryptionType {
+                init(_ wrapper: EncryptionTypeObjc) {
+                    var original: EncryptionType!
+                    wrapper.matchUnencrypted({
+                            original = .unencrypted
+                        }, encrypted: { param0, key in
+                            original = .encrypted(param0, key: key)
+                        })
+                    self = original
+                }
+            }
+            """#
+        )
+    }
 }
