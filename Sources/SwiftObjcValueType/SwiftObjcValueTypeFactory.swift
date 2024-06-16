@@ -31,22 +31,28 @@ public struct SwiftObjcValueTypeFactory {
             try CodeBlockItemListSyntax {
                 switch descriptor.decl {
                 case .structDecl(let structDecl):
-                    let configFlags = structDecl.valueObjectConfig.flags
+                    // Avoid class synthesizing for `OptionSet`: it has no equivalent in Objective-C
+                    // https://stackoverflow.com/q/24066170
+                    // Objective-C NS_OPTIONS may be imported to Swift, but not the other way around.
+                    if !structDecl.inheritedTypes.contains("OptionSet") {
+                        let configFlags = structDecl.valueObjectConfig.flags
 
-                    for decl in try wrappingClassDecl(
-                        structDecl: structDecl,
-                        referencedSwiftTypes: referencedSwiftTypes.union(structDecl.valueObjectConfig.swiftTypesWithWrapper),
-                        prefix: prefix,
-                        imports: imports,
-                        externalHashSettings: externalHashSettings,
-                        shouldSynthesizeEquatable: descriptor.inheritedTypes.contains("Equatable") || descriptor.inheritedTypes.contains("Hashable") ||
-                        descriptor.inheritedTypes.contains("Identifiable"),
-                        shouldSynthesizeNSCoding: shouldSynthesizeNSCoding || configFlags.contains("nscoding"),
-                        shouldSynthesizeNSCopying: shouldSynthesizeNSCopying || configFlags.contains("nscopying"),
-                        shouldSynthesizeObjCBuilder: shouldSynthesizeObjCBuilder || configFlags.contains("builder"),
-                        shouldSynthesizeDescription: descriptor.inheritedTypes.contains("CustomStringConvertible"),
-                        shouldSynthesizeDebugDescription: descriptor.inheritedTypes.contains("CustomDebugStringConvertible")
-                    ) { decl }
+                        for decl in try wrappingClassDecl(
+                            structDecl: structDecl,
+                            referencedSwiftTypes: referencedSwiftTypes.union(structDecl.valueObjectConfig.swiftTypesWithWrapper),
+                            prefix: prefix,
+                            imports: imports,
+                            externalHashSettings: externalHashSettings,
+                            shouldSynthesizeEquatable: descriptor.inheritedTypes.contains("Equatable") || descriptor.inheritedTypes.contains("Hashable") ||
+                            descriptor.inheritedTypes.contains("Identifiable"),
+                            shouldSynthesizeNSCoding: shouldSynthesizeNSCoding || configFlags.contains("nscoding"),
+                            shouldSynthesizeNSCopying: shouldSynthesizeNSCopying || configFlags.contains("nscopying"),
+                            shouldSynthesizeObjCBuilder: shouldSynthesizeObjCBuilder || configFlags.contains("builder"),
+                            shouldSynthesizeDescription: descriptor.inheritedTypes.contains("CustomStringConvertible"),
+                            shouldSynthesizeDebugDescription: descriptor.inheritedTypes.contains("CustomDebugStringConvertible")
+                        ) { decl }
+                    }
+
                 case .enumDecl(let enumDecl):
                     let configFlags = enumDecl.valueObjectConfig.flags
 
