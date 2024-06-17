@@ -1592,6 +1592,28 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             """#
         )
     }
+    
+    func testEnum_objcEnum_shouldNotGenerate() throws {
+        let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
+            codeBlocks: CodeBlockItemListSyntax {
+                """
+                @objc enum Foo: Int {
+                    case foo = 123
+                    case bar
+                }
+                """
+            },
+            externalHashSettings: ExternalHashSettings(hashFunc: "HashImpl", hashDoubleFunc: "HashDouble"),
+            shouldSynthesizeNSCoding: false,
+            shouldSynthesizeNSCopying: false
+        )
+
+        assertBuildResult(
+            result,
+            """
+            """
+        )
+    }
 
     func testEnum_caseWithoutArgs() throws {
         let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(

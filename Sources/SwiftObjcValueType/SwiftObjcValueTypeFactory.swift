@@ -278,6 +278,12 @@ public struct SwiftObjcValueTypeFactory {
         shouldSynthesizeNSCoding: Bool,
         shouldSynthesizeNSCopying: Bool
     ) throws -> [any DeclSyntaxProtocol] {
+        // Primitive enums are notated with @objc
+        // Do not generate anything for primitive enums
+        if enumDecl.attributes.hasObjc {
+            return []
+        }
+        
         var decls = [any DeclSyntaxProtocol]()
         let enumName = enumDecl.name.trimmed.text
 
