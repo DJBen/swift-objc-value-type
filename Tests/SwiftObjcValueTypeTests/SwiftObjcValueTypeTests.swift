@@ -6,14 +6,18 @@ import TestingSupport
 final class SwiftObjcValueTypeTests: XCTestCase {
     private let expectedWrapperClass = #"""
 
-
-    private let kDoubleValueKey = "DOUBLE_VALUE"
-    private let kOptIntKey = "OPT_INT"
-    private let kStringArrayKey = "STRING_ARRAY"
-    private let kMapKey = "MAP"
-
+    
     @objc(Value)
     public class ValueObjc: NSObject, NSCopying, NSCoding {
+    
+        private static let kDoubleValueKey = "DOUBLE_VALUE"
+    
+        private static let kOptIntKey = "OPT_INT"
+    
+        private static let kStringArrayKey = "STRING_ARRAY"
+    
+        private static let kMapKey = "MAP"
+    
         @objc public let doubleValue: Double
 
         @objc public let optInt: NSNumber?
@@ -89,19 +93,19 @@ final class SwiftObjcValueTypeTests: XCTestCase {
         }
 
         public func encode(with coder: NSCoder) {
-            coder.encode(doubleValue, forKey: kDoubleValueKey)
-            coder.encodeConditionalObject(optInt, forKey: kOptIntKey)
-            coder.encode(stringArray, forKey: kStringArrayKey)
-            coder.encode(map, forKey: kMapKey)
+            coder.encode(doubleValue, forKey: Self.kDoubleValueKey)
+            coder.encodeConditionalObject(optInt, forKey: Self.kOptIntKey)
+            coder.encode(stringArray, forKey: Self.kStringArrayKey)
+            coder.encode(map, forKey: Self.kMapKey)
         }
 
         public required convenience init?(coder: NSCoder) {
-            let doubleValue = coder.decodeDouble(forKey: kDoubleValueKey)
-            let optInt = coder.decodeObject(forKey: kOptIntKey) as? NSNumber
-            guard let stringArray = coder.decodeObject(forKey: kStringArrayKey) as? [String] else {
+            let doubleValue = coder.decodeDouble(forKey: Self.kDoubleValueKey)
+            let optInt = coder.decodeObject(forKey: Self.kOptIntKey) as? NSNumber
+            guard let stringArray = coder.decodeObject(forKey: Self.kStringArrayKey) as? [String] else {
                 return nil
             }
-            guard let map = coder.decodeObject(forKey: kMapKey) as? [String: [String: Double]] else {
+            guard let map = coder.decodeObject(forKey: Self.kMapKey) as? [String: [String: Double]] else {
                 return nil
             }
             self.init(doubleValue: doubleValue, optInt: optInt, stringArray: stringArray, map: map)
@@ -111,18 +115,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
         public override init() {
             fatalError()
         }
-    }
 
-    extension Value {
-        public init(_ wrapper: ValueObjc) {
-            self.doubleValue = wrapper.doubleValue
-            self.optInt = wrapper.optInt.map(\.int64Value)
-            self.stringArray = wrapper.stringArray
-            self.map = wrapper.map
-        }
-    }
-
-    extension ValueObjc {
         @objc
         public class ValueBuilder: NSObject {
             @objc public class func value() -> ValueBuilder {
@@ -194,6 +187,14 @@ final class SwiftObjcValueTypeTests: XCTestCase {
         }
     }
 
+    extension Value {
+        public init(_ wrapper: ValueObjc) {
+            self.doubleValue = wrapper.doubleValue
+            self.optInt = wrapper.optInt.map(\.int64Value)
+            self.stringArray = wrapper.stringArray
+            self.map = wrapper.map
+        }
+    }
     """#
 
     func testValueObjc_hashable() throws {
@@ -220,6 +221,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
             @objc(Value)
             public class ValueObjc: NSObject {
+            
                 @objc public let doubleValue: Double
 
                 @objc public let optInt: NSNumber?
@@ -313,9 +315,11 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 #"""
                 public struct Foo: Equatable {
                     // public let rect: CGRect
-
+                
                     public let str: String
+                    
                     public let optDouble: Double?
+                
                     public let isValid: Bool
 
                     public var isNotValid: Bool {
@@ -338,10 +342,12 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
             @objc(Foo)
             public class FooObjc: NSObject {
+            
                 // public let rect: CGRect
-
                 @objc public let str: String
+            
                 @objc public let optDouble: NSNumber?
+            
                 @objc public let isValid: Bool
 
                 @objc
@@ -377,17 +383,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 public override init() {
                     fatalError()
                 }
-            }
 
-            extension Foo {
-                public init(_ wrapper: FooObjc) {
-                    self.str = wrapper.str
-                    self.optDouble = wrapper.optDouble.map(\.doubleValue)
-                    self.isValid = wrapper.isValid
-                }
-            }
-
-            extension FooObjc {
                 @objc
                 public class FooBuilder: NSObject {
                     @objc public class func foo() -> FooBuilder {
@@ -448,6 +444,13 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
             }
 
+            extension Foo {
+                public init(_ wrapper: FooObjc) {
+                    self.str = wrapper.str
+                    self.optDouble = wrapper.optDouble.map(\.doubleValue)
+                    self.isValid = wrapper.isValid
+                }
+            }
             """#
         )
     }
@@ -492,15 +495,21 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             #"""
             import ABC
 
-            private let kDoubleValueKey = "DOUBLE_VALUE"
-            private let kRefKey = "REF"
-            private let kRef2Key = "REF2"
-            private let kRef3Key = "REF3"
-            private let kFooKey = "FOO"
-            private let kRef4Key = "REF4"
-
             @objc(Value)
             public class ValueObjc: NSObject, NSCopying, NSCoding {
+                
+                private static let kDoubleValueKey = "DOUBLE_VALUE"
+            
+                private static let kRefKey = "REF"
+            
+                private static let kRef2Key = "REF2"
+            
+                private static let kRef3Key = "REF3"
+            
+                private static let kFooKey = "FOO"
+            
+                private static let kRef4Key = "REF4"
+
                 @objc public let doubleValue: Double
 
                 @objc public let ref: Value2Objc
@@ -551,27 +560,27 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
 
                 public func encode(with coder: NSCoder) {
-                    coder.encode(doubleValue, forKey: kDoubleValueKey)
-                    coder.encode(ref, forKey: kRefKey)
-                    coder.encode(ref2, forKey: kRef2Key)
-                    coder.encodeConditionalObject(ref3, forKey: kRef3Key)
-                    coder.encode(foo, forKey: kFooKey)
-                    coder.encode(ref4, forKey: kRef4Key)
+                    coder.encode(doubleValue, forKey: Self.kDoubleValueKey)
+                    coder.encode(ref, forKey: Self.kRefKey)
+                    coder.encode(ref2, forKey: Self.kRef2Key)
+                    coder.encodeConditionalObject(ref3, forKey: Self.kRef3Key)
+                    coder.encode(foo, forKey: Self.kFooKey)
+                    coder.encode(ref4, forKey: Self.kRef4Key)
                 }
 
                 public required convenience init?(coder: NSCoder) {
-                    let doubleValue = coder.decodeDouble(forKey: kDoubleValueKey)
-                    guard let ref = coder.decodeObject(forKey: kRefKey) as? Value2Objc else {
+                    let doubleValue = coder.decodeDouble(forKey: Self.kDoubleValueKey)
+                    guard let ref = coder.decodeObject(forKey: Self.kRefKey) as? Value2Objc else {
                         return nil
                     }
-                    guard let ref2 = coder.decodeObject(forKey: kRef2Key) as? [Int: [BarObjc]] else {
+                    guard let ref2 = coder.decodeObject(forKey: Self.kRef2Key) as? [Int: [BarObjc]] else {
                         return nil
                     }
-                    let ref3 = coder.decodeObject(forKey: kRef3Key) as? [BarObjc]
-                    guard let foo = coder.decodeObject(forKey: kFooKey) as? [FooObjc] else {
+                    let ref3 = coder.decodeObject(forKey: Self.kRef3Key) as? [BarObjc]
+                    guard let foo = coder.decodeObject(forKey: Self.kFooKey) as? [FooObjc] else {
                         return nil
                     }
-                    guard let ref4 = coder.decodeObject(forKey: kRef4Key) as? Set<BarObjc> else {
+                    guard let ref4 = coder.decodeObject(forKey: Self.kRef4Key) as? Set<BarObjc> else {
                         return nil
                     }
                     self.init(doubleValue: doubleValue, ref: ref, ref2: ref2, ref3: ref3, foo: foo, ref4: ref4)
@@ -585,30 +594,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 public override init() {
                     fatalError()
                 }
-            }
 
-            extension Value {
-                public init(_ wrapper: ValueObjc) {
-                    self.doubleValue = wrapper.doubleValue
-                    self.ref = Value2(wrapper.ref)
-                    self.ref2 = wrapper.ref2.mapValues({ a0 in
-                            a0.map({ a1 in
-                                    Bar(a1)
-                                })
-                        })
-                    self.ref3 = wrapper.ref3?.map({ a0 in
-                            Bar(a0)
-                        })
-                    self.foo = wrapper.foo.map({ a0 in
-                            Foo(a0)
-                        })
-                    self.ref4 = Set(wrapper.ref4.map({ a0 in
-                                Bar(a0)
-                            }))
-                }
-            }
-
-            extension ValueObjc {
                 @objc
                 public class ValueBuilder: NSObject {
                     @objc public class func value() -> ValueBuilder {
@@ -701,7 +687,27 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     }
                 }
             }
-
+            
+            extension Value {
+                public init(_ wrapper: ValueObjc) {
+                    self.doubleValue = wrapper.doubleValue
+                    self.ref = Value2(wrapper.ref)
+                    self.ref2 = wrapper.ref2.mapValues({ a0 in
+                            a0.map({ a1 in
+                                    Bar(a1)
+                                })
+                        })
+                    self.ref3 = wrapper.ref3?.map({ a0 in
+                            Bar(a0)
+                        })
+                    self.foo = wrapper.foo.map({ a0 in
+                            Foo(a0)
+                        })
+                    self.ref4 = Set(wrapper.ref4.map({ a0 in
+                                Bar(a0)
+                            }))
+                }
+            }
             """#
         )
     }
@@ -739,11 +745,13 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             #"""
             import ABC
 
-            private let kDoubleValueKey = "DOUBLE_VALUE"
-            private let kEnumTypeKey = "ENUM_TYPE"
-
             @objc(Value)
             public class ValueObjc: NSObject, NSCoding {
+            
+                private static let kDoubleValueKey = "DOUBLE_VALUE"
+            
+                private static let kEnumTypeKey = "ENUM_TYPE"
+            
                 @objc public let doubleValue: Double
 
                 @objc public let enumType: EnumType
@@ -778,13 +786,13 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
 
                 public func encode(with coder: NSCoder) {
-                    coder.encode(doubleValue, forKey: kDoubleValueKey)
-                    coder.encode(enumType.rawValue, forKey: kEnumTypeKey)
+                    coder.encode(doubleValue, forKey: Self.kDoubleValueKey)
+                    coder.encode(enumType.rawValue, forKey: Self.kEnumTypeKey)
                 }
 
                 public required convenience init?(coder: NSCoder) {
-                    let doubleValue = coder.decodeDouble(forKey: kDoubleValueKey)
-                    guard let enumType = EnumType(rawValue: coder.decodeInteger(forKey: kEnumTypeKey)) else {
+                    let doubleValue = coder.decodeDouble(forKey: Self.kDoubleValueKey)
+                    guard let enumType = EnumType(rawValue: coder.decodeInteger(forKey: Self.kEnumTypeKey)) else {
                         return nil
                     }
                     self.init(doubleValue: doubleValue, enumType: enumType)
@@ -832,6 +840,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
             @objc(Value)
             public class ValueObjc: NSObject {
+            
                 @objc public let doubleValue: Double
 
                 @objc
@@ -914,10 +923,11 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             #"""
 
 
-            private let kValueKey = "VALUE"
-
             @objc(ABValue)
             public class ABValueObjc: NSObject, NSCopying, NSCoding {
+            
+                private static let kValueKey = "VALUE"
+
                 @objc public let value: String
 
                 @objc
@@ -950,11 +960,11 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
 
                 public func encode(with coder: NSCoder) {
-                    coder.encode(value, forKey: kValueKey)
+                    coder.encode(value, forKey: Self.kValueKey)
                 }
 
                 public required convenience init?(coder: NSCoder) {
-                    guard let value = coder.decodeObject(forKey: kValueKey) as? String else {
+                    guard let value = coder.decodeObject(forKey: Self.kValueKey) as? String else {
                         return nil
                     }
                     self.init(value: value)
@@ -964,15 +974,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 public override init() {
                     fatalError()
                 }
-            }
 
-            extension ABValue {
-                public init(_ wrapper: ABValueObjc) {
-                    self.value = wrapper.value
-                }
-            }
-
-            extension ABValueObjc {
                 @objc(ABValueBuilder)
                 public class ABValueBuilder: NSObject {
                     @objc public class func aBValue() -> ABValueBuilder {
@@ -1014,6 +1016,11 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
             }
 
+            extension ABValue {
+                public init(_ wrapper: ABValueObjc) {
+                    self.value = wrapper.value
+                }
+            }
             """#
         )
     }
@@ -1046,13 +1053,17 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             #"""
 
 
-            private let kDoubleValueKey = "DOUBLE_VALUE"
-            private let kOptIntKey = "OPT_INT"
-            private let kStringArrayKey = "STRING_ARRAY"
-            private let kMapKey = "MAP"
-
             @objc(XYValue)
             public class ValueObjc: NSObject, NSCopying, NSCoding {
+            
+                private static let kDoubleValueKey = "DOUBLE_VALUE"
+                
+                private static let kOptIntKey = "OPT_INT"
+                
+                private static let kStringArrayKey = "STRING_ARRAY"
+                
+                private static let kMapKey = "MAP"
+            
                 @objc public let doubleValue: Double
 
                 @objc public let optInt: NSNumber?
@@ -1097,19 +1108,19 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
 
                 public func encode(with coder: NSCoder) {
-                    coder.encode(doubleValue, forKey: kDoubleValueKey)
-                    coder.encodeConditionalObject(optInt, forKey: kOptIntKey)
-                    coder.encode(stringArray, forKey: kStringArrayKey)
-                    coder.encode(map, forKey: kMapKey)
+                    coder.encode(doubleValue, forKey: Self.kDoubleValueKey)
+                    coder.encodeConditionalObject(optInt, forKey: Self.kOptIntKey)
+                    coder.encode(stringArray, forKey: Self.kStringArrayKey)
+                    coder.encode(map, forKey: Self.kMapKey)
                 }
 
                 public required convenience init?(coder: NSCoder) {
-                    let doubleValue = coder.decodeDouble(forKey: kDoubleValueKey)
-                    let optInt = coder.decodeObject(forKey: kOptIntKey) as? NSNumber
-                    guard let stringArray = coder.decodeObject(forKey: kStringArrayKey) as? [String] else {
+                    let doubleValue = coder.decodeDouble(forKey: Self.kDoubleValueKey)
+                    let optInt = coder.decodeObject(forKey: Self.kOptIntKey) as? NSNumber
+                    guard let stringArray = coder.decodeObject(forKey: Self.kStringArrayKey) as? [String] else {
                         return nil
                     }
-                    guard let map = coder.decodeObject(forKey: kMapKey) as? [String: [String: Double]] else {
+                    guard let map = coder.decodeObject(forKey: Self.kMapKey) as? [String: [String: Double]] else {
                         return nil
                     }
                     self.init(doubleValue: doubleValue, optInt: optInt, stringArray: stringArray, map: map)
@@ -1119,18 +1130,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 public override init() {
                     fatalError()
                 }
-            }
 
-            extension Value {
-                public init(_ wrapper: ValueObjc) {
-                    self.doubleValue = wrapper.doubleValue
-                    self.optInt = wrapper.optInt.map(\.int64Value)
-                    self.stringArray = wrapper.stringArray
-                    self.map = wrapper.map
-                }
-            }
-
-            extension ValueObjc {
                 @objc(XYValueBuilder)
                 public class ValueBuilder: NSObject {
                     @objc public class func value() -> ValueBuilder {
@@ -1201,7 +1201,15 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     }
                 }
             }
-
+            
+            extension Value {
+                public init(_ wrapper: ValueObjc) {
+                    self.doubleValue = wrapper.doubleValue
+                    self.optInt = wrapper.optInt.map(\.int64Value)
+                    self.stringArray = wrapper.stringArray
+                    self.map = wrapper.map
+                }
+            }
             """#
         )
     }
@@ -1280,13 +1288,15 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             import UIKit
             import HashUtils
 
-            private let kProductImageSizeKey = "PRODUCT_IMAGE_SIZE"
-            private let kFrameKey = "FRAME"
-            private let kRotationAngleKey = "ROTATION_ANGLE"
-
             @objc(SCStoriesOther)
             public class StoriesOtherObjc: NSObject, NSCopying, NSCoding {
-
+            
+                private static let kProductImageSizeKey = "PRODUCT_IMAGE_SIZE"
+                
+                private static let kFrameKey = "FRAME"
+                
+                private static let kRotationAngleKey = "ROTATION_ANGLE"
+            
                 /// The original size of the product image
                 @objc public let productImageSize: CGSize
 
@@ -1330,15 +1340,15 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
 
                 public func encode(with coder: NSCoder) {
-                    coder.encode(productImageSize, forKey: kProductImageSizeKey)
-                    coder.encode(frame, forKey: kFrameKey)
-                    coder.encode(Double(rotationAngle), forKey: kRotationAngleKey)
+                    coder.encode(productImageSize, forKey: Self.kProductImageSizeKey)
+                    coder.encode(frame, forKey: Self.kFrameKey)
+                    coder.encode(Double(rotationAngle), forKey: Self.kRotationAngleKey)
                 }
 
                 public required convenience init?(coder: NSCoder) {
-                    let productImageSize = coder.decodeCGSize(forKey: kProductImageSizeKey)
-                    let frame = coder.decodeCGRect(forKey: kFrameKey)
-                    let rotationAngle = CGFloat(coder.decodeDouble(forKey: kRotationAngleKey))
+                    let productImageSize = coder.decodeCGSize(forKey: Self.kProductImageSizeKey)
+                    let frame = coder.decodeCGRect(forKey: Self.kFrameKey)
+                    let rotationAngle = CGFloat(coder.decodeDouble(forKey: Self.kRotationAngleKey))
                     self.init(productImageSize: productImageSize, frame: frame, rotationAngle: rotationAngle)
                 }
 
@@ -1346,17 +1356,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 public override init() {
                     fatalError()
                 }
-            }
-
-            extension StoriesOther {
-                public init(_ wrapper: StoriesOtherObjc) {
-                    self.productImageSize = wrapper.productImageSize
-                    self.frame = wrapper.frame
-                    self.rotationAngle = wrapper.rotationAngle
-                }
-            }
-
-            extension StoriesOtherObjc {
+            
                 @objc(SCStoriesOtherBuilder)
                 public class StoriesOtherBuilder: NSObject {
                     @objc public class func storiesOther() -> StoriesOtherBuilder {
@@ -1419,7 +1419,14 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     }
                 }
             }
-
+            
+            extension StoriesOther {
+                public init(_ wrapper: StoriesOtherObjc) {
+                    self.productImageSize = wrapper.productImageSize
+                    self.frame = wrapper.frame
+                    self.rotationAngle = wrapper.rotationAngle
+                }
+            }
             """#
         )
     }
@@ -1447,14 +1454,6 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             #"""
 
 
-            private let kCodedSubtypeKey = "CODED_SUBTYPE"
-            private let kSaveBeganSavingToAlphaKey = "SAVE_BEGAN_SAVING_TO_ALPHA"
-            private let kSaveSucceededSavedToAlphaKey = "SAVE_SUCCEEDED_SAVED_TO_ALPHA"
-            private let kSaveSucceededSavedToBetaKey = "SAVE_SUCCEEDED_SAVED_TO_BETA"
-            private let kSaveSucceededOptFloatKey = "SAVE_SUCCEEDED_OPT_FLOAT"
-            private let kSaveSucceededDisplayNameKey = "SAVE_SUCCEEDED_DISPLAY_NAME"
-            private let kSaveFailedErrorKey = "SAVE_FAILED_ERROR"
-
             private enum SaveUpdatesSubtype: Int, Equatable {
                 case saveBegan
                 case saveSucceeded
@@ -1469,6 +1468,21 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
             @objc(SaveUpdates)
             public class SaveUpdatesObjc: NSObject, NSCopying {
+            
+                private static let kCodedSubtypeKey = "CODED_SUBTYPE"
+                
+                private static let kSaveBeganSavingToAlphaKey = "SAVE_BEGAN_SAVING_TO_ALPHA"
+                
+                private static let kSaveSucceededSavedToAlphaKey = "SAVE_SUCCEEDED_SAVED_TO_ALPHA"
+                
+                private static let kSaveSucceededSavedToBetaKey = "SAVE_SUCCEEDED_SAVED_TO_BETA"
+                
+                private static let kSaveSucceededOptFloatKey = "SAVE_SUCCEEDED_OPT_FLOAT"
+                
+                private static let kSaveSucceededDisplayNameKey = "SAVE_SUCCEEDED_DISPLAY_NAME"
+                
+                private static let kSaveFailedErrorKey = "SAVE_FAILED_ERROR"
+
                 private let subtype: SaveUpdatesSubtype
                 private let saveBeganSavingToAlpha: Bool?
                 private let saveSucceededSavedToAlpha: Bool?
@@ -1512,36 +1526,36 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 public func encode(with coder: NSCoder) {
                     switch subtype {
                     case .saveBegan:
-                        coder.encode(saveBeganSavingToAlpha, forKey: kSaveBeganSavingToAlphaKey)
-                        coder.encode("SUBTYPE_SAVE_BEGAN", forKey: kCodedSubtypeKey)
+                        coder.encode(saveBeganSavingToAlpha, forKey: Self.kSaveBeganSavingToAlphaKey)
+                        coder.encode("SUBTYPE_SAVE_BEGAN", forKey: Self.kCodedSubtypeKey)
                     case .saveSucceeded:
-                        coder.encode(saveSucceededSavedToAlpha, forKey: kSaveSucceededSavedToAlphaKey)
-                        coder.encode(saveSucceededSavedToBeta, forKey: kSaveSucceededSavedToBetaKey)
-                        coder.encodeConditionalObject(saveSucceededOptFloat, forKey: kSaveSucceededOptFloatKey)
-                        coder.encodeConditionalObject(saveSucceededDisplayName, forKey: kSaveSucceededDisplayNameKey)
-                        coder.encode("SUBTYPE_SAVE_SUCCEEDED", forKey: kCodedSubtypeKey)
+                        coder.encode(saveSucceededSavedToAlpha, forKey: Self.kSaveSucceededSavedToAlphaKey)
+                        coder.encode(saveSucceededSavedToBeta, forKey: Self.kSaveSucceededSavedToBetaKey)
+                        coder.encodeConditionalObject(saveSucceededOptFloat, forKey: Self.kSaveSucceededOptFloatKey)
+                        coder.encodeConditionalObject(saveSucceededDisplayName, forKey: Self.kSaveSucceededDisplayNameKey)
+                        coder.encode("SUBTYPE_SAVE_SUCCEEDED", forKey: Self.kCodedSubtypeKey)
                     case .saveFailed:
-                        coder.encodeConditionalObject(saveFailedError, forKey: kSaveFailedErrorKey)
-                        coder.encode("SUBTYPE_SAVE_FAILED", forKey: kCodedSubtypeKey)
+                        coder.encodeConditionalObject(saveFailedError, forKey: Self.kSaveFailedErrorKey)
+                        coder.encode("SUBTYPE_SAVE_FAILED", forKey: Self.kCodedSubtypeKey)
                     }
                 }
 
                 public required convenience init?(coder: NSCoder) {
-                    guard let codedSubtype = coder.decodeObject(forKey: kCodedSubtypeKey) as? String else {
+                    guard let codedSubtype = coder.decodeObject(forKey: Self.kCodedSubtypeKey) as? String else {
                         return nil
                     }
                     switch codedSubtype {
                     case "SUBTYPE_SAVE_BEGAN":
-                        let savingToAlpha = coder.decodeBool(forKey: kSaveBeganSavingToAlphaKey)
+                        let savingToAlpha = coder.decodeBool(forKey: Self.kSaveBeganSavingToAlphaKey)
                         self.init(subtype: .saveBegan, saveBeganSavingToAlpha: savingToAlpha)
                     case "SUBTYPE_SAVE_SUCCEEDED":
-                        let savedToAlpha = coder.decodeBool(forKey: kSaveSucceededSavedToAlphaKey)
-                        let savedToBeta = coder.decodeBool(forKey: kSaveSucceededSavedToBetaKey)
-                        let optFloat = coder.decodeObject(forKey: kSaveSucceededOptFloatKey) as? NSNumber
-                        let displayName = coder.decodeObject(forKey: kSaveSucceededDisplayNameKey) as? String
+                        let savedToAlpha = coder.decodeBool(forKey: Self.kSaveSucceededSavedToAlphaKey)
+                        let savedToBeta = coder.decodeBool(forKey: Self.kSaveSucceededSavedToBetaKey)
+                        let optFloat = coder.decodeObject(forKey: Self.kSaveSucceededOptFloatKey) as? NSNumber
+                        let displayName = coder.decodeObject(forKey: Self.kSaveSucceededDisplayNameKey) as? String
                         self.init(subtype: .saveSucceeded, saveSucceededSavedToAlpha: savedToAlpha, saveSucceededSavedToBeta: savedToBeta, saveSucceededOptFloat: optFloat.map(\.floatValue), saveSucceededDisplayName: displayName)
                     case "SUBTYPE_SAVE_FAILED":
-                        let error = coder.decodeObject(forKey: kSaveFailedErrorKey) as? Error
+                        let error = coder.decodeObject(forKey: Self.kSaveFailedErrorKey) as? Error
                         self.init(subtype: .saveFailed, saveFailedError: error)
                     default:
                         return nil
@@ -1646,6 +1660,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
             @objc(EncryptionType)
             class EncryptionTypeObjc: NSObject {
+            
                 private let subtype: EncryptionTypeSubtype
                 private let encryptedParam0: String?
                 private let encryptedKey: String?

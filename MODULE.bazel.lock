@@ -2015,7 +2015,7 @@
     },
     "@@rules_go~//go:extensions.bzl%go_sdk": {
       "os:osx,arch:aarch64": {
-        "bzlTransitiveDigest": "EYsf1XwJo9bzk+0JQVIj4qRgv371do/DWXF0YLe9A2Q=",
+        "bzlTransitiveDigest": "etq/3rkpZZF/56Gr7yFomA9M5v8WZFKFjPtFsdmzo54=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {},

@@ -2,7 +2,10 @@ load("@build_bazel_rules_swift//swift:swift.bzl", "swift_compiler_plugin")
 
 swift_compiler_plugin(
     name = "SwiftObjcValueTypeMacro",
-    srcs = ["SwiftObjcValueTypeMacro.swift"],
+    srcs = [
+        "SwiftObjcValueTypeMacro.swift",
+        "SwiftSyntaxExtensions+Macro.swift",
+    ],
     module_name = "SwiftObjcValueTypeMacro",
     visibility = ["//visibility:public"],
     deps = [

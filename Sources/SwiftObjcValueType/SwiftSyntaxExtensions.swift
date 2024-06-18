@@ -1046,3 +1046,18 @@ extension EnumCaseParameterSyntax {
         firstName ?? secondName ?? .identifier("param\(index)")
     }
 }
+
+extension Trivia {
+    /// Move all the newlines before comments and set the number of new lines into the desired count.
+    func normalizingNewLines(_ count: Int) -> Trivia {
+        let nonWhiteSpace = self.filter { !$0.isWhitespace }
+        if nonWhiteSpace.isEmpty {
+            return [.newlines(count)]
+        } else {
+            return Trivia(
+                pieces: [.newlines(count)] + nonWhiteSpace + [.newlines(1)]
+            )
+        }
+    }
+}
+

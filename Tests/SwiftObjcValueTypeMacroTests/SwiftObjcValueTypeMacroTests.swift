@@ -10,8 +10,11 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
     func testMacro() {
         assertMacroExpansion(
             """
-            // @value_object NSCopying NSCoding Builder
-            @ObjcValueWrapper
+            @ObjcValueWrapper(
+                nsCopying: true,
+                nsCoding: true,
+                objcBuilder: true
+            )
             public struct Value: Equatable, Codable {
                 public let doubleValue: Double
 
@@ -23,7 +26,6 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
             }
             """,
             expandedSource:#"""
-            // @value_object NSCopying NSCoding Builder
             public struct Value: Equatable, Codable {
                 public let doubleValue: Double
 
@@ -34,16 +36,17 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
                 public let map: [String: [String: Double]]
             }
 
-            private let kDoubleValueKey = "DOUBLE_VALUE"
-
-            private let kOptIntKey = "OPT_INT"
-
-            private let kStringArrayKey = "STRING_ARRAY"
-
-            private let kMapKey = "MAP"
-
             @objc(Value)
             public class ValueObjc: NSObject, NSCopying, NSCoding {
+            
+                private static let kDoubleValueKey = "DOUBLE_VALUE"
+
+                private static let kOptIntKey = "OPT_INT"
+
+                private static let kStringArrayKey = "STRING_ARRAY"
+
+                private static let kMapKey = "MAP"
+            
                 @objc public let doubleValue: Double
 
                 @objc public let optInt: NSNumber?
@@ -119,19 +122,19 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
                 }
 
                 public func encode(with coder: NSCoder) {
-                    coder.encode(doubleValue, forKey: kDoubleValueKey)
-                    coder.encodeConditionalObject(optInt, forKey: kOptIntKey)
-                    coder.encode(stringArray, forKey: kStringArrayKey)
-                    coder.encode(map, forKey: kMapKey)
+                    coder.encode(doubleValue, forKey: Self.kDoubleValueKey)
+                    coder.encodeConditionalObject(optInt, forKey: Self.kOptIntKey)
+                    coder.encode(stringArray, forKey: Self.kStringArrayKey)
+                    coder.encode(map, forKey: Self.kMapKey)
                 }
 
                 public required convenience init?(coder: NSCoder) {
-                    let doubleValue = coder.decodeDouble(forKey: kDoubleValueKey)
-                    let optInt = coder.decodeObject(forKey: kOptIntKey) as? NSNumber
-                    guard let stringArray = coder.decodeObject(forKey: kStringArrayKey) as? [String] else {
+                    let doubleValue = coder.decodeDouble(forKey: Self.kDoubleValueKey)
+                    let optInt = coder.decodeObject(forKey: Self.kOptIntKey) as? NSNumber
+                    guard let stringArray = coder.decodeObject(forKey: Self.kStringArrayKey) as? [String] else {
                         return nil
                     }
-                    guard let map = coder.decodeObject(forKey: kMapKey) as? [String: [String: Double]] else {
+                    guard let map = coder.decodeObject(forKey: Self.kMapKey) as? [String: [String: Double]] else {
                         return nil
                     }
                     self.init(doubleValue: doubleValue, optInt: optInt, stringArray: stringArray, map: map)
@@ -141,18 +144,7 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
                 public override init() {
                     fatalError()
                 }
-            }
 
-            extension Value {
-                public init(_ wrapper: ValueObjc) {
-                    self.doubleValue = wrapper.doubleValue
-                    self.optInt = wrapper.optInt.map(\.int64Value)
-                    self.stringArray = wrapper.stringArray
-                    self.map = wrapper.map
-                }
-            }
-
-            extension ValueObjc {
                 @objc
                 public class ValueBuilder: NSObject {
                     @objc public class func value() -> ValueBuilder {
@@ -223,7 +215,15 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
                     }
                 }
             }
-
+            
+            extension Value {
+                public init(_ wrapper: ValueObjc) {
+                    self.doubleValue = wrapper.doubleValue
+                    self.optInt = wrapper.optInt.map(\.int64Value)
+                    self.stringArray = wrapper.stringArray
+                    self.map = wrapper.map
+                }
+            }
             """#,
             macros: macros
         )

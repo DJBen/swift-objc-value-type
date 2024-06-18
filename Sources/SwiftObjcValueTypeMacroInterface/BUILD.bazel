@@ -4,5 +4,6 @@ swift_library(
     name = "SwiftObjcValueTypeMacroInterface",
     srcs = ["SwiftObjcValueType.swift"],
     module_name = "SwiftObjcValueTypeMacroInterface",
+    plugins = ["//Sources/SwiftObjcValueTypeMacro"],
     visibility = ["//visibility:public"],
 )

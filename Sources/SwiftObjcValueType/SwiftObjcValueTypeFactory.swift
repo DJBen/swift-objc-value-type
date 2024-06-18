@@ -36,10 +36,11 @@ public struct SwiftObjcValueTypeFactory {
                     // Objective-C NS_OPTIONS may be imported to Swift, but not the other way around.
                     if !structDecl.inheritedTypes.contains("OptionSet") {
                         let configFlags = structDecl.valueObjectConfig.flags
+                        let referencedSwiftTypes = referencedSwiftTypes.union(structDecl.valueObjectConfig.swiftTypesWithWrapper)
 
                         for decl in try wrappingClassDecl(
                             structDecl: structDecl,
-                            referencedSwiftTypes: referencedSwiftTypes.union(structDecl.valueObjectConfig.swiftTypesWithWrapper),
+                            referencedSwiftTypes: referencedSwiftTypes,
                             prefix: prefix,
                             imports: imports,
                             externalHashSettings: externalHashSettings,
@@ -47,18 +48,24 @@ public struct SwiftObjcValueTypeFactory {
                             descriptor.inheritedTypes.contains("Identifiable"),
                             shouldSynthesizeNSCoding: shouldSynthesizeNSCoding || configFlags.contains("nscoding"),
                             shouldSynthesizeNSCopying: shouldSynthesizeNSCopying || configFlags.contains("nscopying"),
-                            shouldSynthesizeObjCBuilder: shouldSynthesizeObjCBuilder || configFlags.contains("builder"),
+                            shouldSynthesizeObjcBuilder: shouldSynthesizeObjCBuilder || configFlags.contains("builder"),
                             shouldSynthesizeDescription: descriptor.inheritedTypes.contains("CustomStringConvertible"),
                             shouldSynthesizeDebugDescription: descriptor.inheritedTypes.contains("CustomDebugStringConvertible")
+                        ) { decl }
+                        
+                        for decl in try extensionDecl(
+                            structDecl: structDecl,
+                            referencedSwiftTypes: referencedSwiftTypes
                         ) { decl }
                     }
 
                 case .enumDecl(let enumDecl):
                     let configFlags = enumDecl.valueObjectConfig.flags
+                    let referencedSwiftTypes = referencedSwiftTypes.union(enumDecl.valueObjectConfig.swiftTypesWithWrapper)
 
                     for decl in try wrappingClassDecl(
                         enumDecl: enumDecl,
-                        referencedSwiftTypes: referencedSwiftTypes.union(enumDecl.valueObjectConfig.swiftTypesWithWrapper),
+                        referencedSwiftTypes: referencedSwiftTypes,
                         prefix: prefix,
                         imports: imports,
                         externalHashSettings: externalHashSettings,
@@ -67,13 +74,21 @@ public struct SwiftObjcValueTypeFactory {
                         shouldSynthesizeNSCoding: shouldSynthesizeNSCoding || configFlags.contains("nscoding"),
                         shouldSynthesizeNSCopying: shouldSynthesizeNSCopying || configFlags.contains("nscopying")
                     ) { decl }
+                    
+                    for decl in try extensionDecl(
+                        enumDecl: enumDecl,
+                        referencedSwiftTypes: referencedSwiftTypes
+                    ) { decl }
                 }
             }
         }
     }
 
-    public func wrappingClassDeclInMacro(
-        structDecl: StructDeclSyntax
+    public func wrappingClassDeclForPeerMacro(
+        structDecl: StructDeclSyntax,
+        shouldSynthesizeNSCoding: Bool = false,
+        shouldSynthesizeNSCopying: Bool = false,
+        shouldSynthesizeObjcBuilder: Bool = false
     ) throws -> [any DeclSyntaxProtocol] {
         let configFlags = structDecl.valueObjectConfig.flags
 
@@ -85,16 +100,18 @@ public struct SwiftObjcValueTypeFactory {
             externalHashSettings: nil,
             shouldSynthesizeEquatable: structDecl.inheritedTypes.contains("Equatable") || structDecl.inheritedTypes.contains("Hashable") ||
             structDecl.inheritedTypes.contains("Identifiable"),
-            shouldSynthesizeNSCoding: configFlags.contains("nscoding"),
-            shouldSynthesizeNSCopying: configFlags.contains("nscopying"),
-            shouldSynthesizeObjCBuilder: configFlags.contains("builder"),
+            shouldSynthesizeNSCoding: shouldSynthesizeNSCoding || configFlags.contains("nscoding"),
+            shouldSynthesizeNSCopying: shouldSynthesizeNSCopying || configFlags.contains("nscopying"),
+            shouldSynthesizeObjcBuilder: shouldSynthesizeObjcBuilder || configFlags.contains("builder"),
             shouldSynthesizeDescription: structDecl.inheritedTypes.contains("CustomStringConvertible"),
             shouldSynthesizeDebugDescription: structDecl.inheritedTypes.contains("CustomDebugStringConvertible")
         )
     }
 
-    public func wrappingClassDeclInMacro(
-        enumDecl: EnumDeclSyntax
+    public func wrappingClassDeclForPeerMacro(
+        enumDecl: EnumDeclSyntax,
+        shouldSynthesizeNSCoding: Bool = false,
+        shouldSynthesizeNSCopying: Bool = false
     ) throws -> [any DeclSyntaxProtocol] {
         let configFlags = enumDecl.valueObjectConfig.flags
 
@@ -106,11 +123,32 @@ public struct SwiftObjcValueTypeFactory {
             externalHashSettings: nil,
             shouldSynthesizeEquatable: enumDecl.inheritedTypes.contains("Equatable") || enumDecl.inheritedTypes.contains("Hashable") ||
             enumDecl.inheritedTypes.contains("Identifiable"),
-            shouldSynthesizeNSCoding: configFlags.contains("nscoding"),
-            shouldSynthesizeNSCopying: configFlags.contains("nscopying")
+            shouldSynthesizeNSCoding: shouldSynthesizeNSCoding || configFlags.contains("nscoding"),
+            shouldSynthesizeNSCopying: shouldSynthesizeNSCopying || configFlags.contains("nscopying")
         )
     }
-
+    
+    public func extensionDecl(
+        structDecl: StructDeclSyntax,
+        referencedSwiftTypes: Set<String>
+    ) throws -> [ExtensionDeclSyntax] {
+        var decls = [ExtensionDeclSyntax]()
+        
+        decls.append(
+            try ExtensionDeclSyntax(
+                extendedType: IdentifierTypeSyntax(name: structDecl.name.trimmed)
+            ) {
+                try swiftInitializerFromObjcWrapper(
+                    structDecl: structDecl,
+                    referencedSwiftTypes: referencedSwiftTypes
+                )
+            }
+            .with(\.leadingTrivia, .newlines(2))
+        )
+        
+        return decls
+    }
+    
     private func wrappingClassDecl(
         structDecl: StructDeclSyntax,
         referencedSwiftTypes: Set<String>,
@@ -120,7 +158,7 @@ public struct SwiftObjcValueTypeFactory {
         shouldSynthesizeEquatable: Bool,
         shouldSynthesizeNSCoding: Bool,
         shouldSynthesizeNSCopying: Bool,
-        shouldSynthesizeObjCBuilder: Bool,
+        shouldSynthesizeObjcBuilder: Bool,
         shouldSynthesizeDescription: Bool,
         shouldSynthesizeDebugDescription: Bool
     ) throws -> [any DeclSyntaxProtocol] {
@@ -144,10 +182,6 @@ public struct SwiftObjcValueTypeFactory {
             )
         }
 
-        if shouldSynthesizeNSCoding {
-            decls.append(contentsOf: nsCodingConstants(structDecl: structDecl))
-        }
-
         decls.append(
             try ClassDeclSyntax(
                 attributes: AttributeListSyntax {
@@ -169,6 +203,10 @@ public struct SwiftObjcValueTypeFactory {
                     }
                 },
                 memberBlockBuilder: {
+                    if shouldSynthesizeNSCoding {
+                        for decl in nsCodingConstants(structDecl: structDecl) { decl }
+                    }
+                    
                     try structDecl.forEachVariableDecl { variableTypeDecl in
                         try objcVariableDecl(
                             variableTypeDecl: variableTypeDecl,
@@ -236,38 +274,50 @@ public struct SwiftObjcValueTypeFactory {
                         parentContainerModifiers: structDecl.modifiers
                     )
                     .with(\.leadingTrivia, .newlines(2))
+                    
+                    if shouldSynthesizeObjcBuilder {
+                        try objcBuilderDecl(
+                            structDecl: structDecl,
+                            referencedSwiftTypes: referencedSwiftTypes,
+                            prefix: prefix
+                        )
+                        .with(\.leadingTrivia, .newlines(2))
+                    }
                 }
             )
             .with(\.leadingTrivia, .newlines(2))
         )
 
+        return decls
+    }
+
+    public func extensionDecl(
+        enumDecl: EnumDeclSyntax,
+        referencedSwiftTypes: Set<String>
+    ) throws -> [ExtensionDeclSyntax] {
+        // Primitive enums are notated with @objc
+        // Do not generate anything for primitive enums
+        if enumDecl.attributes.hasObjc {
+            return []
+        }
+        
+        var decls = [ExtensionDeclSyntax]()
+        
         decls.append(
             try ExtensionDeclSyntax(
-                extendedType: IdentifierTypeSyntax(name: structDecl.name.trimmed)
+                extendedType: IdentifierTypeSyntax(name: enumDecl.name.trimmed)
             ) {
                 try swiftInitializerFromObjcWrapper(
-                    structDecl: structDecl,
+                    enumDecl: enumDecl,
                     referencedSwiftTypes: referencedSwiftTypes
                 )
             }
             .with(\.leadingTrivia, .newlines(2))
         )
-
-        if shouldSynthesizeObjCBuilder {
-            decls.append(
-                try objcBuilderExtensionDecl(
-                    structDecl: structDecl,
-                    referencedSwiftTypes: referencedSwiftTypes,
-                    prefix: prefix
-                )
-                .with(\.leadingTrivia, .newlines(2))
-                .with(\.trailingTrivia, .newline)
-            )
-        }
-
+        
         return decls
     }
-
+    
     private func wrappingClassDecl(
         enumDecl: EnumDeclSyntax,
         referencedSwiftTypes: Set<String>,
@@ -301,10 +351,6 @@ public struct SwiftObjcValueTypeFactory {
                     "import \(raw: `import`)"
                 )
             )
-        }
-
-        if shouldSynthesizeNSCoding {
-            decls.append(contentsOf: nsCodingConstants(enumDecl: enumDecl))
         }
 
         decls.append(
@@ -375,7 +421,14 @@ public struct SwiftObjcValueTypeFactory {
                     }
                 },
                 memberBlockBuilder: {
-                    DeclSyntax("private let subtype: \(raw: enumName)Subtype")
+                    if shouldSynthesizeNSCoding {
+                        for decl in nsCodingConstants(enumDecl: enumDecl) { decl }
+                    }
+                    
+                    DeclSyntax(
+                        "private let subtype: \(raw: enumName)Subtype"
+                    )
+                    .with(\.leadingTrivia, .newlines(2))
 
                     try objcEnumPrivateVariablesDecl(
                         enumDecl: enumDecl, referencedSwiftTypes: referencedSwiftTypes
@@ -495,18 +548,6 @@ public struct SwiftObjcValueTypeFactory {
                     .with(\.leadingTrivia, .newlines(2))
                 }
             )
-            .with(\.leadingTrivia, .newlines(2))
-        )
-
-        decls.append(
-            try ExtensionDeclSyntax(
-                extendedType: IdentifierTypeSyntax(name: enumDecl.name.trimmed)
-            ) {
-                try swiftInitializerFromObjcWrapper(
-                    enumDecl: enumDecl,
-                    referencedSwiftTypes: referencedSwiftTypes
-                )
-            }
             .with(\.leadingTrivia, .newlines(2))
         )
 
@@ -770,9 +811,8 @@ public struct SwiftObjcValueTypeFactory {
         referencedSwiftTypes: Set<String>
     ) throws -> MemberBlockItemListSyntax {
         VariableDeclSyntax(
-            leadingTrivia: variableTypeDecl.leadingTrivia,
             attributes: AttributeListSyntax {
-                .attribute("@objc")
+                .attribute("@objc").with(\.leadingTrivia, variableTypeDecl.leadingTrivia.normalizingNewLines(2))
             },
             modifiers: variableTypeDecl.modifiers.trimmed,
             bindingSpecifier: .keyword(.let)

@@ -2,27 +2,8 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 
 extension SwiftObjcValueTypeFactory {
-    public func objcBuilderExtensionDecl(
-        structDecl: StructDeclSyntax,
-        referencedSwiftTypes: Set<String>,
-        prefix: String
-    ) throws -> ExtensionDeclSyntax {
-        let structName = structDecl.name.trimmed.text
-
-        return try ExtensionDeclSyntax(
-            extendedType: IdentifierTypeSyntax(
-                name: .identifier("\(structName)Objc")
-            )
-        ) {
-            try objcBuilderDecl(
-                structDecl: structDecl,
-                referencedSwiftTypes: referencedSwiftTypes,
-                prefix: prefix
-            )
-        }
-    }
-
-    @MemberBlockItemListBuilder public func objcBuilderDecl(
+    @MemberBlockItemListBuilder 
+    public func objcBuilderDecl(
         structDecl: StructDeclSyntax,
         referencedSwiftTypes: Set<String>,
         prefix: String

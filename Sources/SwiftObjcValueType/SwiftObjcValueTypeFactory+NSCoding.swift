@@ -3,51 +3,18 @@ import SwiftSyntaxBuilder
 import SharedUtilities
 
 extension SwiftObjcValueTypeFactory {
-    
-    /// Turn a pattern binding `let fooBar: MyType` in a struct into a NSCoding constant decl `let kFooKey = "FOO"`.
-    /// - Parameter binding: The pattern binding.
-    /// - Returns: A variable declaration if available.
-    func nsCodingConstant(
-        name: String
-    ) -> VariableDeclSyntax {
-        VariableDeclSyntax(
-            modifiers: DeclModifierListSyntax {
-                DeclModifierSyntax(name: .keyword(.private))
-            },
-            bindingSpecifier: .keyword(.let)
-        ) {
-            PatternBindingListSyntax {
-                PatternBindingSyntax(
-                    pattern: IdentifierPatternSyntax(identifier: .identifier("k\(name.uppercasingFirst)Key")),
-                    initializer: InitializerClauseSyntax(
-                        equal: .equalToken(),
-                        value: StringLiteralExprSyntax(
-                            openingQuote: .stringQuoteToken(),
-                            segments: StringLiteralSegmentListSyntax {
-                                StringSegmentSyntax(
-                                    content: .stringSegment(name.upperSnakeCased)
-                                )
-                            },
-                            closingQuote: .stringQuoteToken()
-                        )
-                    )
-                )
-            }
-        }
-    }
-
-    func nsCodingConstants(
+    public func nsCodingConstants(
         structDecl: StructDeclSyntax
     ) -> [VariableDeclSyntax] {
         var decls = [VariableDeclSyntax]()
 
-        structDecl.enumerateBinding { index, binding in
+        structDecl.forEachBinding { binding in
             if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self) {
                 decls.append(
                     nsCodingConstant(
                         name: identifierPattern.identifier.trimmed.text
                     )
-                    .with(\.leadingTrivia, index == 0 ? .newlines(2) : [])
+                    .with(\.leadingTrivia, .newlines(2))
                 )
             }
         }
@@ -55,7 +22,7 @@ extension SwiftObjcValueTypeFactory {
         return decls
     }
 
-    func nsCodingConstants(
+    public func nsCodingConstants(
         enumDecl: EnumDeclSyntax
     ) -> [VariableDeclSyntax] {
         var decls = [VariableDeclSyntax]()
@@ -66,6 +33,7 @@ extension SwiftObjcValueTypeFactory {
             VariableDeclSyntax(
                 modifiers: DeclModifierListSyntax {
                     DeclModifierSyntax(name: .keyword(.private))
+                    DeclModifierSyntax(name: .keyword(.static))
                 },
                 bindingSpecifier: .keyword(.let)
             ) {
@@ -99,11 +67,45 @@ extension SwiftObjcValueTypeFactory {
                     nsCodingConstant(
                         name: caseElement.name.trimmed.text + caseParam.properName(index: index).trimmed.text.uppercasingFirst
                     )
+                    .with(\.leadingTrivia, .newlines(2))
                 )
             }
         }
 
         return decls
+    }
+    
+    /// Turn a pattern binding `let fooBar: MyType` in a struct into a NSCoding constant decl `let kFooKey = "FOO"`.
+    /// - Parameter binding: The pattern binding.
+    /// - Returns: A variable declaration if available.
+    private func nsCodingConstant(
+        name: String
+    ) -> VariableDeclSyntax {
+        VariableDeclSyntax(
+            modifiers: DeclModifierListSyntax {
+                DeclModifierSyntax(name: .keyword(.private))
+                DeclModifierSyntax(name: .keyword(.static))
+            },
+            bindingSpecifier: .keyword(.let)
+        ) {
+            PatternBindingListSyntax {
+                PatternBindingSyntax(
+                    pattern: IdentifierPatternSyntax(identifier: .identifier("k\(name.uppercasingFirst)Key")),
+                    initializer: InitializerClauseSyntax(
+                        equal: .equalToken(),
+                        value: StringLiteralExprSyntax(
+                            openingQuote: .stringQuoteToken(),
+                            segments: StringLiteralSegmentListSyntax {
+                                StringSegmentSyntax(
+                                    content: .stringSegment(name.upperSnakeCased)
+                                )
+                            },
+                            closingQuote: .stringQuoteToken()
+                        )
+                    )
+                )
+            }
+        }
     }
 
     // let optInt = coder.decodeObject(forKey: kOptIntKey) as? NSNumber
@@ -127,8 +129,12 @@ extension SwiftObjcValueTypeFactory {
                         LabeledExprSyntax(
                             label: .identifier("forKey"),
                             colon: .colonToken(),
-                            expression: DeclReferenceExprSyntax(
-                                baseName: .identifier(constantName)
+                            expression: MemberAccessExprSyntax(
+                                base: DeclReferenceExprSyntax(baseName: .keyword(.Self)),
+                                period: .periodToken(),
+                                declName: DeclReferenceExprSyntax(
+                                    baseName: .identifier(constantName)
+                                )
                             )
                         )
                     },
@@ -204,8 +210,12 @@ extension SwiftObjcValueTypeFactory {
                 LabeledExprSyntax(
                     label: .identifier("forKey"),
                     colon: .colonToken(),
-                    expression: DeclReferenceExprSyntax(
-                        baseName: .identifier(constantName)
+                    expression: MemberAccessExprSyntax(
+                        base: DeclReferenceExprSyntax(baseName: .keyword(.Self)),
+                        period: .periodToken(),
+                        declName: DeclReferenceExprSyntax(
+                            baseName: .identifier(constantName)
+                        )
                     )
                 )
             },
@@ -379,7 +389,7 @@ extension SwiftObjcValueTypeFactory {
             )
         ) {
             """
-            guard let codedSubtype = coder.decodeObject(forKey: kCodedSubtypeKey) as? String else {
+            guard let codedSubtype = coder.decodeObject(forKey: Self.kCodedSubtypeKey) as? String else {
                 return nil
             }
             """
