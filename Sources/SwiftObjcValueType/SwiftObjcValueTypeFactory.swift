@@ -496,9 +496,10 @@ public struct SwiftObjcValueTypeFactory {
                                 parameterClause: FunctionParameterClauseSyntax(
                                     parametersBuilder: {
                                         for (index, caseParam) in (caseElement.parameterClause?.parameters ?? []).enumerated() {
+                                            let isUnamed = caseParam.firstName == nil && caseParam.secondName == nil
                                             FunctionParameterSyntax(
-                                                firstName: caseParam.properName(index: index),
-                                                secondName: caseParam.secondName,
+                                                firstName: isUnamed ? .wildcardToken() : caseParam.properName(index: index),
+                                                secondName: isUnamed ? caseParam.properName(index: index) : nil,
                                                 type: caseParam.type.asNSNumberIfOptionalNumeral.aliasingToObjcIfSiblingSwiftType(referencedSwiftTypes)
                                             )
                                         }

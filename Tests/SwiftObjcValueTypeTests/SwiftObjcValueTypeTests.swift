@@ -1705,7 +1705,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
 
                 @objc
-                class func encrypted(param0: String, key: String?) -> EncryptionTypeObjc {
+                class func encrypted(_ param0: String, key: String?) -> EncryptionTypeObjc {
                     return EncryptionTypeObjc(subtype: .encrypted, encryptedParam0: param0, encryptedKey: key)
                 }
 
