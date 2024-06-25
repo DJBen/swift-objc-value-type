@@ -2,14 +2,30 @@ import Covfefe
 
 @GrammarBuilder
 func typeProductions() -> [Production] {
-    "typedef_block_var" -%-%> t("typedef") <+> ws <+> n("block_var_type") <+> t(";")
+    "typedef_block_var" /* TypedefBlockVariable */ -%-%> 
+    t("typedef") /* typedefToken */ <+>
+    ws <+>
+    n("block_var_type") /* blockVariable */ <+>
+    t(";")
     
-    "typedef_ns_enum" -%-%> n("comments") <+> t("typedef") <+> ws <+> t("NS_ENUM") <+> t("(") <+> n("ns_enum_def_params") <+> t(")") <+> n("ns_enum_case_scope") <+> t(";")
+    "typedef_ns_enum" /* TypedefNSEnum */ -%-%> 
+    n("comments") <+> 
+    t("typedef") /* typedefToken */ <+>
+    ws <+>
+    t("NS_ENUM") /* nsEnumKeyword */ <+>
+    t("(") <+>
+    n("ns_enum_def_params") /* nsEnumParams */ <+>
+    t(")") <+>
+    n("ns_enum_case_scope") /* nsEnumCaseScope */ <+>
+    t(";")
 
     // NSUInteger, NSEnumType
     "ns_enum_def_params" -%-%> n("identifier") <+> t(",") <+> n("identifier")
 
-    "ns_enum_case_scope" -%-%> t("{") <+> n("ns_enum_case_list") <+> n("opt_comma") <+> t("}")
+    "ns_enum_case_scope" -%-%> t("{") <+> 
+    n("ns_enum_case_list") /* nsEnumCases */ <+>
+    n("opt_comma") /* commaToken */ <+>
+    t("}")
 
     "ns_enum_case_list" -%-%> n("ns_enum_case") <|>
         n("ns_enum_case_list") <+> t(",") <+> n("ns_enum_case")
@@ -32,12 +48,12 @@ func typeProductions() -> [Production] {
         n("comments") <+> n("identifier")
 
     "var_type" -%-%> n("primitive_type")
-                 <|> n("protocol_type") <+> n("nullability_specifier")
-                 <|> n("class_type") <+> (try! re("\\s*\\*\\s*")) <+> n("nullability_specifier")
-                 <|> n("block_var_type") <+> n("nullability_specifier")
-                 <|> n("var_pointer_type") <+> n("nullability_specifier")
+                 <|> n("protocol_type") <+> n("opt_nullability_specifier")
+                 <|> n("class_type") <+> n("opt_generic_args") <+> (try! re("\\s*\\*\\s*")) <+> n("opt_nullability_specifier")
+                 <|> n("block_var_type") <+> n("opt_nullability_specifier")
+                 <|> n("var_pointer_type") <+> n("opt_nullability_specifier")
 
-    "nullability_qualified_param_type" -%-%> n("param_nullability_specifier") <+> n("param_type")
+    "nullability_qualified_param_type" -%-%> n("opt_param_opt_nullability_specifier") <+> n("param_type")
 
     "param_type" -%-%> n("primitive_type")
                  <|> n("class_type")
@@ -46,9 +62,19 @@ func typeProductions() -> [Production] {
                  <|> n("param_pointer_type")
                  <|> t("instancetype")
 
-    "primitive_type" --> t("int") <|> t("float") <|> t("double") <|> t("BOOL") <|> t("char") <|> t("void") <|> t("NSInteger") <|> t("NSUInteger") <|> t("CGFloat") <|> t("int32_t") <|> t("uint32_t") <|> t("int64_t") <|> t("uint64_t")
+    "primitive_type" --> n("unsignable_primitives") <|>
+    t("unsigned ") <+> n("unsignable_primitives") <|>
+    t("float") <|> t("double") <|> 
+    t("BOOL") <|> 
+    t("void") <|> 
+    t("NSInteger") <|> t("NSUInteger") <|> t("CGFloat") <|> 
+    t("int32_t") <|> t("uint32_t") <|> t("int64_t") <|> t("uint64_t")
 
-    "class_type" --> n("identifier") <|> (n("identifier") <+> n("generic_args"))
+    "unsignable_primitives" --> t("int") <|> t("short") <|> t("char") <|> t("long") <|> t("long long")
+
+    "class_type" --> n("identifier")
+    
+    "opt_generic_args" --> n("generic_args") <|> t()
 
     "protocol_type" --> n("id_type") <|>
     (
@@ -66,10 +92,10 @@ func typeProductions() -> [Production] {
     )
 
     // returnType (^blockName)(parameterTypes) = ^returnType(parameters) {...};
-    "block_var_type" --> n("var_type") <+> t("(^") <+> n("nullability_specifier") <+> n("identifier") <+> (try! re("\\)\\s*\\(")) <+> n("var_type_list") <+> t(")")
+    "block_var_type" --> n("var_type") <+> t("(^") <+> n("opt_nullability_specifier") <+> n("identifier") <+> (try! re("\\)\\s*\\(")) <+> n("var_type_list") <+> t(")")
 
     // - (void)someMethodThatTakesABlock:(returnType (^nullability)(parameterTypes))blockName;
-    "block_param_type" --> n("param_type") <+> t("(^") <+> n("nullability_specifier") <+> (try! re("\\)\\s*\\(")) <+> n("param_type_list") <+> t(")")
+    "block_param_type" --> n("param_type") <+> t("(^") <+> n("opt_nullability_specifier") <+> (try! re("\\)\\s*\\(")) <+> n("param_type_list") <+> t(")")
 
     "var_pointer_type" --> n("var_type") <+> t("*")
     "param_pointer_type" --> n("param_type") <+> t("*")
@@ -86,9 +112,9 @@ func typeProductions() -> [Production] {
 
     "generic_args" --> t("<") <+> n("var_type_list") <+> t(">")
 
-    "param_nullability_specifier" -%-%> t("nonnull") <|> t("nullable") <|> t()
+    "opt_param_opt_nullability_specifier" -%-%> t("nonnull") <|> t("nullable") <|> t()
 
-    "nullability_specifier" -%-%> t("_Nonnull") <|> t("_Nullable") <|> t()
+    "opt_nullability_specifier" -%-%> t("_Nonnull") <|> t("_Nullable") <|> t()
 
     "id_type" -%-%> t("id")
 

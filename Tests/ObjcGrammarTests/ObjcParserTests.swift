@@ -1,7 +1,7 @@
 import XCTest
 import Covfefe
 import TestingSupport
-@testable import ObjcSupport
+@testable import ObjcGrammar
 import CustomDump
 
 final class ObjcParserTests: XCTestCase {
@@ -197,6 +197,23 @@ final class ObjcParserTests: XCTestCase {
             print(spaces, currentItem.root ?? "\"\(input2[currentItem.leaf!])\"")
         } nodeIterarionComplete: { indexPath, key, continueIterating in
         }
+    }
+    
+    func test_imports() throws {
+        let input = """
+        @import MapKit;
+
+        @protocol KPMapView <NSObject>
+
+        @property (nonatomic, readonly) MKMapRect visibleMapRect;
+        @property (nonatomic, readonly) CGRect frame;
+
+        - (CGPoint)convertCoordinate:(CLLocationCoordinate2D)coordinate toPointToView:(nullable UIView *)view;
+
+        @end
+        """
+        
+        let syntax = try XCTUnwrap(try ObjcParser().parser.syntaxTree(for: input))
     }
 
     func testBasics() throws {

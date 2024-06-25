@@ -5,8 +5,18 @@ func declProductions() -> [Production] {
     "ns_assume_nonnull_scope" -%-%> t("NS_ASSUME_NONNULL_BEGIN") <+>
         n("protocol_decl") <+>
         t("NS_ASSUME_NONNULL_END")
+    
+    "protocol_forward_decl" -%-%> n("comments") <+> t("@protocol") <+> n("identifier") <+> t(";")
+    
+    "class_forward_decl" -%-%> n("comments") <+> t("@class") <+> n("identifier") <+> t(";")
 
     "protocol_decl" -%-%> n("comments") <+> t("@protocol") <+> n("identifier") <+> n("bracketed_protocol_conformance_list") <+> n("protocol_member_list") <+> t("@end")
+    
+    "interface_decl" -%-%> n("comments") <+> t("@interface") <+> n("identifier") <+> t(":") <+> n("interface_inheritance_list") <+> n("opt_bracketed_protocol_conformance_list") <+> n("protocol_member_list") <+> t("@end")
+    
+    "interface_inheritance_list" -%-%> n("identifier") <+> t(",") <+> n("interface_inheritance_list") <+> t()
+
+    "opt_bracketed_protocol_conformance_list" -%-%> n("bracketed_protocol_conformance_list") <|> t()
 
     "bracketed_protocol_conformance_list" -%-%> t("<") <+> n("protocol_conformance_list") <+> t(">")
 
@@ -18,9 +28,9 @@ func declProductions() -> [Production] {
         t()
 
     // @property (nonatomic, strong, readonly, nonnull) Foo *bar;
-    "property_decl" -%-%> n("comments") <+> t("@property") <+> n("paren_property_attr") <+> n("param_type") <+> n("identifier") <+> t(";") <+> n("comments")
+    "property_decl" -%-%> n("comments") <+> t("@property") <+> n("opt_paren_property_attr") <+> n("param_type") <+> n("identifier") <+> t(";") <+> n("comments")
 
-    "paren_property_attr" -%-%> t("(") <+> n("property_attr_list") <+> t(")") <|> t()
+    "opt_paren_property_attr" -%-%> t("(") <+> n("property_attr_list") <+> t(")") <|> t()
 
     "property_attr_list" --> n("property_attr") <|>
     (

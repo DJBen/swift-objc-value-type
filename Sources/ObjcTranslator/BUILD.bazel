@@ -1,14 +1,14 @@
 load("@build_bazel_rules_swift//swift:swift.bzl", "swift_library")
 
 swift_library(
-    name = "ObjcSupport",
+    name = "ObjcTranslator",
     srcs = [
         "EnumOptionConverter.swift",
         "ObjcSyntax.swift",
         "ProtocolConverter.swift",
         "SwiftSyntaxExtensions.swift",
     ],
-    module_name = "ObjcSupport",
+    module_name = "ObjcTranslator",
     visibility = ["//visibility:public"],
     deps = [
         "//Sources/SharedUtilities",

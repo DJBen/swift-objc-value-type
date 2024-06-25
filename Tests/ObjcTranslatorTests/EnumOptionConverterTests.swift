@@ -1,6 +1,6 @@
 import XCTest
 import TestingSupport
-@testable import ObjcSupport
+@testable import ObjcTranslator
 import CustomDump
 
 final class EnumOptionConverterTests: XCTestCase {

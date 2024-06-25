@@ -2,9 +2,11 @@ import Covfefe
 
 @GrammarBuilder
 func codeBlockProductions() -> [Production] {
-    "code_block_list" --> n("code_block") <|> t() <|> n("code_block_list") <+> n("code_block")
+    "code_block_list" --> n("code_block") <|> 
+    n("code_block_list") <+> n("code_block") <|> 
+    t()
 
-    "code_block" --> n("import_stmt") <|> n("ns_assume_nonnull_scope") <|> n("protocol_decl")
+    "code_block" --> n("import_stmt") <|> n("ns_assume_nonnull_scope") <|> n("protocol_decl") <|> n("interface_decl") <|> n("protocol_forward_decl") <|> n("class_forward_decl")
 
     "import_stmt" --> n("import_modular") <|> n("import_quoted") <|> n("import_slashed")
 

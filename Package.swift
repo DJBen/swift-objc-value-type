@@ -30,6 +30,13 @@ let package = Package(
     ),
 
     .target(
+      name: "SwiftObjcValueTypeMacroInterface",
+      dependencies: [
+        "SwiftObjcValueTypeMacro",
+      ]
+    ),
+
+    .target(
       name: "SharedUtilities",
       dependencies: [
         .product(name: "SwiftSyntax", package: "swift-syntax"),
@@ -48,12 +55,37 @@ let package = Package(
     ),
 
     .target(
-      name: "ObjcSupport",
+      name: "ObjcTranslator",
       dependencies: [
         "SharedUtilities",
+        "ObjcGrammar",
+        "ObjcGrammarMacroInterface",
         .product(name: "SwiftSyntax", package: "swift-syntax"),
         .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
         .product(name: "Covfefe", package: "Covfefe"),
+      ]
+    ),
+
+    .target(
+      name: "ObjcGrammar",
+      dependencies: [
+        .product(name: "Covfefe", package: "Covfefe"),
+      ]
+    ),
+
+    .macro(
+        name: "ObjcGrammarMacro",
+        dependencies: [
+            "ObjcGrammar",
+            .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+            .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
+        ]
+    ),
+
+    .target(
+      name: "ObjcGrammarMacroInterface",
+      dependencies: [
+        "ObjcGrammarMacro",
       ]
     ),
 
@@ -63,13 +95,6 @@ let package = Package(
         "SharedUtilities",
         .product(name: "SwiftSyntax", package: "swift-syntax"),
         .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
-      ]
-    ),
-
-    .target(
-      name: "SwiftObjcValueTypeMacroInterface",
-      dependencies: [
-        "SwiftObjcValueTypeMacro",
       ]
     ),
 
@@ -108,10 +133,20 @@ let package = Package(
     ),
 
     .testTarget(
-        name: "ObjcSupportTests",
+        name: "ObjcGrammarTests",
+        dependencies: [
+            "ObjcGrammar",
+            "Covfefe",
+            "TestingSupport",
+            .product(name: "CustomDump", package: "swift-custom-dump")
+        ]
+    ),
+
+    .testTarget(
+        name: "ObjcTranslatorTests",
         dependencies: [
             "SharedUtilities",
-            "ObjcSupport",
+            "ObjcTranslator",
             "TestingSupport",
             .product(name: "CustomDump", package: "swift-custom-dump")
         ]
@@ -122,7 +157,7 @@ let package = Package(
       dependencies: [
         "SwiftObjcValueType",
         "Remodel",
-        "ObjcSupport",
+        "ObjcTranslator",
         .product(name: "CustomDump", package: "swift-custom-dump"),
         .product(name: "SwiftDiagnostics", package: "swift-syntax"),
         .product(name: "SwiftOperators", package: "swift-syntax"),
