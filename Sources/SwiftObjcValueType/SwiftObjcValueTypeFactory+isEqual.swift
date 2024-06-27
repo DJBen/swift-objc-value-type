@@ -177,6 +177,15 @@ extension SwiftObjcValueTypeFactory {
     func objcIsEqualFunc(
         enumDecl: EnumDeclSyntax
     ) throws -> MemberBlockItemListSyntax {
+        let totalEnumAssociatedValueCount: Int = {
+            var count = 0
+            enumDecl.enumerateCaseElement { index, caseElement in
+                count += (caseElement.parameterClause?.parameters ?? []).count
+            }
+            return count
+        }()
+        
+        
         try isEqualFunc(
             containerName: enumDecl.name.trimmed.text,
             modifiers: enumDecl.modifiers
@@ -185,28 +194,53 @@ extension SwiftObjcValueTypeFactory {
                 expression: SequenceExprSyntax {
                     ExprSyntax("subtype == other.subtype")
 
-                    BinaryOperatorExprSyntax(operator: .binaryOperator("&&"))
-
-                    enumDecl.enumerateCaseElement { index, caseElement in
-                        let params = caseElement.parameterClause?.parameters ?? []
-                        let lCaseName = caseElement.name.trimmed.text
-                        for (paramIndex, caseParam) in params.enumerated() {
-                            let propertyName = "\(lCaseName)\(caseParam.properName(index: paramIndex).trimmed.text.uppercasingFirst)"
-
-                            propertyIsEqualExprs(
-                                identifier: .identifier(propertyName),
-                                type: caseParam.type.optionalized,
-                                valueObjectConfig: enumDecl.valueObjectConfig
-                            )
-
-                            if paramIndex + 1 < params.count || index + 1 < enumDecl.caseCount {
-                                BinaryOperatorExprSyntax(operator: .binaryOperator("&&"))
-                            }
-                        }
+                    if totalEnumAssociatedValueCount > 0 {
+                        BinaryOperatorExprSyntax(operator: .binaryOperator("&&"))
                     }
+                    
+                    enumIsEqualExprList(
+                        enumDecl: enumDecl,
+                        totalEnumAssociatedValueCount: totalEnumAssociatedValueCount
+                    )
                 }
             )
         }
+    }
+    
+    private func enumIsEqualExprList(
+        enumDecl: EnumDeclSyntax,
+        totalEnumAssociatedValueCount: Int
+    ) -> ExprListSyntax {
+        var enumAssociatedValueIndex = 0
+        var exprList = ExprListSyntax()
+        
+        enumDecl.enumerateCaseElement { index, caseElement in
+            let params = caseElement.parameterClause?.parameters ?? []
+            let lCaseName = caseElement.name.trimmed.text
+            for (paramIndex, caseParam) in params.enumerated() {
+                let propertyName = "\(lCaseName)\(caseParam.properName(index: paramIndex).trimmed.text.uppercasingFirst)"
+
+                exprList.append(
+                    contentsOf: propertyIsEqualExprs(
+                        identifier: .identifier(propertyName),
+                        type: caseParam.type.optionalized,
+                        valueObjectConfig: enumDecl.valueObjectConfig
+                    )
+                )
+
+                if paramIndex + 1 < params.count && enumAssociatedValueIndex + 1 < totalEnumAssociatedValueCount {
+                    exprList.append(
+                        ExprSyntax(
+                            BinaryOperatorExprSyntax(operator: .binaryOperator("&&"))
+                        )
+                    )
+                }
+                
+                enumAssociatedValueIndex += 1
+            }
+        }
+        
+        return exprList
     }
 }
 

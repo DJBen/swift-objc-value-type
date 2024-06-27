@@ -48,9 +48,9 @@ extension SwiftObjcValueTypeFactory {
             }
         } else if type.isSignedInt {
             if needsAppendRawValue {
-                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: abs(\(identifier).rawValue))"))
+                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: abs(Int(\(identifier).rawValue)))"))
             } else {
-                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: abs(\(identifier)))"))
+                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: abs(Int(\(identifier))))"))
             }
         } else if type.isFloat {
             let floatHashFunc = externalHashSettings?.hashFloatFunc ?? "hashFloat"
