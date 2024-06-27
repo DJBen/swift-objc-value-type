@@ -18,6 +18,7 @@ let package = Package(
     .package(url: "https://github.com/apple/swift-syntax.git", from: "510.0.1"),
     .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "1.3.0"),
     .package(url: "https://github.com/apple/swift-collections.git", .upToNextMinor(from: "1.1.0")),
+    .package(url: "https://github.com/antlr/antlr4", from: "4.13.1"),
   ],
   targets: [
     .macro(
@@ -69,6 +70,7 @@ let package = Package(
     .target(
       name: "ObjcGrammar",
       dependencies: [
+        .product(name: "Antlr4", package: "antlr4"),
         .product(name: "Covfefe", package: "Covfefe"),
       ]
     ),
