@@ -82,7 +82,7 @@ genericTypeSpecifier
     ;
 
 protocolDeclaration
-    : '@protocol' protocolName (LT protocolList GT)? protocolDeclarationSection* '@end'
+    : macro? '@protocol' protocolName (LT protocolList GT)? protocolDeclarationSection* '@end'
     ;
 
 protocolDeclarationSection
@@ -854,6 +854,7 @@ identifier
     | NS_INLINE
     | NS_ENUM
     | NS_OPTIONS
+    | NS_SWIFT_NAME
     | NULL_UNSPECIFIED
     | NULLABLE
     | NONNULL

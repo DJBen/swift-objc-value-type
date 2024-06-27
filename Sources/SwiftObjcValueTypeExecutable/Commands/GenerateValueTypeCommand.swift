@@ -32,13 +32,13 @@ struct GenerateValueTypeCommand: ParsableCommand, FileHandlingCommand {
     }
 
     func run() throws {
-        var sourceFilesIterator = makeSourceFileIterator {
+        var sourceFilesIterator = makeSourceContentIterator {
             $0.lowercased() == "swift"
         }
         var sourceFiles = [(IteratedPath?, SourceFileSyntax)]()
         let preprocessor = SourcePreprocessor()
         while let sourceFile = sourceFilesIterator.next() {
-            sourceFile.content.withUnsafeBufferPointer { sourceBuffer in
+            [UInt8](sourceFile.content).withUnsafeBufferPointer { sourceBuffer in
                 let tree = Parser.parse(source: sourceBuffer)
                 sourceFiles.append((sourceFile.iteratedPath, tree))
                 preprocessor.addSource(sourceFileSyntax: tree)
@@ -51,7 +51,7 @@ struct GenerateValueTypeCommand: ParsableCommand, FileHandlingCommand {
             $0.lowercased() == "swift"
         }
         while let referenceFile = referenceFilesIterator.next() {
-            referenceFile.content.withUnsafeBufferPointer { referenceBuffer in
+            [UInt8](referenceFile.content).withUnsafeBufferPointer { referenceBuffer in
                 let tree = Parser.parse(source: referenceBuffer)
                 preprocessor.addSource(sourceFileSyntax: tree)
             }

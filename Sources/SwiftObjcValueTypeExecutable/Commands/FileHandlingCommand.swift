@@ -67,8 +67,8 @@ final class FileStreamSink: TextOutputStreamableSink {
 }
 
 extension FileHandlingCommand {
-    /// The contents of the source files that should be parsed, each in UTF-8 bytes.
-    func makeSourceFileIterator(
+    /// The contents of the source files or stdin that should be parsed, each in UTF-8 bytes.
+    func makeSourceContentIterator(
         filteringExtension: ((String) -> Bool)? = { _ in true }
     ) -> any IteratorProtocol<File> {
         if fileArguments.sourcePaths.isEmpty {
@@ -76,7 +76,8 @@ extension FileHandlingCommand {
         } else {
             let dedupedSourcePaths = Set(fileArguments.sourcePaths)
             return SourceFileContentIterator(
-                sourcePaths: dedupedSourcePaths, filteringExtension: filteringExtension
+                sourcePaths: dedupedSourcePaths, 
+                filteringExtension: filteringExtension
             )
         }
     }

@@ -157,6 +157,7 @@ NULL_RESETTABLE  : 'null_resettable';
 NS_INLINE  : 'NS_INLINE';
 NS_ENUM    : 'NS_ENUM';
 NS_OPTIONS : 'NS_OPTIONS';
+NS_SWIFT_NAME : 'NS_SWIFT_NAME';
 
 // Property attributes
 

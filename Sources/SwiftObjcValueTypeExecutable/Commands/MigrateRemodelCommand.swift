@@ -31,7 +31,7 @@ struct MigrateRemodelCommand: ParsableCommand, FileHandlingCommand {
     var skipLegacyInterfaceValueType: Bool = false
 
     func run() throws {
-        var sourceFilesIterator = makeSourceFileIterator {
+        var sourceFilesIterator = makeSourceContentIterator {
             ["adtvalue", "value"].contains($0.lowercased())
         }
         let remodelParser = RemodelValueObjectParser()

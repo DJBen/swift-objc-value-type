@@ -31,19 +31,50 @@ public struct IteratedPath: Hashable {
 public struct File {
     /// If missing, it means the content comes from stdin.
     public let iteratedPath: IteratedPath?
-    public let content: [UInt8]
+    public let content: Data
 
     public init(
         iteratedPath: IteratedPath?,
-        content: [UInt8]
+        content: Data
     ) {
         self.iteratedPath = iteratedPath
         self.content = content
     }
+    
+    public init(
+        iteratedPath: IteratedPath
+    ) throws {
+        let data = try Data(contentsOf: URL(fileURLWithPath: iteratedPath.path))
+        self.init(iteratedPath: iteratedPath, content: data)
+    }
+}
+
+public struct SourceFileContentIterator: IteratorProtocol {
+    var sourceFileIterator: SourceFileIterator
+    
+    public init(
+        sourcePaths: any Sequence<String>,
+        filteringExtension: ((String) -> Bool)?
+    ) {
+        sourceFileIterator = SourceFileIterator(
+            sourcePaths: sourcePaths,
+            filteringExtension: filteringExtension
+        )
+    }
+    
+    public mutating func next() -> File? {
+        sourceFileIterator.next().flatMap {
+            do {
+                return try File(iteratedPath: $0)
+            } catch {
+                return nil
+            }
+        }
+    }
 }
 
 /// An efficient file iterator that lazily iterates over files in directories.
-public struct SourceFileContentIterator: IteratorProtocol {
+public struct SourceFileIterator: IteratorProtocol {
     private let paths: [IteratedPath]
     private var fileIndex = 0
     private let fileManager = FileManager.default
@@ -93,23 +124,14 @@ public struct SourceFileContentIterator: IteratorProtocol {
         self.paths = paths
     }
 
-    public mutating func next() -> File? {
+    public mutating func next() -> IteratedPath? {
         // First try to get the next file from the paths array
         if fileIndex < paths.count {
             let iteratedPath = paths[fileIndex]
             fileIndex += 1
-            return file(withPath: iteratedPath)
+            return iteratedPath
         }
 
         return nil
-    }
-
-    private func file(withPath iteratedPath: IteratedPath) -> File? {
-        do {
-            let data = try Data(contentsOf: URL(fileURLWithPath: iteratedPath.path))
-            return File(iteratedPath: iteratedPath, content: [UInt8](data))
-        } catch {
-            return nil
-        }
     }
 }

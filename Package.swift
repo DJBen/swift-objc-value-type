@@ -60,10 +60,8 @@ let package = Package(
       dependencies: [
         "SharedUtilities",
         "ObjcGrammar",
-        "ObjcGrammarMacroInterface",
         .product(name: "SwiftSyntax", package: "swift-syntax"),
         .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
-        .product(name: "Covfefe", package: "Covfefe"),
       ]
     ),
 
@@ -71,23 +69,6 @@ let package = Package(
       name: "ObjcGrammar",
       dependencies: [
         .product(name: "Antlr4", package: "antlr4"),
-        .product(name: "Covfefe", package: "Covfefe"),
-      ]
-    ),
-
-    .macro(
-        name: "ObjcGrammarMacro",
-        dependencies: [
-            "ObjcGrammar",
-            .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
-            .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
-        ]
-    ),
-
-    .target(
-      name: "ObjcGrammarMacroInterface",
-      dependencies: [
-        "ObjcGrammarMacro",
       ]
     ),
 
@@ -138,7 +119,6 @@ let package = Package(
         name: "ObjcGrammarTests",
         dependencies: [
             "ObjcGrammar",
-            "Covfefe",
             "TestingSupport",
             .product(name: "CustomDump", package: "swift-custom-dump")
         ]
