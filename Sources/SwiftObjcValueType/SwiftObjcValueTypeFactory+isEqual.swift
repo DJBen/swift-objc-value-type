@@ -110,7 +110,6 @@ extension SwiftObjcValueTypeFactory {
 
             BooleanLiteralExprSyntax(literal: .keyword(.true))
 
-
         } else {
             FunctionCallExprSyntax(
                 calledExpression: MemberAccessExprSyntax(
@@ -228,7 +227,7 @@ extension SwiftObjcValueTypeFactory {
                     )
                 )
 
-                if paramIndex + 1 < params.count && enumAssociatedValueIndex + 1 < totalEnumAssociatedValueCount {
+                if enumAssociatedValueIndex + 1 < totalEnumAssociatedValueCount {
                     exprList.append(
                         ExprSyntax(
                             BinaryOperatorExprSyntax(operator: .binaryOperator("&&"))
