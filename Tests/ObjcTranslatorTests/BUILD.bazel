@@ -2,11 +2,16 @@ load("@build_bazel_rules_swift//swift:swift.bzl", "swift_test")
 
 swift_test(
     name = "ObjcTranslatorTests",
-    srcs = ["EnumOptionConverterTests.swift"],
+    srcs = [
+        "EnumOptionConverterTests.swift",
+        "ObjcTranslatorTests.swift",
+    ],
     module_name = "ObjcTranslatorTests",
     deps = [
+        "//Sources/ObjcGrammar",
         "//Sources/ObjcTranslator",
         "//Sources/TestingSupport",
+        "@swiftpkg_antlr4//:Antlr4Static",
         "@swiftpkg_swift_custom_dump//:CustomDump",
     ],
 )

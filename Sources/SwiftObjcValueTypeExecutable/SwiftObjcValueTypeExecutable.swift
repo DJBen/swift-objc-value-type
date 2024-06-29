@@ -21,7 +21,7 @@ class SwiftObjcValueTypeExecutable: ParsableCommand {
             GenerateValueTypeCommand.self,
             ParseRemodelCommand.self,
             MigrateRemodelCommand.self,
-            ParseObjcCommand.self
+            MigrateObjcCommand.self
         ]
     )
 }

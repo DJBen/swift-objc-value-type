@@ -5,8 +5,8 @@ swift_binary(
     srcs = [
         "Commands/FileHandlingCommand.swift",
         "Commands/GenerateValueTypeCommand.swift",
+        "Commands/MigrateObjcCommand.swift",
         "Commands/MigrateRemodelCommand.swift",
-        "Commands/ParseObjcCommand.swift",
         "Commands/ParseRemodelCommand.swift",
         "SwiftObjcValueTypeExecutable.swift",
         "Utils/FileHandlerOutputStream.swift",

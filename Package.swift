@@ -117,15 +117,6 @@ let package = Package(
     ),
 
     .testTarget(
-        name: "ObjcGrammarTests",
-        dependencies: [
-            "ObjcGrammar",
-            "TestingSupport",
-            .product(name: "CustomDump", package: "swift-custom-dump")
-        ]
-    ),
-
-    .testTarget(
         name: "ObjcTranslatorTests",
         dependencies: [
             "SharedUtilities",

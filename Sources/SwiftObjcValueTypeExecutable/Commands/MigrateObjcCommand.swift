@@ -8,11 +8,11 @@ import SwiftSyntaxBuilder
 import Antlr4
 import CustomDump
 
-struct ParseObjcCommand: ParsableCommand, FileHandlingCommand {
+struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
     static var configuration = CommandConfiguration(
-        commandName: "translate-objc",
+        commandName: "migrate-objc",
         abstract: """
-        Translate Objective-C code into Swift code.
+        Migrate Objective-C code into Swift code.
         """,
         discussion: """
         """
@@ -81,14 +81,12 @@ struct ParseObjcCommand: ParsableCommand, FileHandlingCommand {
     private func translate(
         _ charStream: () throws -> CharStream
     ) throws -> CodeBlockItemListSyntax {
-        let lexer = ObjectiveCLexer(try charStream())
-        
-        let preprocessor = try ObjectiveCPreprocessorParser(
-            CommonTokenStream(lexer, 3) // DIRECTIVE_CHANNEL
-        )
-                
         let collector = CollectorTokenSource(
             source: ObjectiveCLexer(try charStream())
+        )
+        
+        let preprocessor = try ObjectiveCPreprocessorParser(
+            CommonTokenStream(collector, 3) // DIRECTIVE_CHANNEL
         )
 
         let parser = try ObjectiveCParser(
