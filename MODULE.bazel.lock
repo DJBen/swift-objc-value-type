@@ -469,11 +469,30 @@
         "bzlTransitiveDigest": "c07SJ7DxeQNQoo0mR+RNKx7m55DRcg8hfaY34s2lwXI=",
         "usagesDigest": "7/niCN9SmhojL/t9Tdy7AuFPnXn+63HB0t3q7rzUyIM=",
         "recordedFileInputs": {
-          "@@//swift_deps_index.json": "cc13c630b9401bd40e657d0ef90ba0fa94c9306b9efc772a28e7ba35f24a1cfd"
+          "@@//swift_deps_index.json": "7d971ee57873de09eae558852d65fc2035f3243dde553c7f65a481549624ea89"
         },
         "recordedDirentsInputs": {},
         "envVariables": {},
         "generatedRepoSpecs": {
+          "swiftpkg_antlr4": {
+            "bzlFile": "@@rules_swift_package_manager~//swiftpkg/internal:swift_package.bzl",
+            "ruleClassName": "swift_package",
+            "attributes": {
+              "bazel_package_name": "swiftpkg_antlr4",
+              "commit": "7ed420ff2c78d62883875c442d75f32e73bc86c8",
+              "remote": "https://github.com/antlr/antlr4",
+              "dependencies_index": "@@//:swift_deps_index.json",
+              "init_submodules": false,
+              "recursive_init_submodules": false,
+              "patch_args": [
+                "-p0"
+              ],
+              "patch_cmds": [],
+              "patch_cmds_win": [],
+              "patch_tool": "",
+              "patches": []
+            }
+          },
           "swiftpkg_swift_syntax": {
             "bzlFile": "@@rules_swift_package_manager~//swiftpkg/internal:swift_package.bzl",
             "ruleClassName": "swift_package",

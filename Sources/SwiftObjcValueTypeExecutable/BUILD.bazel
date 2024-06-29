@@ -5,8 +5,8 @@ swift_binary(
     srcs = [
         "Commands/FileHandlingCommand.swift",
         "Commands/GenerateValueTypeCommand.swift",
-        "Commands/ParseObjcCommand.swift",
         "Commands/MigrateRemodelCommand.swift",
+        "Commands/ParseObjcCommand.swift",
         "Commands/ParseRemodelCommand.swift",
         "SwiftObjcValueTypeExecutable.swift",
         "Utils/FileHandlerOutputStream.swift",
@@ -16,9 +16,11 @@ swift_binary(
     module_name = "SwiftObjcValueTypeExecutable",
     visibility = ["//visibility:public"],
     deps = [
+        "//Sources/ObjcGrammar",
         "//Sources/ObjcTranslator",
         "//Sources/Remodel",
         "//Sources/SwiftObjcValueType",
+        "@swiftpkg_antlr4//:Antlr4Static",
         "@swiftpkg_swift_argument_parser//:ArgumentParser",
         "@swiftpkg_swift_custom_dump//:CustomDump",
         "@swiftpkg_swift_syntax//:SwiftSyntaxMacroExpansion",

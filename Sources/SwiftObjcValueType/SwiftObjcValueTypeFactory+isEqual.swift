@@ -257,7 +257,7 @@ private extension TypeSyntaxProtocol {
             return true
         }
         
-        if let idType = self.as(IdentifierTypeSyntax.self), swiftToObjcFoundationTypeMap[idType.name.trimmed.text] != nil {
+        if let idType = self.as(IdentifierTypeSyntax.self), ObjcSwiftUtils.swiftToObjcFoundationTypeMap[idType.name.trimmed.text] != nil {
             return true
         }
 

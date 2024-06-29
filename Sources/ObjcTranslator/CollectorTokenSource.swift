@@ -19,13 +19,14 @@ public class CollectorTokenSource<UpstreamTokenSource: TokenSource>: TokenSource
     }
     
     public func nextToken() throws -> Token {
+        // Channels: ["DEFAULT_TOKEN_CHANNEL", "HIDDEN", "COMMENTS_CHANNEL", "DIRECTIVE_CHANNEL", "IGNORED_MACROS"]
         let token = try source.nextToken()
-        if token.getChannel() == 2 {
+        if token.getChannel() == 3 {
             directiveTokens.append(token)
+        } else if token.getChannel() == 2 {
+            commentTokens.append(token)
         } else if token.getChannel() == 4 {
             ignoredTokens.append(token)
-        } else if token.getChannel() == 3 {
-            commentTokens.append(token)
         }
         return token
     }

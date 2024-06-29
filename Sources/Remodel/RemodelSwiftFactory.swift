@@ -11,9 +11,9 @@ public enum RemodelSwiftFactoryError: Error {
 let primitiveCIntTRegex = /(?:(u)?int(\d+)_t)/
 let primitiveCIntRegex = /(?:unsigned\s+)?(?:(?:short|(?:long)(?: long)?)\s+)?int/
 
-// In remodel, types can be declared as `MediaType(NSInteger)`, indicating this
+// In Remodel, types can be declared as `MediaType(NSInteger)`, indicating this
 // is a primitive backed enum.
-let aliasedPrimitiveTypeRegex = /(\w+)\((\w+)\)/
+let aliasedRemodelPrimitiveTypeRegex = /(\w+)\((\w+)\)/
 
 /// Generate Swift models (enums or structs) from Remodel models.
 public class RemodelSwiftFactory {
@@ -72,7 +72,7 @@ public class RemodelSwiftFactory {
                 return adtValue.innerValues.map(\.type)
             }
         }.compactMap { type -> (String, String)? in
-            guard let match = type.firstMatch(of: aliasedPrimitiveTypeRegex) else {
+            guard let match = type.firstMatch(of: aliasedRemodelPrimitiveTypeRegex) else {
                 return nil
             }
             let actualType: String
@@ -118,7 +118,7 @@ public class RemodelSwiftFactory {
                 modifiers: DeclModifierListSyntax {
                     DeclModifierSyntax(name: .identifier("public"))
                 },
-                name: .identifier(removeTypePrefix(prefix: existingPrefix, name: model.name)),
+                name: .identifier(ObjcSwiftUtils.removingTypePrefix(prefix: existingPrefix, name: model.name)),
                 inheritanceClause: inheritanceClause(model)
             ) {
                 for property in model.properties {
@@ -141,7 +141,7 @@ public class RemodelSwiftFactory {
                                         existingPrefix: existingPrefix
                                     )
                                     .mapTypeName {
-                                        removeTypePrefix(prefix: existingPrefix, name: $0)
+                                        ObjcSwiftUtils.removingTypePrefix(prefix: existingPrefix, name: $0)
                                     }
                                 )
                             )
@@ -168,7 +168,7 @@ public class RemodelSwiftFactory {
                                             existingPrefix: existingPrefix
                                         )
                                         .mapTypeName {
-                                            removeTypePrefix(prefix: existingPrefix, name: $0)
+                                            ObjcSwiftUtils.removingTypePrefix(prefix: existingPrefix, name: $0)
                                         },
                                         trailingComma: index == model.properties.count - 1 ? nil : .commaToken()
                                     )
@@ -213,7 +213,7 @@ public class RemodelSwiftFactory {
                 modifiers: DeclModifierListSyntax {
                     DeclModifierSyntax(name: .identifier("public"))
                 },
-                name: .identifier(removeTypePrefix(prefix: existingPrefix, name: model.name)),
+                name: .identifier(ObjcSwiftUtils.removingTypePrefix(prefix: existingPrefix, name: model.name)),
                 inheritanceClause: inheritanceClause(model)
             ) {
                 for property in model.properties {
@@ -283,7 +283,7 @@ public class RemodelSwiftFactory {
     ) -> any TypeSyntaxProtocol {
         IdentifierTypeSyntax(
             name: .identifier(
-                mapType(structValue.type, existingPrefix: existingPrefix)
+                mappingObjcTypeToSwift(structValue.type, existingPrefix: existingPrefix)
             )
         )
         .optionalized({
@@ -301,80 +301,22 @@ public class RemodelSwiftFactory {
         }())
     }
 
-    private func removeTypePrefix(prefix: String, name: String) -> String {
-        if name.hasPrefix(prefix) {
-            return String(name.dropFirst(prefix.count))
-        } else {
-            return name
-        }
-    }
-
-    private func mapType(
+    private func mappingObjcTypeToSwift(
         _ remodelType: String,
         existingPrefix: String
     ) -> String {
-        if let match = remodelType.firstMatch(of: /NS(?:Mutable)?Dictionary<([\w\* <>]+),\s*([\w\* <>]+)>\s*\*/) {
-            return "[\(mapType(String(match.1), existingPrefix: existingPrefix)): \(mapType(String(match.2), existingPrefix: existingPrefix))]"
-        } else if let match = remodelType.firstMatch(of: /NS(?:Mutable)?(Set|Array)<([\w\* <>]+)>\s*\*/) {
-            if match.1 == "Set" {
-                return "Set<\(mapType(String(match.2), existingPrefix: existingPrefix))>"
-            } else {
-                return "[\(mapType(String(match.2), existingPrefix: existingPrefix))]"
-            }
-        } else if let match = remodelType.firstMatch(of: /id<(.*?)>/) {
-            // Convert objc `id<Type>` into `Type`
-            return mapType(String(match.1), existingPrefix: existingPrefix)
-        } else if let match = remodelType.firstMatch(of: /(\w+)<([\w\* <>]+)>\s\*/) {
-            return "\(String(match.1))<\(mapType(String(match.2), existingPrefix: existingPrefix))>"
-        } else if remodelType.hasSuffix("*") {
-            var result = remodelType
-            result.removeLast()
-            return mapType(result.trimmingCharacters(in: .whitespacesAndNewlines), existingPrefix: existingPrefix)
-        } else if let aliasedPrimitiveType = remodelType.firstMatch(of: aliasedPrimitiveTypeRegex) {
+        if let aliasedPrimitiveType = remodelType.firstMatch(of: aliasedRemodelPrimitiveTypeRegex) {
             return String(aliasedPrimitiveType.1)
-        } else if remodelType.lowercased() == "bool" {
-            return "Bool"
-        } else if remodelType == "char" {
-            return "UInt8"
-        } else if let match = remodelType.firstMatch(of: primitiveCIntTRegex) {
-            let u = String(match.1 ?? "").uppercased()
-            return "\(u)Int\(String(match.2))"
-        } else if remodelType.contains(primitiveCIntRegex) {
-            return "Int"
-        } else if remodelType == "float" {
-            return "Float"
-        } else if remodelType == "double" {
-            return "Double"
-        } else if remodelType == "NSInteger" {
-            return "Int"
-        } else if remodelType == "NSUInteger" {
-            return "UInt"
-        } else if remodelType == "Class" {
-            return "AnyClass"
-        } else if remodelType == "NSTimeInterval" {
-            return "TimeInterval"
-        } else if let mappedSwiftType = objcToSwiftFoundationTypeMap[remodelType] {
-            return mappedSwiftType
         } else {
-            return removeTypePrefix(prefix: existingPrefix, name: remodelType)
+            return ObjcSwiftUtils.mappingObjcTypeToSwift(remodelType, existingPrefix: existingPrefix)
         }
     }
 
     private func isObjcPrimitive(_ remodelType: String) -> Bool {
-        if remodelType == "char" {
-            return true
-        } else if remodelType.lowercased() == "bool" {
-            return true
-        } else if remodelType == "float" || remodelType == "double" {
-            return true
-        } else if let aliasedType = remodelType.firstMatch(of: aliasedPrimitiveTypeRegex) {
+        if let aliasedType = remodelType.firstMatch(of: aliasedRemodelPrimitiveTypeRegex) {
             return isObjcPrimitive(String(aliasedType.2))
-        } else if remodelType == "NSInteger" || remodelType == "NSUInteger" {
-            return true
-        } else if ["CGPoint", "CGFloat", "CGSize", "CGRect", "CGVector", "CGAffineTransform"].contains(remodelType) {
-            return true
         } else {
-            return remodelType.contains(primitiveCIntRegex) || remodelType.contains(primitiveCIntTRegex)
+            return ObjcSwiftUtils.isObjcPrimitive(remodelType)
         }
     }
 }

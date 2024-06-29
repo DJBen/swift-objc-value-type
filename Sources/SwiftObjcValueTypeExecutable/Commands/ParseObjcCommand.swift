@@ -4,14 +4,15 @@ import ObjcGrammar
 import ObjcTranslator
 import SwiftParser
 import SwiftSyntax
+import SwiftSyntaxBuilder
 import Antlr4
 import CustomDump
 
 struct ParseObjcCommand: ParsableCommand, FileHandlingCommand {
     static var configuration = CommandConfiguration(
-        commandName: "parse-objc",
+        commandName: "translate-objc",
         abstract: """
-        Prase Objective-C code into syntax tree.
+        Translate Objective-C code into Swift code.
         """,
         discussion: """
         """
@@ -20,13 +21,22 @@ struct ParseObjcCommand: ParsableCommand, FileHandlingCommand {
     @OptionGroup
     var fileArguments: FileHandlingArguments
     
-    @Flag
-    var noOutput: Bool = false
-
+    @Option(
+        name: [.long],
+        help: "An existing prefix to remove if exists."
+    )
+    var existingPrefix: String = ""
+    
+    @Option(
+        name: [.long],
+        help: "Access level for translated protocols, enums and option sets; available options are public or internal; default to public."
+    )
+    var access: String = "public"
+    
     func run() throws {
         if fileArguments.sourcePaths.isEmpty {
             // Read from stdin
-            try parse {
+            try translateAndWrite(inputPath: nil) {
                 ANTLRInputStream(
                     String(
                         data: FileHandle.standardInput.readDataToEndOfFile(),
@@ -46,24 +56,37 @@ struct ParseObjcCommand: ParsableCommand, FileHandlingCommand {
                     print("swift-objc-value-type: reading from (\(sourceFile.path))")
                 }
             
-                try parse {
+                try translateAndWrite(inputPath: sourceFile) {
                     try ANTLRFileStream(sourceFile.path)
                 }
             }
         }
     }
     
-    private func parse(_ charStream: () throws -> CharStream) throws {
+    private func translateAndWrite(
+        inputPath: IteratedPath?,
+        _ charStream: () throws -> CharStream
+    ) throws {
+        try withFileHandler(
+            inputPath: inputPath,
+            fileNameTransform: { $0 },
+            extensionTransform: { _ in "swift" }
+        ) { sink in
+            try sink.stream(
+                try translate(charStream).formatted()
+            )
+        }
+    }
+    
+    private func translate(
+        _ charStream: () throws -> CharStream
+    ) throws -> CodeBlockItemListSyntax {
         let lexer = ObjectiveCLexer(try charStream())
-        
-        // Channels: ["DEFAULT_TOKEN_CHANNEL", "HIDDEN", "COMMENTS_CHANNEL", "DIRECTIVE_CHANNEL", "IGNORED_MACROS"]
         
         let preprocessor = try ObjectiveCPreprocessorParser(
             CommonTokenStream(lexer, 3) // DIRECTIVE_CHANNEL
         )
-        
-        print(try preprocessor.directive().toStringTree())
-        
+                
         let collector = CollectorTokenSource(
             source: ObjectiveCLexer(try charStream())
         )
@@ -75,9 +98,28 @@ struct ParseObjcCommand: ParsableCommand, FileHandlingCommand {
         )
         
         let translationUnit = try parser.translationUnit()
+        // Silent 'no viable alternative at <EOF>'
+        preprocessor.removeErrorListeners()
+        preprocessor.setErrorHandler(BailErrorStrategy())
         
-        print(collector.directiveTokens)
-        print(collector.commentTokens)
-        print(collector.ignoredTokens)
+        var directives = [ObjectiveCPreprocessorParser.DirectiveContext]()
+        while true {
+            do {
+                directives.append(try preprocessor.directive())
+            } catch {
+                break
+            }
+        }
+        
+        let translator = ObjcTranslator(
+            directives: directives,
+            translationUnit: translationUnit,
+            commentTokens: collector.commentTokens,
+            ignoredTokens: collector.ignoredTokens,
+            existingPrefix: existingPrefix,
+            access: ObjcTranslator.Access(stringLiteral: access)
+        )
+
+        return try translator.translate()
     }
 }

@@ -84,7 +84,7 @@ extension SwiftObjcValueTypeFactory {
             ArrayElementSyntax(expression: ExprSyntax("\(raw: doubleHashFunc)(\(identifier).d)"))
             ArrayElementSyntax(expression: ExprSyntax("\(raw: doubleHashFunc)(\(identifier).tx)"))
             ArrayElementSyntax(expression: ExprSyntax("\(raw: doubleHashFunc)(\(identifier).ty)"))
-        } else if let idType = type.as(IdentifierTypeSyntax.self), let objcType = swiftToObjcFoundationTypeMap[idType.name.trimmed.text] {
+        } else if let idType = type.as(IdentifierTypeSyntax.self), let objcType = ObjcSwiftUtils.swiftToObjcFoundationTypeMap[idType.name.trimmed.text] {
             if needsUnwrap {
                 ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: (\(identifier) as? \(raw: objcType))?.hash ?? 0)"))
             } else {

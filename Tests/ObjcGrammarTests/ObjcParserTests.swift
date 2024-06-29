@@ -4,5 +4,7 @@ import TestingSupport
 import CustomDump
 
 final class ObjcParserTests: XCTestCase {
-
+    func testDummy() {
+        
+    }
 }

@@ -1,11 +1,24 @@
 {
   "direct_dep_identities": [
+    "antlr4",
     "swift-argument-parser",
     "swift-collections",
     "swift-custom-dump",
     "swift-syntax"
   ],
   "modules": [
+    {
+      "name": "Antlr4",
+      "c99name": "Antlr4",
+      "src_type": "swift",
+      "label": "@swiftpkg_antlr4//:Antlr4.rspm",
+      "package_identity": "antlr4",
+      "product_memberships": [
+        "Antlr4",
+        "Antlr4Static",
+        "Antlr4Dynamic"
+      ]
+    },
     {
       "name": "ArgumentParser",
       "c99name": "ArgumentParser",
@@ -423,6 +436,24 @@
   ],
   "products": [
     {
+      "identity": "antlr4",
+      "name": "Antlr4",
+      "type": "library",
+      "label": "@swiftpkg_antlr4//:Antlr4"
+    },
+    {
+      "identity": "antlr4",
+      "name": "Antlr4Dynamic",
+      "type": "library",
+      "label": "@swiftpkg_antlr4//:Antlr4Dynamic"
+    },
+    {
+      "identity": "antlr4",
+      "name": "Antlr4Static",
+      "type": "library",
+      "label": "@swiftpkg_antlr4//:Antlr4Static"
+    },
+    {
       "identity": "swift-argument-parser",
       "name": "ArgumentParser",
       "type": "library",
@@ -574,6 +605,15 @@
     }
   ],
   "packages": [
+    {
+      "name": "swiftpkg_antlr4",
+      "identity": "antlr4",
+      "remote": {
+        "commit": "7ed420ff2c78d62883875c442d75f32e73bc86c8",
+        "remote": "https://github.com/antlr/antlr4",
+        "version": "4.13.1"
+      }
+    },
     {
       "name": "swiftpkg_swift_argument_parser",
       "identity": "swift-argument-parser",
