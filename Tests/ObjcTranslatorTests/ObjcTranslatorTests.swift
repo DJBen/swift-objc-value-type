@@ -26,9 +26,6 @@ final class ObjcTranslatorTests: XCTestCase {
             from: source,
             existingPrefix: "XY"
         )
-        
-        print(translator.afterTriviaMap)
-        print(translator.beforeTriviaMap)
 
         let result = try translator.translate()
         
@@ -45,6 +42,36 @@ final class ObjcTranslatorTests: XCTestCase {
                 Multiline comment for two
                 */
                 case two = 1// trailing comment for two
+            }
+            """
+        )
+    }
+    
+    func testEnum_enum() throws {
+        let source = """
+        
+        typedef enum : NSUInteger {
+            PINSpeedRecorderConnectionStatusNotReachable,
+            PINSpeedRecorderConnectionStatusWWAN,
+            PINSpeedRecorderConnectionStatusWiFi
+        } PINSpeedRecorderConnectionStatus;
+        """
+        
+        let translator = try translator(
+            from: source,
+            existingPrefix: "PIN"
+        )
+
+        let result = try translator.translate()
+        
+        assertBuildResult(
+            result,
+            """
+            @objc(PINSpeedRecorderConnectionStatus)
+            public enum SpeedRecorderConnectionStatus: UInt {
+                case notReachable
+                case wWAN
+                case wiFi
             }
             """
         )
