@@ -6,10 +6,6 @@ import Antlr4
 import CustomDump
 
 final class ObjcTranslatorTests: XCTestCase {
-    // Need to keep a strong reference of lexer and collector
-    var lexer: ObjectiveCLexer!
-    var collector: CollectorTokenSource<ObjectiveCLexer>!
-    
     func testEnum_nsEnum() throws {
         let source = """
         /// Some comment
@@ -42,12 +38,13 @@ final class ObjcTranslatorTests: XCTestCase {
             /// Some comment
             @objc(XYAttachmentType)
             public enum AttachmentType: Int {
+                // Comment for one
                 case one = 0
                 // Comment for two
                 /*
                 Multiline comment for two
                 */
-                case two = 1
+                case two = 1// trailing comment for two
             }
             """
         )
@@ -56,9 +53,9 @@ final class ObjcTranslatorTests: XCTestCase {
     private func translator(
         from source: String,
         existingPrefix: String = "",
-        access: ObjcTranslator.Access = .public
-    ) throws -> ObjcTranslator {        
-        collector = CollectorTokenSource(
+        access: ObjcTranslator<ObjectiveCLexer>.Access = .public
+    ) throws -> ObjcTranslator<ObjectiveCLexer> {
+        let collector = CollectorTokenSource(
             source: ObjectiveCLexer(ANTLRInputStream(source))
         )
         
@@ -87,10 +84,9 @@ final class ObjcTranslatorTests: XCTestCase {
         }
         
         return ObjcTranslator(
+            collector: collector,
             directives: directives,
             translationUnit: translationUnit,
-            commentTokens: collector.commentTokens,
-            ignoredTokens: collector.ignoredTokens,
             existingPrefix: existingPrefix,
             access: access
         )

@@ -110,10 +110,9 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
         }
         
         let translator = ObjcTranslator(
+            collector: collector,
             directives: directives,
             translationUnit: translationUnit,
-            commentTokens: collector.commentTokens,
-            ignoredTokens: collector.ignoredTokens,
             existingPrefix: existingPrefix,
             access: ObjcTranslator.Access(stringLiteral: access)
         )

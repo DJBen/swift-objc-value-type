@@ -66,7 +66,7 @@ extension ObjcTranslator {
         //    ;
         
         EnumDeclSyntax(
-            leadingTrivia: beforeTrivia(for: enumDecl) + beforeTrivia(for: enumeratorList),
+            leadingTrivia: beforeTrivia(for: enumDecl),
             attributes: AttributeListSyntax {
                 if existingPrefix.isEmpty {
                     "@objc"
@@ -97,9 +97,9 @@ extension ObjcTranslator {
                 }
             },
             memberBlockBuilder: {
-                for enumerator in enumeratorList.enumerator() {
+                for (index, enumerator) in enumeratorList.enumerator().enumerated() {
                     EnumCaseDeclSyntax(
-                        leadingTrivia: beforeTrivia(for: enumerator),
+                        leadingTrivia: (index == 0 ? beforeTrivia(for: enumeratorList) : []) + beforeTrivia(for: enumerator),
                         elementsBuilder:  {
                             EnumCaseElementSyntax(
                                 name: .identifier(
@@ -115,11 +115,11 @@ extension ObjcTranslator {
                                 }
                             )
                         }, 
-                        trailingTrivia: afterTrivia(for: enumerator)
+                        trailingTrivia: afterTrivia(for: enumerator) + (index == enumeratorList.enumerator().count - 1 ? afterTrivia(for: enumeratorList) : [])
                     )
                 }
             },
-            trailingTrivia: afterTrivia(for: enumeratorList) + afterTrivia(for: enumDecl)
+            trailingTrivia: afterTrivia(for: enumDecl)
         )
     }
 }

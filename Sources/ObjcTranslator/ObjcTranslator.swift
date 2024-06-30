@@ -8,7 +8,7 @@ typealias PP = ObjectiveCPreprocessorParser
 typealias P = ObjectiveCParser
 typealias L = ObjectiveCLexer
 
-public class ObjcTranslator {
+public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
     public enum Access: ExpressibleByStringLiteral {
         public typealias StringLiteralType = String
         
@@ -27,6 +27,7 @@ public class ObjcTranslator {
         }
     }
     
+    let collector: CollectorTokenSource<UpstreamTokenSource>
     let directives: [ObjectiveCPreprocessorParser.DirectiveContext]
     let translationUnit: ObjectiveCParser.TranslationUnitContext
     let existingPrefix: String
@@ -38,13 +39,13 @@ public class ObjcTranslator {
     let nsAssumeNonnullRanges: [Interval]
     
     public init(
+        collector: CollectorTokenSource<UpstreamTokenSource>,
         directives: [ObjectiveCPreprocessorParser.DirectiveContext],
         translationUnit: ObjectiveCParser.TranslationUnitContext,
-        commentTokens: [Token],
-        ignoredTokens: [Token],
         existingPrefix: String = "",
         access: Access = .public
     ) {
+        self.collector = collector
         self.directives = directives
         self.translationUnit = translationUnit
         self.existingPrefix = existingPrefix
@@ -52,7 +53,7 @@ public class ObjcTranslator {
 
         var nsAssumeNonnullRanges = [Interval]()
         var nsAssumeNonnullStart: Int = -1
-        for ignoredToken in ignoredTokens {
+        for ignoredToken in collector.ignoredTokens {
             if ignoredToken.getType() == L.NS_ASSUME_NONNULL_BEGIN && nsAssumeNonnullStart == -1 {
                 nsAssumeNonnullStart = ignoredToken.getTokenIndex()
             } else if ignoredToken.getType() == L.NS_ASSUME_NONNULL_END && nsAssumeNonnullStart != -1 {
@@ -61,18 +62,21 @@ public class ObjcTranslator {
             }
         }
         self.nsAssumeNonnullRanges = nsAssumeNonnullRanges
-        assignTrivia(tree: translationUnit, commentTokens: commentTokens)
+        assignTrivia(
+            tree: translationUnit,
+            commentTokens: collector.commentTokens
+        )
     }
     
     private func appendToBeforeTrivia(
-        sourceInterval: Interval,
+        target: Interval,
         token: Token
     ) {
-        if beforeTriviaMap[sourceInterval] == nil {
-            beforeTriviaMap[sourceInterval] = []
+        if beforeTriviaMap[target] == nil {
+            beforeTriviaMap[target] = []
         }
         
-        beforeTriviaMap[sourceInterval]!.append(token)
+        beforeTriviaMap[target]!.append(token)
     }
     
     @CodeBlockItemListBuilder
@@ -162,77 +166,73 @@ public class ObjcTranslator {
     }
     
     private func appendToAfterTrivia(
-        sourceInterval: Interval,
+        target: Interval,
         token: Token
     ) {
-        if afterTriviaMap[sourceInterval] == nil {
-            afterTriviaMap[sourceInterval] = []
+        if afterTriviaMap[target] == nil {
+            afterTriviaMap[target] = []
         }
         
-        afterTriviaMap[sourceInterval]!.append(token)
+        afterTriviaMap[target]!.append(token)
     }
     
     private func assignTrivia<Tree: ParseTree>(
         tree: Tree,
         commentTokens: [Token]
     ) {
-        var index = 0
+        var commentTokens = commentTokens
         assignTrivia(
             tree: tree,
-            commentTokens: commentTokens,
-            parentTreeInterval: tree.getSourceInterval(),
-            nextSiblingInterval: nil,
-            commentTokenIndex: &index
+            commentTokens: &commentTokens
         )
     }
     
     private func assignTrivia<Tree: ParseTree>(
         tree: Tree,
-        commentTokens: [Token],
-        parentTreeInterval: Interval,
-        nextSiblingInterval: Interval?,
-        commentTokenIndex: inout Int
+        commentTokens: inout [Token]
     ) {
-        guard commentTokenIndex < commentTokens.count else {
-            return
-        }
-        
-        while commentTokenIndex < commentTokens.count {
-            let token = commentTokens[commentTokenIndex]
-            let commentTokenInterval = Interval(token.getTokenIndex(), token.getTokenIndex())
-            
-            if commentTokenInterval.startsBeforeDisjoint(tree.getSourceInterval()) {
-                appendToBeforeTrivia(sourceInterval: tree.getSourceInterval(), token: token)
-                commentTokenIndex += 1
-            } else {
-                break
+        if let rule = tree as? RuleNode, rule.getChildCount() > 0 {
+            let startTokenIndex = tree.getSourceInterval().a
+            let leadingTokens = taking(commentTokens: &commentTokens, until: startTokenIndex)
+            for token in leadingTokens {
+                appendToBeforeTrivia(target: tree.getSourceInterval(), token: token)
             }
-        }
-        
-        if let rule = tree as? RuleNode {
+            
+            var prevNonTerminalChild: ParseTree?
             for i in 0..<rule.getChildCount() {
-                let childRule = rule[i]
+                let child = rule[i]
                 
                 assignTrivia(
-                    tree: childRule,
-                    commentTokens: commentTokens,
-                    parentTreeInterval: tree.getSourceInterval(),
-                    nextSiblingInterval: i + 1 < rule.getChildCount() ? rule[i + 1].getSourceInterval() : nil,
-                    commentTokenIndex: &commentTokenIndex
+                    tree: child,
+                    commentTokens: &commentTokens
                 )
+                
+                if child is RuleNode {
+                    prevNonTerminalChild = child
+                }
+            }
+            
+            let endTokenIndex = tree.getSourceInterval().b
+            let trailingTokens = taking(commentTokens: &commentTokens, until: endTokenIndex)
+            for token in trailingTokens {
+                if let prevNonTerminalChild {
+                    appendToAfterTrivia(target: prevNonTerminalChild.getSourceInterval(), token: token)
+                } else {
+                    // Orphan
+                }
             }
         }
-        
-        while commentTokenIndex < commentTokens.count {
-            let token = commentTokens[commentTokenIndex]
-            let commentTokenInterval = Interval(token.getTokenIndex(), token.getTokenIndex())
-            
-            if parentTreeInterval.properlyContains(commentTokenInterval) && nextSiblingInterval == nil {
-                appendToAfterTrivia(sourceInterval: tree.getSourceInterval(), token: token)
-                commentTokenIndex += 1
-            } else {
-                break
-            }
+    }
+    
+    private func taking(commentTokens: inout [Token], until endTokenIndex: Int) -> [Token] {
+        if let endIndex = commentTokens.firstIndex(where: { $0.getTokenIndex() > endTokenIndex }) {
+            let result = Array(commentTokens[..<endIndex])
+            commentTokens = Array(commentTokens[endIndex...])
+            return result
+        } else {
+            let result = commentTokens
+            commentTokens = []
+            return result
         }
     }
     
@@ -252,10 +252,18 @@ public class ObjcTranslator {
         if let tokens = afterTriviaMap[tree.getSourceInterval()] {
             return tokens.compactMap { token in
                 token.getText().map {
-                    Trivia(pieces: [.lineComment($0), .newlines(1)])
+                    Trivia(pieces: [.lineComment($0)])
                 }
             }.reduce(Trivia(), +)
         } else {
+            if let matchedCommentKey = afterTriviaMap.keys.filter({ $0.b == tree.getSourceInterval().b }).sorted(by: { $0.a > $1.a }).first, let tokens = afterTriviaMap[matchedCommentKey] {
+                 
+                return tokens.compactMap { token in
+                    token.getText().map {
+                        Trivia(pieces: [.lineComment($0)])
+                    }
+                }.reduce(Trivia(), +)
+            }
             return Trivia()
         }
     }
