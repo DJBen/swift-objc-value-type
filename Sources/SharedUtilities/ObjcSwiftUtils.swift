@@ -45,68 +45,76 @@ public enum ObjcSwiftUtils {
     private static let primitiveCIntRegex = /(?:unsigned\s+)?(?:(?:short|(?:long)(?: long)?)\s+)?int/
 
     public static func mappingObjcTypeToSwift(
-        _ remodelType: String,
+        _ objcType: String,
         existingPrefix: String
     ) -> String {
-        if let match = remodelType.firstMatch(of: /NS(?:Mutable)?Dictionary<([\w\* <>]+),\s*([\w\* <>]+)>\s*\*/) {
+        if let match = objcType.firstMatch(of: /NS(?:Mutable)?Dictionary<([\w\* <>]+),\s*([\w\* <>]+)>\s*\*/) {
             return "[\(mappingObjcTypeToSwift(String(match.1), existingPrefix: existingPrefix)): \(mappingObjcTypeToSwift(String(match.2), existingPrefix: existingPrefix))]"
-        } else if let match = remodelType.firstMatch(of: /NS(?:Mutable)?(Set|Array)<([\w\* <>]+)>\s*\*/) {
+        } else if let match = objcType.firstMatch(of: /NS(?:Mutable)?(Set|Array)<([\w\* <>]+)>\s*\*/) {
             if match.1 == "Set" {
                 return "Set<\(mappingObjcTypeToSwift(String(match.2), existingPrefix: existingPrefix))>"
             } else {
                 return "[\(mappingObjcTypeToSwift(String(match.2), existingPrefix: existingPrefix))]"
             }
-        } else if let match = remodelType.firstMatch(of: /id<(.*?)>/) {
+        } else if let match = objcType.firstMatch(of: /id<(.*?)>/) {
             // Convert objc `id<Type>` into `Type`
             return mappingObjcTypeToSwift(String(match.1), existingPrefix: existingPrefix)
-        } else if let match = remodelType.firstMatch(of: /(\w+)<([\w\* <>]+)>\s\*/) {
+        } else if let match = objcType.firstMatch(of: /(\w+)<([\w\* <>]+)>\s\*/) {
             return "\(String(match.1))<\(mappingObjcTypeToSwift(String(match.2), existingPrefix: existingPrefix))>"
-        } else if remodelType.hasSuffix("*") {
-            var result = remodelType
+        } else if objcType.hasSuffix("*") {
+            var result = objcType
             result.removeLast()
             return mappingObjcTypeToSwift(result.trimmingCharacters(in: .whitespacesAndNewlines), existingPrefix: existingPrefix)
-        } else if remodelType.lowercased() == "bool" {
+        } else if objcType.lowercased() == "bool" {
             return "Bool"
-        } else if remodelType == "char" {
+        } else if objcType == "char" {
             return "UInt8"
-        } else if let match = remodelType.firstMatch(of: Self.primitiveCIntTRegex) {
+        } else if let match = objcType.firstMatch(of: Self.primitiveCIntTRegex) {
             let u = String(match.1 ?? "").uppercased()
             return "\(u)Int\(String(match.2))"
-        } else if remodelType.contains(Self.primitiveCIntRegex) {
+        } else if objcType.contains(Self.primitiveCIntRegex) {
             return "Int"
-        } else if remodelType == "float" {
+        } else if objcType == "float" {
             return "Float"
-        } else if remodelType == "double" {
+        } else if objcType == "double" {
             return "Double"
-        } else if remodelType == "NSInteger" {
+        } else if objcType == "NSInteger" {
             return "Int"
-        } else if remodelType == "NSUInteger" {
+        } else if objcType == "NSUInteger" {
             return "UInt"
-        } else if remodelType == "Class" {
+        } else if objcType == "Class" {
             return "AnyClass"
-        } else if remodelType == "NSTimeInterval" {
+        } else if objcType == "NSTimeInterval" {
             return "TimeInterval"
-        } else if let mappedSwiftType = objcToSwiftFoundationTypeMap[remodelType] {
+        } else if let mappedSwiftType = objcToSwiftFoundationTypeMap[objcType] {
             return mappedSwiftType
         } else {
-            return removingTypePrefix(prefix: existingPrefix, name: remodelType)
+            return removingTypePrefix(prefix: existingPrefix, name: objcType)
         }
     }
 
-    public static func isObjcPrimitive(_ remodelType: String) -> Bool {
-        if remodelType == "char" {
+    public static func isObjcPrimitive(_ objcType: String) -> Bool {
+        if objcType == "char" {
             return true
-        } else if remodelType.lowercased() == "bool" {
+        } else if objcType.lowercased() == "bool" {
             return true
-        } else if remodelType == "float" || remodelType == "double" {
+        } else if objcType == "float" || objcType == "double" {
             return true
-        } else if ["NSInteger", "NSUInteger", "NSTimeInterval"].contains(remodelType) {
+        } else if ["NSInteger", "NSUInteger", "NSTimeInterval"].contains(objcType) {
             return true
-        } else if ["CGPoint", "CGFloat", "CGSize", "CGRect", "CGVector", "CGAffineTransform"].contains(remodelType) {
+        } else if ["CGPoint", "CGFloat", "CGSize", "CGRect", "CGVector", "CGAffineTransform"].contains(objcType) {
             return true
         } else {
-            return remodelType.contains(Self.primitiveCIntRegex) || remodelType.contains(Self.primitiveCIntTRegex)
+            return objcType.contains(Self.primitiveCIntRegex) || objcType.contains(Self.primitiveCIntTRegex)
         }
     }
 
+    public static func mappingObjcProtocolConformances(
+        protocolName: String
+    ) -> String {
+        if protocolName == "NSObject" {
+            return "NSObjectProtocol"
+        }
+        return protocolName
+    }
 }

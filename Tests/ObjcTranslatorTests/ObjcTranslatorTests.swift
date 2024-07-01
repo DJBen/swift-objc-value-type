@@ -77,6 +77,10 @@ final class ObjcTranslatorTests: XCTestCase {
         )
     }
     
+    func testProtocol() throws {
+
+    }
+    
     private func translator(
         from source: String,
         existingPrefix: String = "",

@@ -141,8 +141,8 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
                 // Ignore for now
             } else if let enumDecl = decl.enumDeclaration() {
                 try translate(enumDecl: enumDecl)
-            } else if let varDecl = decl.varDeclaration() {
-                
+            } else if let _ = decl.varDeclaration() {
+                // Ingore for now
             } else if let typedefDecl = decl.typedefDeclaration() {
                 
             }
@@ -155,7 +155,10 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
         } else if let _ = topLevelDecl.categoryImplementation() {
             // Ignore
         } else if let protocolDecl = topLevelDecl.protocolDeclaration() {
-
+            try translate(
+                protocolDecl: protocolDecl,
+                existingPrefix: existingPrefix
+            )
         } else if let protocolDeclList = topLevelDecl.protocolDeclarationList() {
 
         } else if let _ = topLevelDecl.classDeclarationList() {
@@ -256,14 +259,6 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
                 }
             }.reduce(Trivia(), +)
         } else {
-            if let matchedCommentKey = afterTriviaMap.keys.filter({ $0.b == tree.getSourceInterval().b }).sorted(by: { $0.a > $1.a }).first, let tokens = afterTriviaMap[matchedCommentKey] {
-                 
-                return tokens.compactMap { token in
-                    token.getText().map {
-                        Trivia(pieces: [.lineComment($0)])
-                    }
-                }.reduce(Trivia(), +)
-            }
             return Trivia()
         }
     }
