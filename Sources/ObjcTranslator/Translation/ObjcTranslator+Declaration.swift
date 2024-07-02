@@ -7,8 +7,8 @@ import SwiftSyntaxBuilder
 
 extension ObjcTranslator {
     func swiftIdentifier(
-        fieldDeclarator: P.FieldDeclaratorContext
-    ) throws -> TokenSyntax {
+        declarator: P.DeclaratorContext
+    ) -> TokenSyntax {
         // fieldDeclarator
         //    : declarator
         //    | declarator? ':' constant
@@ -23,13 +23,6 @@ extension ObjcTranslator {
         //    | LP '^' nullabilitySpecifier? identifier? RP blockParameters
         //    ;
         
-        guard let declarator = fieldDeclarator.declarator() else {
-            throw ObjcTranslatorError.unsupported(
-                "declarator? ':' constant",
-                parseTreeType: String(describing: type(of: fieldDeclarator))
-            )
-        }
-        
-        return .identifier(declarator.directDeclarator()!.getText())
+        return .identifier(declarator.directDeclarator()!.identifier()!.getText())
     }
 }

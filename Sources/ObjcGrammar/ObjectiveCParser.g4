@@ -224,7 +224,7 @@ propertySynthesizeItem
     ;
 
 blockType
-    : nullabilitySpecifier? typeSpecifier nullabilitySpecifier? LP '^' (
+    : nullabilitySpecifier? typeSpecifier nullabilitySpecifier? LP NS_NOESCAPE? '^' (
         nullabilitySpecifier
         | typeSpecifier
     )? RP blockParameters?

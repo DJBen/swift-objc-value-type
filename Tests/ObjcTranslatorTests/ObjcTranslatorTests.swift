@@ -77,6 +77,44 @@ final class ObjcTranslatorTests: XCTestCase {
         )
     }
     
+    func testProtocol_properties() throws {
+        let source = """
+        @protocol ABFoo <NSObject, ABAnotherProtocol>
+        
+        @property (nonatomic, copy, nonnull) id<ABProviderProtocol> provider;
+        
+        @property (nonatomic, copy, nonnull) BOOL (^enumerateProviders)(id<ABProviderProtocol> provider, BOOL *stop);
+        
+        @end
+        """
+        
+        let translator = try translator(
+            from: source,
+            existingPrefix: "AB"
+        )
+
+        let result = try translator.translate()
+        
+        assertBuildResult(
+            result,
+            """
+            @objc(ABFoo)
+            public protocol Foo: NSObjectProtocol, ABAnotherProtocol {
+                     
+                public var provider: ABProviderProtocol {
+                    get
+                    set
+                }
+            
+                public var enumerateProviders: (provider: ABProviderProtocol, stop: UnsafeMutablePointer<ObjCBool>) -> Bool {
+                    get
+                    set
+                }
+            }
+            """
+        )
+    }
+    
     func testProtocol() throws {
 
     }

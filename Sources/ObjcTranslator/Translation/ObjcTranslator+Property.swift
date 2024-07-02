@@ -18,7 +18,11 @@ extension ObjcTranslator {
         let attributes = propertyDecl.propertyAttributesList()?.propertyAttribute() ?? []
         
         try VariableDeclSyntax(
+            leadingTrivia: .newlines(2) + beforeTrivia(for: propertyDecl),
             modifiers: DeclModifierListSyntax {
+                if access == .public {
+                    DeclModifierSyntax(name: .keyword(.public))
+                }
                 if attributes.contains(where: { $0.WEAK() != nil }) {
                     DeclModifierSyntax(name: .keyword(.weak))
                 }
@@ -30,11 +34,17 @@ extension ObjcTranslator {
                 //    ;
 
                 let typeSpecifiers = propertyDecl.fieldDeclaration()!.specifierQualifierList()!.typeSpecifier()
-                let identifier = try swiftIdentifier(fieldDeclarator: propertyDecl.fieldDeclaration()!.fieldDeclaratorList()!.fieldDeclarator(0)!)
+                // Only read the first item, assume there isn't multiple decls in the same line e.g. `BOOL a, b, c`;
+                let fieldDeclarator = propertyDecl.fieldDeclaration()!.fieldDeclaratorList()!.fieldDeclarator(0)!
+                let identifier = swiftIdentifier(
+                    declarator: propertyDecl.fieldDeclaration()!.fieldDeclaratorList()!.fieldDeclarator(0)!.declarator()!
+                )
                 
                 let type = try swiftType(
-                    from: typeSpecifiers,
-                    isNullable: attributes.contains(where: { $0.nullabilitySpecifier()?.NULLABLE() != nil })
+                    typeSpecifiers: typeSpecifiers,
+                    declarator: fieldDeclarator.declarator()!,
+                    isNullable: attributes.contains(where: { $0.nullabilitySpecifier()?.NULLABLE() != nil }),
+                    context: .property
                 )
                 PatternBindingSyntax(
                     pattern: IdentifierPatternSyntax(
@@ -58,7 +68,8 @@ extension ObjcTranslator {
                         rightBrace: .rightBraceToken()
                     )
                 )
-            }
+            },
+            trailingTrivia: afterTrivia(for: propertyDecl)
         )
     }
 }
