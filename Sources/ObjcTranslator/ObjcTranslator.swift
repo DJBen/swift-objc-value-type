@@ -107,7 +107,6 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
             try translate(
                 topLevelDecl
             )
-            .with(\.leadingTrivia, beforeTrivia(for: topLevelDecl))
         }
     }
     
@@ -140,11 +139,14 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
             if let _ = decl.functionCallExpression() {
                 // Ignore for now
             } else if let enumDecl = decl.enumDeclaration() {
+                // Includes enum and optionSet decls
                 try translate(enumDecl: enumDecl)
             } else if let _ = decl.varDeclaration() {
                 // Ingore for now
             } else if let typedefDecl = decl.typedefDeclaration() {
-                
+                try translate(
+                    typedefDecl: typedefDecl
+                )
             }
         } else if let _ = topLevelDecl.classInterface() {
             // Ignore
@@ -159,10 +161,10 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
                 protocolDecl: protocolDecl,
                 existingPrefix: existingPrefix
             )
-        } else if let protocolDeclList = topLevelDecl.protocolDeclarationList() {
-
+        } else if let _ = topLevelDecl.protocolDeclarationList() {
+            // Forward protocol declaration, ignore
         } else if let _ = topLevelDecl.classDeclarationList() {
-            // Ignore
+            // Forward class declaration, ignore
         } else if let _ = topLevelDecl.functionDefinition() {
             // Ignore for now
         }

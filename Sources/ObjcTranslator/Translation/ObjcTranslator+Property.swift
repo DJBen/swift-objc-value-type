@@ -37,7 +37,7 @@ extension ObjcTranslator {
                 // Only read the first item, assume there isn't multiple decls in the same line e.g. `BOOL a, b, c`;
                 let fieldDeclarator = propertyDecl.fieldDeclaration()!.fieldDeclaratorList()!.fieldDeclarator(0)!
                 let identifier = swiftIdentifier(
-                    declarator: propertyDecl.fieldDeclaration()!.fieldDeclaratorList()!.fieldDeclarator(0)!.declarator()!
+                    directDeclarator: propertyDecl.fieldDeclaration()!.fieldDeclaratorList()!.fieldDeclarator(0)!.declarator()!.directDeclarator()!
                 )
                 
                 let type = try swiftType(

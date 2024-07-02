@@ -32,6 +32,8 @@ final class ObjcTranslatorTests: XCTestCase {
         assertBuildResult(
             result,
             """
+            
+            
             /// Some comment
             @objc(XYAttachmentType)
             public enum AttachmentType: Int {
@@ -67,6 +69,8 @@ final class ObjcTranslatorTests: XCTestCase {
         assertBuildResult(
             result,
             """
+            
+            
             @objc(PINSpeedRecorderConnectionStatus)
             public enum SpeedRecorderConnectionStatus: UInt {
                 case notReachable
@@ -79,11 +83,17 @@ final class ObjcTranslatorTests: XCTestCase {
     
     func testProtocol_properties() throws {
         let source = """
+        typedef unsigned char HelloWorld;
+        typedef void (^ABCharactorCompletionBlock)(ABGender gender, ABStyle style,
+                                                               NSMutableDictionary *characterData, NSString *versionedId);
+        
         @protocol ABFoo <NSObject, ABAnotherProtocol>
         
+        @property (nonatomic, copy, nullable, readonly) NSString *string;
+
         @property (nonatomic, copy, nonnull) id<ABProviderProtocol> provider;
         
-        @property (nonatomic, copy, nonnull) BOOL (^enumerateProviders)(id<ABProviderProtocol> provider, BOOL *stop);
+        @property (nonatomic, assign, nonnull) BOOL (^enumerateProviders)(id<ABProviderProtocol> provider, BOOL *stop);
         
         @end
         """
@@ -98,9 +108,19 @@ final class ObjcTranslatorTests: XCTestCase {
         assertBuildResult(
             result,
             """
+            
+            
+            typealias HelloWorld = UInt8
+            
+            typealias ABCharactorCompletionBlock = (gender: ABGender, style: ABStyle, characterData: [AnyHashable: Any], versionedId: String) -> Void
+            
             @objc(ABFoo)
             public protocol Foo: NSObjectProtocol, ABAnotherProtocol {
-                     
+                    
+                public var string: String {
+                    get
+                }
+            
                 public var provider: ABProviderProtocol {
                     get
                     set

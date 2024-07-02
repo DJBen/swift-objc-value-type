@@ -26,7 +26,7 @@ extension ObjcTranslator {
         )
     }
     
-    private func swiftType(
+    func swiftType(
         typeSpecifiers: [P.TypeSpecifierContext],
         directDeclarator: P.DirectDeclaratorContext?,
         isNullable: Bool,
@@ -71,27 +71,7 @@ extension ObjcTranslator {
         guard let typeSpecifier = typeSpecifiers.first else {
             fatalError("Empty type specifiers")
         }
-        
-        if pointerCount > 0 {
-            return try IdentifierTypeSyntax(
-                name: .identifier("UnsafeMutablePointer"),
-                genericArgumentClause: GenericArgumentClauseSyntax {
-                    try GenericArgumentListSyntax {
-                        GenericArgumentSyntax(
-                            argument: try swiftType(
-                                typeSpecifiers: typeSpecifiers,
-                                directDeclarator: directDeclarator,
-                                isNullable: isNullable,
-                                context: context,
-                                pointerCount: pointerCount - 1,
-                                isContainedByPointer: true
-                            )
-                        )
-                    }
-                }
-            )
-        }
-        
+
         if let blockParam = directDeclarator?.blockParameters() {
             // BOOL (^enumerateProviders)(id<ABProviderProtocol> provider, BOOL *stop)
             // becomes
@@ -101,7 +81,9 @@ extension ObjcTranslator {
                     for typeVariableDeclOrName in blockParam.typeVariableDeclaratorOrName() {
                         if let typeVariableDecl = typeVariableDeclOrName.typeVariableDeclarator() {
                             TupleTypeElementSyntax(
-                                firstName: swiftIdentifier(declarator: typeVariableDecl.declarator()!),
+                                firstName: .identifier(
+                                    typeVariableDecl.declarator()!.directDeclarator()!.identifier()!.getText()
+                                ),
                                 colon: .colonToken(),
                                 type: try swiftType(
                                     typeSpecifiers: typeVariableDecl.declarationSpecifiers()!.typeSpecifier(),
@@ -124,13 +106,46 @@ extension ObjcTranslator {
                 },
                 returnClause: ReturnClauseSyntax(
                     type: IdentifierTypeSyntax(
-                        name: .identifier(ObjcSwiftUtils.mappingObjcTypeToSwift(
-                            typeSpecifier.getText(),
-                            existingPrefix: existingPrefix
-                        ))
+                        name: .identifier(
+                            ObjcSwiftUtils.mappingObjcTypeToSwift(
+                                typeSpecifier.getText()
+                            )
+                        )
                     )
                 )
             )
+        }
+        
+        if pointerCount > 0 {
+            if ObjcSwiftUtils.isObjcPrimitive(typeSpecifier.getText()) || isContainedByPointer {
+                return try IdentifierTypeSyntax(
+                    name: .identifier("UnsafeMutablePointer"),
+                    genericArgumentClause: GenericArgumentClauseSyntax {
+                        try GenericArgumentListSyntax {
+                            GenericArgumentSyntax(
+                                argument: try swiftType(
+                                    typeSpecifiers: typeSpecifiers,
+                                    directDeclarator: directDeclarator,
+                                    isNullable: isNullable,
+                                    context: context,
+                                    pointerCount: pointerCount - 1,
+                                    isContainedByPointer: true
+                                )
+                            )
+                        }
+                    }
+                )
+            } else {
+                // `NSString *` types tolerate at most one pointer
+                return try swiftType(
+                    typeSpecifiers: typeSpecifiers,
+                    directDeclarator: directDeclarator,
+                    isNullable: isNullable,
+                    context: context,
+                    pointerCount: pointerCount - 1,
+                    isContainedByPointer: true
+                )
+            }
         }
         
         if typeSpecifier.VOID() != nil {
@@ -213,8 +228,7 @@ extension ObjcTranslator {
             
             let typeName = genericTypeSpecifier.identifier()!.getText()
             let mappedTypeName = ObjcSwiftUtils.mappingObjcTypeToSwift(
-                typeName,
-                existingPrefix: existingPrefix
+                typeName
             )
             
             if let protocolList = genericTypeSpecifier.protocolList() {
@@ -305,8 +319,7 @@ extension ObjcTranslator {
                     return IdentifierTypeSyntax(name: .identifier("ObjCBool"))
                 } else {
                     let mappedTypeName = ObjcSwiftUtils.mappingObjcTypeToSwift(
-                        typeName,
-                        existingPrefix: existingPrefix
+                        typeName
                     )
                     
                     return IdentifierTypeSyntax(

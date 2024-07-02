@@ -61,3 +61,21 @@ extension TypeSyntaxProtocol {
         }
     }
 }
+
+public extension SyntaxProtocol {
+    func modifyingLeadingTrivia(
+        modifyBlock: (Trivia) -> Trivia
+    ) -> Self {
+        var copy = self
+        copy.leadingTrivia = modifyBlock(leadingTrivia)
+        return copy
+    }
+    
+    func modifyingTrailingTrivia(
+        modifyBlock: (Trivia) -> Trivia
+    ) -> Self {
+        var copy = self
+        copy.trailingTrivia = modifyBlock(trailingTrivia)
+        return copy
+    }
+}

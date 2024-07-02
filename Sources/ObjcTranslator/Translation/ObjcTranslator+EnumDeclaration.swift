@@ -13,7 +13,7 @@ extension ObjcTranslator {
         // enumDeclaration
         //    : attributeSpecifier? TYPEDEF? enumSpecifier identifier? ';'
         //    ;
-        // enumSpecifier
+        // enumSpecifier  
         //    : 'enum' (identifier? ':' typeName)? (
         //        identifier ('{' enumeratorList '}')?
         //        | '{' enumeratorList '}'
@@ -66,7 +66,7 @@ extension ObjcTranslator {
         //    ;
         
         EnumDeclSyntax(
-            leadingTrivia: beforeTrivia(for: enumDecl),
+            leadingTrivia: .newlines(2) + beforeTrivia(for: enumDecl),
             attributes: AttributeListSyntax {
                 if existingPrefix.isEmpty {
                     "@objc"
@@ -80,10 +80,7 @@ extension ObjcTranslator {
                 }
             },
             name: .identifier(
-                ObjcSwiftUtils.removingTypePrefix(
-                    prefix: existingPrefix,
-                    name: name
-                )
+                name.removingPrefix(existingPrefix)
             ),
             inheritanceClause: InheritanceClauseSyntax {
                 InheritedTypeListSyntax {
@@ -103,10 +100,7 @@ extension ObjcTranslator {
                         elementsBuilder:  {
                             EnumCaseElementSyntax(
                                 name: .identifier(
-                                    ObjcSwiftUtils.removingTypePrefix(
-                                        prefix: name,
-                                        name: enumerator.enumeratorIdentifier()!.getText()
-                                    ).lowercasingFirst
+                                    enumerator.enumeratorIdentifier()!.getText().removingPrefix(name).lowercasingFirst
                                 ),
                                 rawValue: enumerator.expression().map { expr in
                                     InitializerClauseSyntax(

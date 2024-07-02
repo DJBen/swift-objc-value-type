@@ -29,4 +29,12 @@ public extension String {
 
         return result
     }
+    
+    func removingPrefix(_ prefix: String) -> String {
+        if hasPrefix(prefix) {
+            return String(dropFirst(prefix.count))
+        } else {
+            return self
+        }
+    }
 }

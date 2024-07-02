@@ -7,7 +7,7 @@ import SwiftSyntaxBuilder
 
 extension ObjcTranslator {
     func swiftIdentifier(
-        declarator: P.DeclaratorContext
+        directDeclarator: P.DirectDeclaratorContext
     ) -> TokenSyntax {
         // fieldDeclarator
         //    : declarator
@@ -23,6 +23,8 @@ extension ObjcTranslator {
         //    | LP '^' nullabilitySpecifier? identifier? RP blockParameters
         //    ;
         
-        return .identifier(declarator.directDeclarator()!.identifier()!.getText())
+        return .identifier(
+            directDeclarator.identifier()!.getText()
+        )
     }
 }

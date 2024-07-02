@@ -33,20 +33,12 @@ public enum ObjcSwiftUtils {
         objcToSwiftFoundationTypeMap.reduce(into: [String: String](), { $0[$1.1] = $1.0 })
     }()
     
-    public static func removingTypePrefix(prefix: String, name: String) -> String {
-        if name.hasPrefix(prefix) {
-            return String(name.dropFirst(prefix.count))
-        } else {
-            return name
-        }
-    }
-
     private static let primitiveCIntTRegex = /(?:(u)?int(\d+)_t)/
     private static let primitiveCIntRegex = /(?:unsigned\s+)?(?:(?:short|(?:long)(?: long)?)\s+)?int/
 
     public static func mappingObjcTypeToSwift(
         _ objcType: String,
-        existingPrefix: String
+        existingPrefix: String = ""
     ) -> String {
         if let match = objcType.firstMatch(of: /NS(?:Mutable)?Dictionary<([\w\* <>]+),\s*([\w\* <>]+)>\s*\*/) {
             return "[\(mappingObjcTypeToSwift(String(match.1), existingPrefix: existingPrefix)): \(mappingObjcTypeToSwift(String(match.2), existingPrefix: existingPrefix))]"
@@ -86,10 +78,12 @@ public enum ObjcSwiftUtils {
             return "AnyClass"
         } else if objcType == "NSTimeInterval" {
             return "TimeInterval"
+        } else if objcType == "void" {
+            return "Void"
         } else if let mappedSwiftType = objcToSwiftFoundationTypeMap[objcType] {
             return mappedSwiftType
         } else {
-            return removingTypePrefix(prefix: existingPrefix, name: objcType)
+            return objcType.removingPrefix(existingPrefix)
         }
     }
 

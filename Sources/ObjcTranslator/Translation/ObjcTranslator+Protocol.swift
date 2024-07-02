@@ -16,7 +16,7 @@ extension ObjcTranslator {
         }
         
         try ProtocolDeclSyntax(
-            leadingTrivia: beforeTrivia(for: protocolDecl),
+            leadingTrivia: .newlines(2) + beforeTrivia(for: protocolDecl),
             attributes: AttributeListSyntax {
                 if existingPrefix.isEmpty {
                     "@objc"
@@ -30,10 +30,7 @@ extension ObjcTranslator {
                 }
             },
             name: .identifier(
-                ObjcSwiftUtils.removingTypePrefix(
-                    prefix: existingPrefix,
-                    name: protocolDecl.protocolName()!.getText()
-                )
+                protocolDecl.protocolName()!.getText().removingPrefix(existingPrefix)
             ),
             inheritanceClause: protocolDecl.protocolList().map { protocolList in
                 InheritanceClauseSyntax {

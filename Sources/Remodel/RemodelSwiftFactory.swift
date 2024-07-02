@@ -118,7 +118,9 @@ public class RemodelSwiftFactory {
                 modifiers: DeclModifierListSyntax {
                     DeclModifierSyntax(name: .identifier("public"))
                 },
-                name: .identifier(ObjcSwiftUtils.removingTypePrefix(prefix: existingPrefix, name: model.name)),
+                name: .identifier(
+                    model.name.removingPrefix(existingPrefix)
+                ),
                 inheritanceClause: inheritanceClause(model)
             ) {
                 for property in model.properties {
@@ -141,7 +143,7 @@ public class RemodelSwiftFactory {
                                         existingPrefix: existingPrefix
                                     )
                                     .mapTypeName {
-                                        ObjcSwiftUtils.removingTypePrefix(prefix: existingPrefix, name: $0)
+                                        $0.removingPrefix(existingPrefix)
                                     }
                                 )
                             )
@@ -168,7 +170,7 @@ public class RemodelSwiftFactory {
                                             existingPrefix: existingPrefix
                                         )
                                         .mapTypeName {
-                                            ObjcSwiftUtils.removingTypePrefix(prefix: existingPrefix, name: $0)
+                                            $0.removingPrefix(existingPrefix)
                                         },
                                         trailingComma: index == model.properties.count - 1 ? nil : .commaToken()
                                     )
@@ -213,7 +215,9 @@ public class RemodelSwiftFactory {
                 modifiers: DeclModifierListSyntax {
                     DeclModifierSyntax(name: .identifier("public"))
                 },
-                name: .identifier(ObjcSwiftUtils.removingTypePrefix(prefix: existingPrefix, name: model.name)),
+                name: .identifier(
+                    model.name.removingPrefix(existingPrefix)
+                ),
                 inheritanceClause: inheritanceClause(model)
             ) {
                 for property in model.properties {
