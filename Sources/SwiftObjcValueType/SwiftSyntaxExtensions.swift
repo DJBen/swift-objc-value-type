@@ -935,13 +935,15 @@ extension StructDeclSyntax {
     func enumerateVariableDecl(
         memberBlockItem: (Int, VariableDeclSyntax) throws -> Void
     ) rethrows {
-        for (index, member) in memberBlock.members.enumerated() {
-            if let variableTypeDecl = member.decl.as(VariableDeclSyntax.self) {
-                // If all bindings are derived values, skip this variable
-                if !variableTypeDecl.bindings.allSatisfy(\.isDerived) {
-                    try memberBlockItem(index, variableTypeDecl)
-                }
+        let eligibleMembers = memberBlock.members.filter({ member in
+            if let variableTypeDecl = member.decl.as(VariableDeclSyntax.self), !variableTypeDecl.bindings.allSatisfy(\.isDerived) {
+                return true
             }
+            return false
+        })
+        
+        for (index, member) in eligibleMembers.enumerated() {
+            try memberBlockItem(index, member.decl.as(VariableDeclSyntax.self)!)
         }
     }
 

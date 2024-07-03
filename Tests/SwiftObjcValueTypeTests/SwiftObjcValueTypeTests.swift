@@ -1628,6 +1628,39 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             """
         )
     }
+    
+    func testStruct_isEqual() throws {
+        let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
+            codeBlocks: CodeBlockItemListSyntax {
+                """
+                public struct AttributedFeature: Equatable, Sendable {
+                    public init(featureName: String, jiraProject: JiraProject) {
+                        self.featureName = featureName
+                        self.jiraProject = jiraProject
+                    }
+                
+                    public let featureName: String
+                    public let jiraProject: JiraProject
+                }
+                """
+                """
+                public struct JiraProject: Equatable, Sendable {
+                    public let projectName: String
+                    public let label: String
+                }
+                """
+            },
+            externalHashSettings: ExternalHashSettings(hashFunc: "HashImpl", hashDoubleFunc: "HashDouble"),
+            shouldSynthesizeNSCoding: false,
+            shouldSynthesizeNSCopying: false
+        )
+        
+        assertBuildResult(
+            result,
+            """
+            """
+        )
+    }
 
     func testEnum_caseWithoutArgs() throws {
         let result = try SwiftObjcValueTypeFactory().wrappingClassDecl(
