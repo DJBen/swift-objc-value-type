@@ -8,7 +8,7 @@ swift_test(
     ],
     module_name = "ObjcTranslatorTests",
     deps = [
-        "//Sources/ObjcGrammar",
+        "//Sources/ObjcSyntax",
         "//Sources/ObjcTranslator",
         "//Sources/TestingSupport",
         "@swiftpkg_antlr4//:Antlr4Static",

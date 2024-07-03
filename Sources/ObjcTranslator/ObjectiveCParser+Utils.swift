@@ -1,4 +1,4 @@
-import ObjcGrammar
+import ObjcSyntax
 import Antlr4
 
 extension P.DeclaratorContext {

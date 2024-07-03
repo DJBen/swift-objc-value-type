@@ -1,5 +1,5 @@
 import Foundation
-import ObjcGrammar
+import ObjcSyntax
 import Antlr4
 import SwiftSyntax
 import SwiftSyntaxBuilder
@@ -192,6 +192,7 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
         )
     }
     
+    // Algorithm adapted from http://meri-stuff.blogspot.com/2012/09/tackling-comments-in-antlr-compiler.html
     private func assignTrivia<Tree: ParseTree>(
         tree: Tree,
         commentTokens: inout [Token]

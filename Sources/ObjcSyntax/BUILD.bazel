@@ -1,7 +1,7 @@
 load("@build_bazel_rules_swift//swift:swift.bzl", "swift_library")
 
 swift_library(
-    name = "ObjcGrammar",
+    name = "ObjcSyntax",
     srcs = [
         "ObjectiveCLexer.swift",
         "ObjectiveCParser.swift",
@@ -11,7 +11,7 @@ swift_library(
         "ObjectiveCPreprocessorParserBaseListener.swift",
         "ObjectiveCPreprocessorParserListener.swift",
     ],
-    module_name = "ObjcGrammar",
+    module_name = "ObjcSyntax",
     visibility = ["//visibility:public"],
     deps = ["@swiftpkg_antlr4//:Antlr4Static"],
 )

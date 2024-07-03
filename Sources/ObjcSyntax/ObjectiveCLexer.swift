@@ -1,4 +1,4 @@
-// Generated from Sources/ObjcGrammar/ObjectiveCLexer.g4 by ANTLR 4.13.1
+// Generated from Sources/ObjcSyntax/ObjectiveCLexer.g4 by ANTLR 4.13.1
 import Antlr4
 
 open class ObjectiveCLexer: Lexer {

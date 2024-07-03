@@ -1,6 +1,6 @@
 import XCTest
 import TestingSupport
-import ObjcGrammar
+import ObjcSyntax
 import Antlr4
 @testable import ObjcTranslator
 import CustomDump
@@ -135,7 +135,7 @@ final class ObjcTranslatorTests: XCTestCase {
         )
     }
     
-    func testProtocol() throws {
+    func testProtocol_methods() throws {
 
     }
     

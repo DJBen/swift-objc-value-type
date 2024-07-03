@@ -59,7 +59,7 @@ let package = Package(
       name: "ObjcTranslator",
       dependencies: [
         "SharedUtilities",
-        "ObjcGrammar",
+        "ObjcSyntax",
         .product(name: "Antlr4", package: "antlr4"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
         .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
@@ -67,7 +67,7 @@ let package = Package(
     ),
 
     .target(
-      name: "ObjcGrammar",
+      name: "ObjcSyntax",
       dependencies: [
         .product(name: "Antlr4", package: "antlr4"),
       ]

@@ -1,6 +1,6 @@
 import Foundation
 import SharedUtilities
-import ObjcGrammar
+import ObjcSyntax
 import Antlr4
 import SwiftSyntax
 import SwiftSyntaxBuilder

@@ -1,6 +1,6 @@
 import ArgumentParser
 import Foundation
-import ObjcGrammar
+import ObjcSyntax
 import ObjcTranslator
 import SwiftParser
 import SwiftSyntax

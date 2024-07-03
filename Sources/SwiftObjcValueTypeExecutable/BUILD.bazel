@@ -16,7 +16,7 @@ swift_binary(
     module_name = "SwiftObjcValueTypeExecutable",
     visibility = ["//visibility:public"],
     deps = [
-        "//Sources/ObjcGrammar",
+        "//Sources/ObjcSyntax",
         "//Sources/ObjcTranslator",
         "//Sources/Remodel",
         "//Sources/SwiftObjcValueType",
