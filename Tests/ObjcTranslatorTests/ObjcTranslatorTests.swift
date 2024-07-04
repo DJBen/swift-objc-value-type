@@ -112,21 +112,21 @@ final class ObjcTranslatorTests: XCTestCase {
             
             typealias HelloWorld = UInt8
             
-            typealias ABCharactorCompletionBlock = (gender: ABGender, style: ABStyle, characterData: [AnyHashable: Any], versionedId: String) -> Void
+            typealias ABCharactorCompletionBlock = (gender: ABGender?, style: ABStyle?, characterData: [AnyHashable: Any]?, versionedId: String?) -> Void
             
             @objc(ABFoo)
             public protocol Foo: NSObjectProtocol, ABAnotherProtocol {
                     
-                public var string: String {
+                var string: String? {
                     get
                 }
             
-                public var provider: ABProviderProtocol {
+                var provider: ABProviderProtocol {
                     get
                     set
                 }
             
-                public var enumerateProviders: (provider: ABProviderProtocol, stop: UnsafeMutablePointer<ObjCBool>) -> Bool {
+                var enumerateProviders: (provider: ABProviderProtocol, stop: UnsafeMutablePointer<ObjCBool>) -> Bool {
                     get
                     set
                 }
@@ -135,8 +135,81 @@ final class ObjcTranslatorTests: XCTestCase {
         )
     }
     
-    func testProtocol_methods() throws {
+    func testProtocol_nsSwiftName() throws {
+        let source = """
+        
+        #import <UIKit/UIKit.h>
 
+        NS_ASSUME_NONNULL_BEGIN
+
+        /// Responsible for presenting the view.
+        NS_SWIFT_NAME(SwiftViewPresenting)
+        @protocol EXViewPresenting <NSObject>
+        
+        @property (nonatomic) NSDictionary<NSNumber *, NSString *> *viewTagMap;
+        
+        @property (nonatomic, weak) id<Foo, Bar> fooBarDelegate;
+        
+        // Some class method
+        + (BOOL)archiveEntryWithFileName:(NSString *)fileName;
+
+        - (instancetype)initWithDataBlock:(nullable NSData *_Nullable (^)(NSError **error))dataBlock;
+        
+        /// Presents the feature blah blah.
+        /// @param navigationController Navigation controller to set chat screen to.
+        /// @param the index in the tab bar tabBarController
+        - (void)presentAttachedToNavigationController:(UINavigationController *)navigationController
+                                   withTabBarTagIndex:(NSInteger)tagIndex;
+
+        /// Handle logout.
+        - (void)handleLogout;
+
+        @end
+
+        NS_ASSUME_NONNULL_END
+        """
+        
+        let translator = try translator(
+            from: source,
+            existingPrefix: "EX"
+        )
+
+        let result = try translator.translate()
+        
+        assertBuildResult(
+            result,
+            """
+
+            
+            /// Responsible for presenting the view.
+            @objc(EXViewPresenting)
+            public protocol SwiftViewPresenting: NSObjectProtocol {
+
+                // Some class method
+                class func archiveEntry(fileName: String?) -> Bool
+
+                init(dataBlock: (error: UnsafeMutablePointer<Error>) -> Data?)
+
+                /// Presents the feature blah blah.
+                /// @param navigationController Navigation controller to set chat screen to.
+                /// @param the index in the tab bar tabBarController
+                func presentAttachedToNavigationController(_ navigationController: UINavigationController?, tagIndex: Int)
+
+                /// Handle logout.
+                func handleLogout()
+
+                var viewTagMap: [NSNumber: String]? {
+                    get
+                    set
+                }
+            
+                weak var fooBarDelegate: (Foo & Bar)? {
+                    get
+                    set
+                }
+            }
+            """
+        )
     }
     
     private func translator(

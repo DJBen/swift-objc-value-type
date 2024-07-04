@@ -25,11 +25,8 @@ extension ObjcTranslator {
                 ),
                 initializer: TypeInitializerClauseSyntax(
                     value: try swiftType(
-                        typeSpecifiers: typedefDecl.declarationSpecifiers()!.typeSpecifier(),
-                        directDeclarator: typeDeclarator.directDeclarator(),
-                        isNullable: false,
-                        context: .property,
-                        pointerCount: 0
+                        typedefDecl: typedefDecl,
+                        nullability: TypeNullability(propertyNullability: nil, isNSAssumeNonnull: false, isGenericType: false)
                     )
                 ),
                 trailingTrivia: afterTrivia(for: typedefDecl)

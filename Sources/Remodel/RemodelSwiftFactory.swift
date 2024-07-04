@@ -324,13 +324,3 @@ public class RemodelSwiftFactory {
         }
     }
 }
-
-extension IdentifierTypeSyntax {
-    func optionalized(_ shouldOptionalize: Bool) -> any TypeSyntaxProtocol {
-        if shouldOptionalize {
-            return OptionalTypeSyntax(wrappedType: self)
-        } else {
-            return self
-        }
-    }
-}

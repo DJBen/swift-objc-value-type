@@ -55,13 +55,6 @@ extension TypeSyntaxProtocol {
         }
     }
 
-    var optionalized: OptionalTypeSyntax {
-        if let optional = self.as(OptionalTypeSyntax.self) {
-            return optional
-        }
-        return OptionalTypeSyntax(wrappedType: self)
-    }
-
     func nsCodableDecodingFunction(
         nsEnumTypes: [String: String]
     ) -> TokenSyntax {

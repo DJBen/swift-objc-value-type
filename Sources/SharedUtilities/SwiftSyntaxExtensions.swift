@@ -1,15 +1,15 @@
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
-extension TypeSyntaxProtocol {
-    public func enumerateTypeName(_ block: (String) -> Void) {
+public extension TypeSyntaxProtocol {
+    func enumerateTypeName(_ block: (String) -> Void) {
         _ = mapTypeName { typeName in
             block(typeName)
             return typeName
         }
     }
 
-    public func conainsTypeName(_ block: (String) -> Bool) -> Bool {
+    func conainsTypeName(_ block: (String) -> Bool) -> Bool {
         var contains: Bool = false
         _ = mapTypeName { typeName in
             if block(typeName) {
@@ -21,7 +21,7 @@ extension TypeSyntaxProtocol {
         return contains
     }
 
-    public func mapTypeName(_ transform: (String) -> String) -> any TypeSyntaxProtocol {
+    func mapTypeName(_ transform: (String) -> String) -> any TypeSyntaxProtocol {
         if var identifierType = self.as(IdentifierTypeSyntax.self) {
             identifierType.name = .identifier(transform(identifierType.trimmed.name.text))
             identifierType.genericArgumentClause = identifierType.genericArgumentClause.map { clause in
@@ -59,6 +59,27 @@ extension TypeSyntaxProtocol {
         } else {
             return self
         }
+    }
+    
+    var optionalized: OptionalTypeSyntax {
+        if let optional = self.as(OptionalTypeSyntax.self) {
+            return optional
+        } else if let compositionType = self.as(CompositionTypeSyntax.self) {
+            // For composition type, `A & B` needs a parens -> `(A & B)?`
+            return TupleTypeSyntax(
+                elements: TupleTypeElementListSyntax {
+                    TupleTypeElementSyntax(type: compositionType)
+                }
+            ).optionalized
+        }
+        return OptionalTypeSyntax(wrappedType: self)
+    }
+    
+    func optionalized(_ shouldOptionalize: Bool) -> any TypeSyntaxProtocol {
+        guard shouldOptionalize else {
+            return self
+        }
+        return self.optionalized
     }
 }
 

@@ -13,6 +13,7 @@ swift_library(
         "Translation/ObjcTranslator+Declaration.swift",
         "Translation/ObjcTranslator+EnumDeclaration.swift",
         "Translation/ObjcTranslator+Error.swift",
+        "Translation/ObjcTranslator+Method.swift",
         "Translation/ObjcTranslator+Property.swift",
         "Translation/ObjcTranslator+Protocol.swift",
         "Translation/ObjcTranslator+Type.swift",

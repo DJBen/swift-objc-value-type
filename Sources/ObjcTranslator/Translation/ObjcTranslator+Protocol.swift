@@ -11,9 +11,7 @@ extension ObjcTranslator {
         protocolDecl: P.ProtocolDeclarationContext,
         existingPrefix: String
     ) throws -> CodeBlockItemListSyntax {
-        if let macro = protocolDecl.macro() {
-            // TODO: handle NS_SWIFT_NAME
-        }
+        
         
         try ProtocolDeclSyntax(
             leadingTrivia: .newlines(2) + beforeTrivia(for: protocolDecl),
@@ -29,9 +27,15 @@ extension ObjcTranslator {
                     DeclModifierSyntax(name: .keyword(.public))
                 }
             },
-            name: .identifier(
-                protocolDecl.protocolName()!.getText().removingPrefix(existingPrefix)
-            ),
+            name: {
+                if let macro = protocolDecl.macro(), macro.identifier()?.NS_SWIFT_NAME() != nil, let swiftName = macro.primaryExpression().first?.getText() {
+                    return .identifier(swiftName)
+                } else {
+                    return .identifier(
+                        protocolDecl.protocolName()!.getText().removingPrefix(existingPrefix)
+                    )
+                }
+            }(),
             inheritanceClause: protocolDecl.protocolList().map { protocolList in
                 InheritanceClauseSyntax {
                     InheritedTypeListSyntax {
@@ -74,11 +78,17 @@ extension ObjcTranslator {
 
         for interfaceDeclList in interfaceDeclLists {
             for classMethodDecl in interfaceDeclList.classMethodDeclaration() {
-                
+                try translate(
+                    classMethodDeclaration: classMethodDecl,
+                    isNSAssumedNonnull: false // TODO: is assumed nonnull
+                )
             }
             
             for instanceMethodDecl in interfaceDeclList.instanceMethodDeclaration() {
-                
+                try translate(
+                    instanceMethodDeclaration: instanceMethodDecl,
+                    isNSAssumedNonnull: false // TODO: is assumed nonnull
+                )
             }
             
             for propertyDecl in interfaceDeclList.propertyDeclaration() {

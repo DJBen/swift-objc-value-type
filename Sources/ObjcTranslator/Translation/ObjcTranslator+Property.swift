@@ -20,9 +20,6 @@ extension ObjcTranslator {
         try VariableDeclSyntax(
             leadingTrivia: .newlines(2) + beforeTrivia(for: propertyDecl),
             modifiers: DeclModifierListSyntax {
-                if access == .public {
-                    DeclModifierSyntax(name: .keyword(.public))
-                }
                 if attributes.contains(where: { $0.WEAK() != nil }) {
                     DeclModifierSyntax(name: .keyword(.weak))
                 }
@@ -33,18 +30,24 @@ extension ObjcTranslator {
                 //    : specifierQualifierList fieldDeclaratorList macro? ';'
                 //    ;
 
-                let typeSpecifiers = propertyDecl.fieldDeclaration()!.specifierQualifierList()!.typeSpecifier()
-                // Only read the first item, assume there isn't multiple decls in the same line e.g. `BOOL a, b, c`;
-                let fieldDeclarator = propertyDecl.fieldDeclaration()!.fieldDeclaratorList()!.fieldDeclarator(0)!
                 let identifier = swiftIdentifier(
                     directDeclarator: propertyDecl.fieldDeclaration()!.fieldDeclaratorList()!.fieldDeclarator(0)!.declarator()!.directDeclarator()!
                 )
                 
                 let type = try swiftType(
-                    typeSpecifiers: typeSpecifiers,
-                    declarator: fieldDeclarator.declarator()!,
-                    isNullable: attributes.contains(where: { $0.nullabilitySpecifier()?.NULLABLE() != nil }),
-                    context: .property
+                    propertyDecl: propertyDecl,
+                    nullability: TypeNullability(
+                        propertyNullability: {
+                            if attributes.contains(where: { $0.nullabilitySpecifier()?.NULLABLE() != nil }) {
+                                return .nullable
+                            } else if attributes.contains(where: { $0.nullabilitySpecifier()?.NONNULL() != nil }) {
+                                return .nonnull
+                            }
+                            return nil
+                        }(),
+                        isNSAssumeNonnull: false, // TODO: add NS_ASSUME_NONNULL
+                        isGenericType: false
+                    )
                 )
                 PatternBindingSyntax(
                     pattern: IdentifierPatternSyntax(
