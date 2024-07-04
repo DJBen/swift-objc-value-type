@@ -1,6 +1,7 @@
 {
   "direct_dep_identities": [
     "swift-argument-parser",
+    "swift-collections",
     "swift-custom-dump",
     "swift-syntax"
   ],
@@ -45,6 +46,98 @@
       "package_identity": "swift-argument-parser",
       "product_memberships": [
         "GenerateManual"
+      ]
+    },
+    {
+      "name": "BitCollections",
+      "c99name": "BitCollections",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_collections//:BitCollections.rspm",
+      "package_identity": "swift-collections",
+      "product_memberships": [
+        "BitCollections",
+        "Collections"
+      ]
+    },
+    {
+      "name": "Collections",
+      "c99name": "Collections",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_collections//:Collections.rspm",
+      "package_identity": "swift-collections",
+      "product_memberships": [
+        "Collections"
+      ]
+    },
+    {
+      "name": "DequeModule",
+      "c99name": "DequeModule",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_collections//:DequeModule.rspm",
+      "package_identity": "swift-collections",
+      "product_memberships": [
+        "DequeModule",
+        "Collections"
+      ]
+    },
+    {
+      "name": "HashTreeCollections",
+      "c99name": "HashTreeCollections",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_collections//:HashTreeCollections.rspm",
+      "package_identity": "swift-collections",
+      "product_memberships": [
+        "HashTreeCollections",
+        "Collections"
+      ]
+    },
+    {
+      "name": "HeapModule",
+      "c99name": "HeapModule",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_collections//:HeapModule.rspm",
+      "package_identity": "swift-collections",
+      "product_memberships": [
+        "HeapModule",
+        "Collections"
+      ]
+    },
+    {
+      "name": "InternalCollectionsUtilities",
+      "c99name": "InternalCollectionsUtilities",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_collections//:InternalCollectionsUtilities.rspm",
+      "package_identity": "swift-collections",
+      "product_memberships": [
+        "BitCollections",
+        "DequeModule",
+        "HashTreeCollections",
+        "HeapModule",
+        "OrderedCollections",
+        "_RopeModule",
+        "Collections"
+      ]
+    },
+    {
+      "name": "OrderedCollections",
+      "c99name": "OrderedCollections",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_collections//:OrderedCollections.rspm",
+      "package_identity": "swift-collections",
+      "product_memberships": [
+        "OrderedCollections",
+        "Collections"
+      ]
+    },
+    {
+      "name": "_RopeModule",
+      "c99name": "_RopeModule",
+      "src_type": "swift",
+      "label": "@swiftpkg_swift_collections//:_RopeModule.rspm",
+      "package_identity": "swift-collections",
+      "product_memberships": [
+        "_RopeModule",
+        "Collections"
       ]
     },
     {
@@ -342,6 +435,48 @@
       "label": "@swiftpkg_swift_argument_parser//:GenerateManual"
     },
     {
+      "identity": "swift-collections",
+      "name": "BitCollections",
+      "type": "library",
+      "label": "@swiftpkg_swift_collections//:BitCollections"
+    },
+    {
+      "identity": "swift-collections",
+      "name": "Collections",
+      "type": "library",
+      "label": "@swiftpkg_swift_collections//:Collections"
+    },
+    {
+      "identity": "swift-collections",
+      "name": "DequeModule",
+      "type": "library",
+      "label": "@swiftpkg_swift_collections//:DequeModule"
+    },
+    {
+      "identity": "swift-collections",
+      "name": "HashTreeCollections",
+      "type": "library",
+      "label": "@swiftpkg_swift_collections//:HashTreeCollections"
+    },
+    {
+      "identity": "swift-collections",
+      "name": "HeapModule",
+      "type": "library",
+      "label": "@swiftpkg_swift_collections//:HeapModule"
+    },
+    {
+      "identity": "swift-collections",
+      "name": "OrderedCollections",
+      "type": "library",
+      "label": "@swiftpkg_swift_collections//:OrderedCollections"
+    },
+    {
+      "identity": "swift-collections",
+      "name": "_RopeModule",
+      "type": "library",
+      "label": "@swiftpkg_swift_collections//:_RopeModule"
+    },
+    {
       "identity": "swift-custom-dump",
       "name": "CustomDump",
       "type": "library",
@@ -446,6 +581,15 @@
         "commit": "46989693916f56d1186bd59ac15124caef896560",
         "remote": "https://github.com/apple/swift-argument-parser.git",
         "version": "1.3.1"
+      }
+    },
+    {
+      "name": "swiftpkg_swift_collections",
+      "identity": "swift-collections",
+      "remote": {
+        "commit": "ee97538f5b81ae89698fd95938896dec5217b148",
+        "remote": "https://github.com/apple/swift-collections.git",
+        "version": "1.1.1"
       }
     },
     {

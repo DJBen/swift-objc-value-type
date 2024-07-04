@@ -1660,53 +1660,6 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             #"""
 
             
-            @objc(JiraProject)
-            public class JiraProjectObjc: NSObject {
-
-                @objc public let projectName: String
-
-                @objc public let label: String
-
-                @objc
-                public init(projectName: String, label: String) {
-                    self.projectName = projectName
-                    self.label = label
-
-                    super.init()
-                }
-
-                public init(_ original: JiraProject) {
-                    self.projectName = original.projectName
-                    self.label = original.label
-
-                    super.init()
-                }
-
-                public override var hash: Int {
-                    let hashes: [UInt] = [UInt(bitPattern: (projectName as NSString).hash), UInt(bitPattern: (label as NSString).hash)]
-                    return Int(HashImpl(hashes, 2))
-                }
-
-                public override func isEqual(_ object: Any?) -> Bool {
-                    guard let other = object as? JiraProjectObjc else {
-                        return false
-                    }
-                    return projectName == other.projectName && label == other.label
-                }
-
-                @available(*, unavailable)
-                public override init() {
-                    fatalError()
-                }
-            }
-
-            extension JiraProject {
-                public init(_ wrapper: JiraProjectObjc) {
-                    self.projectName = wrapper.projectName
-                    self.label = wrapper.label
-                }
-            }
-
             @objc(AttributedFeature)
             public class AttributedFeatureObjc: NSObject {
 
@@ -1751,6 +1704,53 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 public init(_ wrapper: AttributedFeatureObjc) {
                     self.featureName = wrapper.featureName
                     self.jiraProject = wrapper.jiraProject
+                }
+            }
+            
+            @objc(JiraProject)
+            public class JiraProjectObjc: NSObject {
+
+                @objc public let projectName: String
+
+                @objc public let label: String
+
+                @objc
+                public init(projectName: String, label: String) {
+                    self.projectName = projectName
+                    self.label = label
+
+                    super.init()
+                }
+
+                public init(_ original: JiraProject) {
+                    self.projectName = original.projectName
+                    self.label = original.label
+
+                    super.init()
+                }
+
+                public override var hash: Int {
+                    let hashes: [UInt] = [UInt(bitPattern: (projectName as NSString).hash), UInt(bitPattern: (label as NSString).hash)]
+                    return Int(HashImpl(hashes, 2))
+                }
+
+                public override func isEqual(_ object: Any?) -> Bool {
+                    guard let other = object as? JiraProjectObjc else {
+                        return false
+                    }
+                    return projectName == other.projectName && label == other.label
+                }
+
+                @available(*, unavailable)
+                public override init() {
+                    fatalError()
+                }
+            }
+
+            extension JiraProject {
+                public init(_ wrapper: JiraProjectObjc) {
+                    self.projectName = wrapper.projectName
+                    self.label = wrapper.label
                 }
             }
             """#

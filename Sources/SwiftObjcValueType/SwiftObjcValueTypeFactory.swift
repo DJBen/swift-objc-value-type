@@ -1,6 +1,7 @@
 import SwiftSyntax
 import SwiftSyntaxBuilder
 import SharedUtilities
+import OrderedCollections
 
 /// See swift foundation type mapping to objective-C here.
 /// https://developer.apple.com/documentation/swift/working-with-foundation-types
@@ -882,8 +883,8 @@ public struct SwiftObjcValueTypeFactory {
 
     private func descriptorMap(
         codeBlocks: CodeBlockItemListSyntax
-    ) -> [String: DeclDescriptor] {
-        var containerDescriptorMap = [String: DeclDescriptor]()
+    ) -> OrderedDictionary<String, DeclDescriptor> {
+        var containerDescriptorMap = OrderedDictionary<String, DeclDescriptor>()
         var extensionInheritedTypesMap = [String: [String]]()
 
         for codeBlockItem in codeBlocks {

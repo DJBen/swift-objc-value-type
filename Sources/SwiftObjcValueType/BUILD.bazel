@@ -19,6 +19,7 @@ swift_library(
     visibility = ["//visibility:public"],
     deps = [
         "//Sources/SharedUtilities",
+        "@swiftpkg_swift_collections//:OrderedCollections",
         "@swiftpkg_swift_syntax//:SwiftSyntaxBuilder",
     ],
 )
