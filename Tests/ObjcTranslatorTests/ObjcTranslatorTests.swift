@@ -139,6 +139,7 @@ final class ObjcTranslatorTests: XCTestCase {
         let source = """
         
         #import <UIKit/UIKit.h>
+        #import <Foundation/Foundation.h>
 
         NS_ASSUME_NONNULL_BEGIN
 
@@ -179,7 +180,9 @@ final class ObjcTranslatorTests: XCTestCase {
         assertBuildResult(
             result,
             """
-
+            
+            import UIKit
+            import Foundation
             
             /// Responsible for presenting the view.
             @objc(EXViewPresenting)
@@ -220,32 +223,31 @@ final class ObjcTranslatorTests: XCTestCase {
         let collector = CollectorTokenSource(
             source: ObjectiveCLexer(ANTLRInputStream(source))
         )
-        
-        let preprocessor = try ObjectiveCPreprocessorParser(
-            CommonTokenStream(collector, 3) // DIRECTIVE_CHANNEL
-        )
 
         let parser = try ObjectiveCParser(
-            CommonTokenStream(
-                collector
-            )
+            CommonTokenStream(collector)
         )
         
         let translationUnit = try parser.translationUnit()
-        // Silent 'no viable alternative at <EOF>'
-        preprocessor.removeErrorListeners()
-        preprocessor.setErrorHandler(BailErrorStrategy())
         
-        var directives = [ObjectiveCPreprocessorParser.DirectiveContext]()
-        while true {
-            do {
-                directives.append(try preprocessor.directive())
-            } catch {
-                break
+        let preprocessorSource = ANTLRInputStream(source)
+        let preprocessorLexer = ObjectiveCPreprocessorLexer(preprocessorSource)
+        
+        let preprocessorParser = try ObjectiveCPreprocessorParser(
+            CommonTokenStream(preprocessorLexer)
+        )
+        let document = try preprocessorParser.objectiveCDocument()
+        
+        let directives = document.text().compactMap { text in
+            if let directive = text.directive() {
+                return directive
+            } else {
+                return nil
             }
         }
         
         return ObjcTranslator(
+            preprocessorSource: preprocessorSource,
             collector: collector,
             directives: directives,
             translationUnit: translationUnit,

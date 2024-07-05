@@ -1,7 +1,6 @@
 /*
 Objective-C Preprocessor grammar.
 The MIT License (MIT).
-Copyright (c) 2016-2017, Alex Petuschak (alex@swiftify.io).
 Copyright (c) 2016-2017, Ivan Kochurkin (kvanttt@gmail.com).
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -29,39 +28,51 @@ THE SOFTWARE.
 parser grammar ObjectiveCPreprocessorParser;
 
 options {
-    tokenVocab = ObjectiveCLexer;
+    tokenVocab = ObjectiveCPreprocessorLexer;
 }
 
+objectiveCDocument
+    : text* EOF
+    ;
+
+text
+    : code
+    | SHARP directive (NEW_LINE | EOF)
+    ;
+
+code
+    : CODE+
+    ;
+
 directive
-    : SHARP (DIRECTIVE_IMPORT | DIRECTIVE_INCLUDE) directiveText # preprocessorImport
-    | SHARP DIRECTIVE_IF preprocessorExpression                  # preprocessorConditional
-    | SHARP DIRECTIVE_ELIF preprocessorExpression                # preprocessorConditional
-    | SHARP DIRECTIVE_ELSE                                       # preprocessorConditional
-    | SHARP DIRECTIVE_ENDIF                                      # preprocessorConditional
-    | SHARP DIRECTIVE_IFDEF DIRECTIVE_ID                         # preprocessorDef
-    | SHARP DIRECTIVE_IFNDEF DIRECTIVE_ID                        # preprocessorDef
-    | SHARP DIRECTIVE_UNDEF DIRECTIVE_ID                         # preprocessorDef
-    | SHARP DIRECTIVE_PRAGMA directiveText                       # preprocessorPragma
-    | SHARP DIRECTIVE_ERROR directiveText                        # preprocessorError
-    | SHARP DIRECTIVE_WARNING directiveText                      # preprocessorWarning
-    | SHARP DIRECTIVE_DEFINE DIRECTIVE_ID directiveText?         # preprocessorDefine
+    : (IMPORT | INCLUDE) directive_text         # preprocessorImport
+    | IF preprocessor_expression                # preprocessorConditional
+    | ELIF preprocessor_expression              # preprocessorConditional
+    | ELSE                                      # preprocessorConditional
+    | ENDIF                                     # preprocessorConditional
+    | IFDEF CONDITIONAL_SYMBOL                  # preprocessorDef
+    | IFNDEF CONDITIONAL_SYMBOL                 # preprocessorDef
+    | UNDEF CONDITIONAL_SYMBOL                  # preprocessorDef
+    | PRAGMA directive_text                     # preprocessorPragma
+    | ERROR directive_text                      # preprocessorError
+    | DEFINE CONDITIONAL_SYMBOL directive_text? # preprocessorDefine
     ;
 
-directiveText
-    : (DIRECTIVE_TEXT | DIRECTIVE_TEXT_NEWLINE)+
+directive_text
+    : TEXT+
     ;
 
-preprocessorExpression
-    : DIRECTIVE_TRUE                                                                                                 # preprocessorConstant
-    | DIRECTIVE_FALSE                                                                                                # preprocessorConstant
-    | DIRECTIVE_DECIMAL_LITERAL                                                                                      # preprocessorConstant
-    | DIRECTIVE_STRING                                                                                               # preprocessorConstant
-    | DIRECTIVE_ID (DIRECTIVE_LP preprocessorExpression DIRECTIVE_RP)?                                               # preprocessorConditionalSymbol
-    | DIRECTIVE_LP preprocessorExpression DIRECTIVE_RP                                                               # preprocessorParenthesis
-    | DIRECTIVE_BANG preprocessorExpression                                                                          # preprocessorNot
-    | preprocessorExpression op = (DIRECTIVE_EQUAL | DIRECTIVE_NOTEQUAL) preprocessorExpression                      # preprocessorBinary
-    | preprocessorExpression op = DIRECTIVE_AND preprocessorExpression                                               # preprocessorBinary
-    | preprocessorExpression op = DIRECTIVE_OR preprocessorExpression                                                # preprocessorBinary
-    | preprocessorExpression op = (DIRECTIVE_LT | DIRECTIVE_GT | DIRECTIVE_LE | DIRECTIVE_GE) preprocessorExpression # preprocessorBinary
-    | DIRECTIVE_DEFINED (DIRECTIVE_ID | DIRECTIVE_LP DIRECTIVE_ID DIRECTIVE_RP)                                      # preprocessorDefined
+preprocessor_expression
+    : TRUE                                                                     # preprocessorConstant
+    | FALSE                                                                    # preprocessorConstant
+    | DECIMAL_LITERAL                                                          # preprocessorConstant
+    | DIRECTIVE_STRING                                                         # preprocessorConstant
+    | CONDITIONAL_SYMBOL (LPAREN preprocessor_expression RPAREN)?              # preprocessorConditionalSymbol
+    | LPAREN preprocessor_expression RPAREN                                    # preprocessorParenthesis
+    | BANG preprocessor_expression                                             # preprocessorNot
+    | preprocessor_expression op = (EQUAL | NOTEQUAL) preprocessor_expression  # preprocessorBinary
+    | preprocessor_expression op = AND preprocessor_expression                 # preprocessorBinary
+    | preprocessor_expression op = OR preprocessor_expression                  # preprocessorBinary
+    | preprocessor_expression op = (LT | GT | LE | GE) preprocessor_expression # preprocessorBinary
+    | DEFINED (CONDITIONAL_SYMBOL | LPAREN CONDITIONAL_SYMBOL RPAREN)          # preprocessorDefined
     ;

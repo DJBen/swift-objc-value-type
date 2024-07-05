@@ -84,10 +84,6 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
         let collector = CollectorTokenSource(
             source: ObjectiveCLexer(try charStream())
         )
-        
-        let preprocessor = try ObjectiveCPreprocessorParser(
-            CommonTokenStream(collector, 3) // DIRECTIVE_CHANNEL
-        )
 
         let parser = try ObjectiveCParser(
             CommonTokenStream(
@@ -96,20 +92,25 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
         )
         
         let translationUnit = try parser.translationUnit()
-        // Silent 'no viable alternative at <EOF>'
-        preprocessor.removeErrorListeners()
-        preprocessor.setErrorHandler(BailErrorStrategy())
+
+        let preprocessorSource = try charStream()
+        let preprocessorLexer = ObjectiveCPreprocessorLexer(preprocessorSource)
         
-        var directives = [ObjectiveCPreprocessorParser.DirectiveContext]()
-        while true {
-            do {
-                directives.append(try preprocessor.directive())
-            } catch {
-                break
+        let preprocessorParser = try ObjectiveCPreprocessorParser(
+            CommonTokenStream(preprocessorLexer)
+        )
+        let document = try preprocessorParser.objectiveCDocument()
+        
+        let directives = document.text().compactMap { text in
+            if let directive = text.directive() {
+                return directive
+            } else {
+                return nil
             }
         }
         
         let translator = ObjcTranslator(
+            preprocessorSource: preprocessorSource,
             collector: collector,
             directives: directives,
             translationUnit: translationUnit,

@@ -7,6 +7,7 @@ swift_library(
         "ObjectiveCParser.swift",
         "ObjectiveCParserBaseListener.swift",
         "ObjectiveCParserListener.swift",
+        "ObjectiveCPreprocessorLexer.swift",
         "ObjectiveCPreprocessorParser.swift",
         "ObjectiveCPreprocessorParserBaseListener.swift",
         "ObjectiveCPreprocessorParserListener.swift",

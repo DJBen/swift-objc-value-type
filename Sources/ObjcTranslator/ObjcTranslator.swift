@@ -27,6 +27,7 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
         }
     }
     
+    let preprocessorSource: CharStream
     let collector: CollectorTokenSource<UpstreamTokenSource>
     let directives: [ObjectiveCPreprocessorParser.DirectiveContext]
     let translationUnit: ObjectiveCParser.TranslationUnitContext
@@ -39,12 +40,14 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
     private let nsAssumeNonnullRanges: [Interval]
     
     public init(
+        preprocessorSource: CharStream,
         collector: CollectorTokenSource<UpstreamTokenSource>,
         directives: [ObjectiveCPreprocessorParser.DirectiveContext],
         translationUnit: ObjectiveCParser.TranslationUnitContext,
         existingPrefix: String = "",
         access: Access = .public
     ) {
+        self.preprocessorSource = preprocessorSource
         self.collector = collector
         self.directives = directives
         self.translationUnit = translationUnit
@@ -73,7 +76,7 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
         for directive in directives {
             switch directive {
             case let ctx as PP.PreprocessorImportContext:
-                if let importSubject = ctx.directiveText() {
+                if ctx.IMPORT() != nil, let importSubject = ctx.directive_text() {
                     ImportDeclSyntax(
                         path: ImportPathComponentListSyntax {
                             // Only import A from `#import <A/B.h>`
@@ -84,7 +87,7 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
                                 )
                             }
                         }
-                    )
+                    ).with(\.leadingTrivia, .newline)
                 }
             default:
                 // No-op

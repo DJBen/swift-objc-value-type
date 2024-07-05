@@ -15,6 +15,45 @@ open class ObjectiveCPreprocessorParserBaseListener: ObjectiveCPreprocessorParse
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	open func enterObjectiveCDocument(_ ctx: ObjectiveCPreprocessorParser.ObjectiveCDocumentContext) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	open func exitObjectiveCDocument(_ ctx: ObjectiveCPreprocessorParser.ObjectiveCDocumentContext) { }
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	open func enterText(_ ctx: ObjectiveCPreprocessorParser.TextContext) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	open func exitText(_ ctx: ObjectiveCPreprocessorParser.TextContext) { }
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	open func enterCode(_ ctx: ObjectiveCPreprocessorParser.CodeContext) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	open func exitCode(_ ctx: ObjectiveCPreprocessorParser.CodeContext) { }
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	open func enterPreprocessorImport(_ ctx: ObjectiveCPreprocessorParser.PreprocessorImportContext) { }
 	/**
 	 * {@inheritDoc}
@@ -80,19 +119,6 @@ open class ObjectiveCPreprocessorParserBaseListener: ObjectiveCPreprocessorParse
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	open func enterPreprocessorWarning(_ ctx: ObjectiveCPreprocessorParser.PreprocessorWarningContext) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	open func exitPreprocessorWarning(_ ctx: ObjectiveCPreprocessorParser.PreprocessorWarningContext) { }
-
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	open func enterPreprocessorDefine(_ ctx: ObjectiveCPreprocessorParser.PreprocessorDefineContext) { }
 	/**
 	 * {@inheritDoc}
@@ -106,13 +132,13 @@ open class ObjectiveCPreprocessorParserBaseListener: ObjectiveCPreprocessorParse
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	open func enterDirectiveText(_ ctx: ObjectiveCPreprocessorParser.DirectiveTextContext) { }
+	open func enterDirective_text(_ ctx: ObjectiveCPreprocessorParser.Directive_textContext) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	open func exitDirectiveText(_ ctx: ObjectiveCPreprocessorParser.DirectiveTextContext) { }
+	open func exitDirective_text(_ ctx: ObjectiveCPreprocessorParser.Directive_textContext) { }
 
 	/**
 	 * {@inheritDoc}
