@@ -77,6 +77,13 @@ extension ObjcTranslator {
         //    ;
 
         for interfaceDeclList in interfaceDeclLists {
+            for propertyDecl in interfaceDeclList.propertyDeclaration() {
+                try translate(
+                    propertyDecl: propertyDecl,
+                    existingPrefix: existingPrefix
+                )
+            }
+            
             for classMethodDecl in interfaceDeclList.classMethodDeclaration() {
                 try translate(
                     classMethodDeclaration: classMethodDecl,
@@ -88,13 +95,6 @@ extension ObjcTranslator {
                 try translate(
                     instanceMethodDeclaration: instanceMethodDecl,
                     isNSAssumedNonnull: false // TODO: is assumed nonnull
-                )
-            }
-            
-            for propertyDecl in interfaceDeclList.propertyDeclaration() {
-                try translate(
-                    propertyDecl: propertyDecl,
-                    existingPrefix: existingPrefix
                 )
             }
             

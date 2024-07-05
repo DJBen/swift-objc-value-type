@@ -185,6 +185,16 @@ final class ObjcTranslatorTests: XCTestCase {
             @objc(EXViewPresenting)
             public protocol SwiftViewPresenting: NSObjectProtocol {
 
+                var viewTagMap: [NSNumber: String]? {
+                    get
+                    set
+                }
+            
+                weak var fooBarDelegate: (Foo & Bar)? {
+                    get
+                    set
+                }
+            
                 // Some class method
                 class func archiveEntry(fileName: String?) -> Bool
 
@@ -197,16 +207,6 @@ final class ObjcTranslatorTests: XCTestCase {
 
                 /// Handle logout.
                 func handleLogout()
-
-                var viewTagMap: [NSNumber: String]? {
-                    get
-                    set
-                }
-            
-                weak var fooBarDelegate: (Foo & Bar)? {
-                    get
-                    set
-                }
             }
             """
         )
