@@ -8,28 +8,24 @@ import SwiftSyntaxBuilder
 extension ObjcTranslator {
     @MemberBlockItemListBuilder
     func translate(
-        instanceMethodDeclaration methodDecl: P.InstanceMethodDeclarationContext,
-        isNSAssumedNonnull: Bool
+        instanceMethodDeclaration methodDecl: P.InstanceMethodDeclarationContext
     ) throws -> MemberBlockItemListSyntax {
         try swiftMethodDecl(
             parentLeadingTrivia: beforeTrivia(for: methodDecl),
             methodDecl: methodDecl.methodDeclaration()!,
             isClassMethod: false,
-            isNSAssumedNonnull: isNSAssumedNonnull,
             parentTrailingTrivia: afterTrivia(for: methodDecl)
         )
     }
     
     @MemberBlockItemListBuilder
     func translate(
-        classMethodDeclaration methodDecl: P.ClassMethodDeclarationContext,
-        isNSAssumedNonnull: Bool
+        classMethodDeclaration methodDecl: P.ClassMethodDeclarationContext
     ) throws -> MemberBlockItemListSyntax {
         try swiftMethodDecl(
             parentLeadingTrivia: beforeTrivia(for: methodDecl),
             methodDecl: methodDecl.methodDeclaration()!,
             isClassMethod: true,
-            isNSAssumedNonnull: isNSAssumedNonnull,
             parentTrailingTrivia: afterTrivia(for: methodDecl)
         )
     }
@@ -39,7 +35,6 @@ extension ObjcTranslator {
         parentLeadingTrivia: Trivia,
         methodDecl: P.MethodDeclarationContext,
         isClassMethod: Bool,
-        isNSAssumedNonnull: Bool,
         parentTrailingTrivia: Trivia
     ) throws -> MemberBlockItemListSyntax {
         let returnType = try methodDecl.methodType().map {
@@ -47,7 +42,7 @@ extension ObjcTranslator {
                 typeName: $0.typeName()!,
                 nullability: TypeNullability(
                     propertyNullability: nil,
-                    isNSAssumeNonnull: isNSAssumedNonnull,
+                    isNSAssumeNonnull: isNSAssumeNonnull(methodDecl),
                     isGenericType: false
                 ),
                 context: .propertyOrMethodReturnType
@@ -116,7 +111,7 @@ extension ObjcTranslator {
                                 typeName: keywordDecl.methodType().first!.typeName()!,
                                 nullability: TypeNullability(
                                     propertyNullability: nil,
-                                    isNSAssumeNonnull: isNSAssumedNonnull,
+                                    isNSAssumeNonnull: isNSAssumeNonnull(methodDecl),
                                     isGenericType: false
                                 ),
                                 context: .methodArgument

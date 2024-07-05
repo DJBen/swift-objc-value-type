@@ -86,15 +86,13 @@ extension ObjcTranslator {
             
             for classMethodDecl in interfaceDeclList.classMethodDeclaration() {
                 try translate(
-                    classMethodDeclaration: classMethodDecl,
-                    isNSAssumedNonnull: false // TODO: is assumed nonnull
+                    classMethodDeclaration: classMethodDecl
                 )
             }
             
             for instanceMethodDecl in interfaceDeclList.instanceMethodDeclaration() {
                 try translate(
-                    instanceMethodDeclaration: instanceMethodDecl,
-                    isNSAssumedNonnull: false // TODO: is assumed nonnull
+                    instanceMethodDeclaration: instanceMethodDecl
                 )
             }
             

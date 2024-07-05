@@ -196,14 +196,14 @@ final class ObjcTranslatorTests: XCTestCase {
                 }
             
                 // Some class method
-                class func archiveEntry(fileName: String?) -> Bool
+                class func archiveEntry(fileName: String) -> Bool
 
-                init(dataBlock: (error: UnsafeMutablePointer<Error>) -> Data?)
+                init(dataBlock: (error: UnsafeMutablePointer<Error>) -> Data)
 
                 /// Presents the feature blah blah.
                 /// @param navigationController Navigation controller to set chat screen to.
                 /// @param the index in the tab bar tabBarController
-                func presentAttachedToNavigationController(_ navigationController: UINavigationController?, tagIndex: Int)
+                func presentAttachedToNavigationController(_ navigationController: UINavigationController, tagIndex: Int)
 
                 /// Handle logout.
                 func handleLogout()

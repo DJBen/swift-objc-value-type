@@ -36,7 +36,7 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
     var beforeTriviaMap: [Interval: [Token]] = [:]
     var afterTriviaMap: [Interval: [Token]] = [:]
     
-    let nsAssumeNonnullRanges: [Interval]
+    private let nsAssumeNonnullRanges: [Interval]
     
     public init(
         collector: CollectorTokenSource<UpstreamTokenSource>,
@@ -66,17 +66,6 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
             tree: translationUnit,
             commentTokens: collector.commentTokens
         )
-    }
-    
-    private func appendToBeforeTrivia(
-        target: Interval,
-        token: Token
-    ) {
-        if beforeTriviaMap[target] == nil {
-            beforeTriviaMap[target] = []
-        }
-        
-        beforeTriviaMap[target]!.append(token)
     }
     
     @CodeBlockItemListBuilder
@@ -168,6 +157,17 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
         } else if let _ = topLevelDecl.functionDefinition() {
             // Ignore for now
         }
+    }
+    
+    private func appendToBeforeTrivia(
+        target: Interval,
+        token: Token
+    ) {
+        if beforeTriviaMap[target] == nil {
+            beforeTriviaMap[target] = []
+        }
+        
+        beforeTriviaMap[target]!.append(token)
     }
     
     private func appendToAfterTrivia(
@@ -264,5 +264,9 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
         } else {
             return Trivia()
         }
+    }
+    
+    func isNSAssumeNonnull(_ tree: SyntaxTree) -> Bool {
+        nsAssumeNonnullRanges.contains(where: { $0.properlyContains(tree.getSourceInterval()) })
     }
 }
