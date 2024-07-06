@@ -8,24 +8,28 @@ import SwiftSyntaxBuilder
 extension ObjcTranslator {
     @MemberBlockItemListBuilder
     func translate(
-        instanceMethodDeclaration methodDecl: P.InstanceMethodDeclarationContext
+        instanceMethodDeclaration methodDecl: P.InstanceMethodDeclarationContext,
+        isOptionalConformance: Bool
     ) throws -> MemberBlockItemListSyntax {
         try swiftMethodDecl(
             parentLeadingTrivia: beforeTrivia(for: methodDecl),
             methodDecl: methodDecl.methodDeclaration()!,
             isClassMethod: false,
+            isOptionalConformance: isOptionalConformance,
             parentTrailingTrivia: afterTrivia(for: methodDecl)
         )
     }
     
     @MemberBlockItemListBuilder
     func translate(
-        classMethodDeclaration methodDecl: P.ClassMethodDeclarationContext
+        classMethodDeclaration methodDecl: P.ClassMethodDeclarationContext,
+        isOptionalConformance: Bool
     ) throws -> MemberBlockItemListSyntax {
         try swiftMethodDecl(
             parentLeadingTrivia: beforeTrivia(for: methodDecl),
             methodDecl: methodDecl.methodDeclaration()!,
             isClassMethod: true,
+            isOptionalConformance: isOptionalConformance,
             parentTrailingTrivia: afterTrivia(for: methodDecl)
         )
     }
@@ -35,6 +39,7 @@ extension ObjcTranslator {
         parentLeadingTrivia: Trivia,
         methodDecl: P.MethodDeclarationContext,
         isClassMethod: Bool,
+        isOptionalConformance: Bool,
         parentTrailingTrivia: Trivia
     ) throws -> MemberBlockItemListSyntax {
         let returnType = try methodDecl.methodType().map {
@@ -138,15 +143,26 @@ extension ObjcTranslator {
         if methodDecl.methodType()?.typeName()?.getText() == "instancetype" {
             InitializerDeclSyntax(
                 leadingTrivia: .newlines(2) + parentLeadingTrivia + beforeTrivia(for: methodDecl),
+                attributes: AttributeListSyntax {
+                    "@objc"
+                }
+                .with(\.trailingTrivia, .newline),
                 signature: funcSignature,
                 trailingTrivia: parentTrailingTrivia + afterTrivia(for: methodDecl)
             )
         } else {
             FunctionDeclSyntax(
                 leadingTrivia: .newlines(2) + parentLeadingTrivia + beforeTrivia(for: methodDecl),
+                attributes: AttributeListSyntax {
+                    "@objc"
+                }
+                .with(\.trailingTrivia, .newline),
                 modifiers: DeclModifierListSyntax {
                     if isClassMethod {
                         DeclModifierSyntax(name: .keyword(.class))
+                    }
+                    if isOptionalConformance {
+                        DeclModifierSyntax(name: .keyword(.optional))
                     }
                 },
                 name: .identifier(functionName),

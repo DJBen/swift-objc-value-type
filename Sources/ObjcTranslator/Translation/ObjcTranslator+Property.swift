@@ -9,6 +9,7 @@ extension ObjcTranslator {
     @MemberBlockItemListBuilder
     func translate(
         propertyDecl: P.PropertyDeclarationContext,
+        isOptionalConformance: Bool,
         existingPrefix: String
     ) throws -> MemberBlockItemListSyntax {
         // propertyDeclaration
@@ -22,6 +23,9 @@ extension ObjcTranslator {
             modifiers: DeclModifierListSyntax {
                 if attributes.contains(where: { $0.WEAK() != nil }) {
                     DeclModifierSyntax(name: .keyword(.weak))
+                }
+                if isOptionalConformance {
+                    DeclModifierSyntax(name: .keyword(.optional))
                 }
             },
             bindingSpecifier: .keyword(.var),

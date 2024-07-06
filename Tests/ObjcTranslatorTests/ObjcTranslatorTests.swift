@@ -135,7 +135,65 @@ final class ObjcTranslatorTests: XCTestCase {
         )
     }
     
-    func testProtocol_nsSwiftName() throws {
+    func testProtocol_methods_optionalSections() throws {
+        let source = """
+        NS_ASSUME_NONNULL_BEGIN
+        
+        @protocol DataSourceProtocol <NSObject>
+
+        // Required methods
+        @required
+        - (NSInteger)numberOfItems;
+        - (id)itemAtIndex:(NSInteger)index;
+
+        // Optional methods
+        @optional
+        @property (nonatomic, strong) NSString *string;
+        
+        - (NSString *)titleForItemAtIndex:(NSInteger)index;
+        - (void)didSelectItemAtIndex:(NSInteger)index;
+
+        @end
+        
+        NS_ASSUME_NONNULL_END
+        """
+        
+        let translator = try translator(
+            from: source
+        )
+
+        let result = try translator.translate()
+        
+        assertBuildResult(
+            result,
+            #"""
+            
+            
+            @objc
+            public protocol DataSourceProtocol: NSObjectProtocol {
+
+                @objc
+                func numberOfItems() -> Int
+
+                @objc
+                func itemAtIndex(_ index: Int) -> AnyObject
+
+                optional var string: String? {
+                    get
+                    set
+                }
+                
+                @objc
+                optional func titleForItemAtIndex(_ index: Int) -> String
+
+                @objc
+                optional func didSelectItemAtIndex(_ index: Int)
+            }
+            """#
+        )
+    }
+    
+    func testProtocol_methods() throws {
         let source = """
         
         #import <UIKit/UIKit.h>
@@ -199,16 +257,20 @@ final class ObjcTranslatorTests: XCTestCase {
                 }
             
                 // Some class method
+                @objc
                 class func archiveEntry(fileName: String) -> Bool
 
+                @objc
                 init(dataBlock: (error: UnsafeMutablePointer<Error>) -> Data)
 
                 /// Presents the feature blah blah.
                 /// @param navigationController Navigation controller to set chat screen to.
                 /// @param the index in the tab bar tabBarController
+                @objc
                 func presentAttachedToNavigationController(_ navigationController: UINavigationController, tagIndex: Int)
 
                 /// Handle logout.
+                @objc
                 func handleLogout()
             }
             """

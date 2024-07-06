@@ -53,7 +53,7 @@ extension ObjcTranslator {
                 for section in protocolDecl.protocolDeclarationSection() {
                     try interfaceDeclList(
                         section.interfaceDeclarationList(),
-                        isOptional: section.OPTIONAL() != nil
+                        isOptionalConformance: section.OPTIONAL() != nil
                     )
                 }
             },
@@ -64,7 +64,7 @@ extension ObjcTranslator {
     @MemberBlockItemListBuilder
     private func interfaceDeclList(
         _ interfaceDeclLists: [P.InterfaceDeclarationListContext],
-        isOptional: Bool
+        isOptionalConformance: Bool
     ) throws -> MemberBlockItemListSyntax {
         // interfaceDeclarationList
         //    : (
@@ -79,20 +79,23 @@ extension ObjcTranslator {
         for interfaceDeclList in interfaceDeclLists {
             for propertyDecl in interfaceDeclList.propertyDeclaration() {
                 try translate(
-                    propertyDecl: propertyDecl,
+                    propertyDecl: propertyDecl, 
+                    isOptionalConformance: isOptionalConformance,
                     existingPrefix: existingPrefix
                 )
             }
             
             for classMethodDecl in interfaceDeclList.classMethodDeclaration() {
                 try translate(
-                    classMethodDeclaration: classMethodDecl
+                    classMethodDeclaration: classMethodDecl,
+                    isOptionalConformance: isOptionalConformance
                 )
             }
             
             for instanceMethodDecl in interfaceDeclList.instanceMethodDeclaration() {
                 try translate(
-                    instanceMethodDeclaration: instanceMethodDecl
+                    instanceMethodDeclaration: instanceMethodDecl,
+                    isOptionalConformance: isOptionalConformance
                 )
             }
             

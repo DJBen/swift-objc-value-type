@@ -80,6 +80,8 @@ public enum ObjcSwiftUtils {
             return "TimeInterval"
         } else if objcType == "void" {
             return "Void"
+        } else if objcType == "id" {
+            return "AnyObject"
         } else if let mappedSwiftType = objcToSwiftFoundationTypeMap[objcType] {
             return mappedSwiftType
         } else {
