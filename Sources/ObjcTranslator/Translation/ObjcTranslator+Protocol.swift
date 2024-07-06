@@ -12,7 +12,6 @@ extension ObjcTranslator {
         existingPrefix: String
     ) throws -> CodeBlockItemListSyntax {
         
-        
         try ProtocolDeclSyntax(
             leadingTrivia: .newlines(2) + beforeTrivia(for: protocolDecl),
             attributes: AttributeListSyntax {
@@ -54,7 +53,8 @@ extension ObjcTranslator {
                     try interfaceDeclList(
                         section.interfaceDeclarationList(),
                         isOptionalConformance: section.OPTIONAL() != nil,
-                        sectionBeforeTrivia: beforeTrivia(for: section)
+                        // When section does not have prefix and only has one interfaceDeclarationList, it is exactly the same interval as interfaceDeclarationList; thus skip. Otherwise we will have duplicated comments
+                        sectionBeforeTrivia: section.withRequiredOrOptionalPrefix || section.interfaceDeclarationList().count > 1 ? beforeTrivia(for: section) : Trivia()
                     )
                 }
             },
@@ -108,5 +108,11 @@ extension ObjcTranslator {
                 
             }
         }
+    }
+}
+
+extension P.ProtocolDeclarationSectionContext {
+    var withRequiredOrOptionalPrefix: Bool {
+        REQUIRED() != nil || OPTIONAL() != nil
     }
 }
