@@ -23,6 +23,7 @@ public class CollectorTokenSource<UpstreamTokenSource: TokenSource>: TokenSource
     public func nextToken() throws -> Token {
         // Channels: ["DEFAULT_TOKEN_CHANNEL", "HIDDEN", "COMMENTS_CHANNEL", "DIRECTIVE_CHANNEL", "IGNORED_MACROS"]
         let token = try source.nextToken()
+//        print(index, token)
         index += 1
         if token.getChannel() == 3 {
             directiveTokens.append(token)

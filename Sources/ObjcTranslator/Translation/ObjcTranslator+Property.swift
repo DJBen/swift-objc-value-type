@@ -10,6 +10,7 @@ extension ObjcTranslator {
     func translate(
         propertyDecl: P.PropertyDeclarationContext,
         isOptionalConformance: Bool,
+        sectionBeforeTrivia: Trivia,
         existingPrefix: String
     ) throws -> MemberBlockItemListSyntax {
         // propertyDeclaration
@@ -19,7 +20,7 @@ extension ObjcTranslator {
         let attributes = propertyDecl.propertyAttributesList()?.propertyAttribute() ?? []
         
         try VariableDeclSyntax(
-            leadingTrivia: .newlines(2) + beforeTrivia(for: propertyDecl),
+            leadingTrivia: .newlines(2) + sectionBeforeTrivia + beforeTrivia(for: propertyDecl),
             modifiers: DeclModifierListSyntax {
                 if attributes.contains(where: { $0.WEAK() != nil }) {
                     DeclModifierSyntax(name: .keyword(.weak))

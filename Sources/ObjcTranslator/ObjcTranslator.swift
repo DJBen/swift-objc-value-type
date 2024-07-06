@@ -1,6 +1,7 @@
 import Foundation
 import ObjcSyntax
 import Antlr4
+import OrderedCollections
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
@@ -73,26 +74,34 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
     
     @CodeBlockItemListBuilder
     public func translate() throws -> CodeBlockItemListSyntax {
-        for directive in directives {
-            switch directive {
-            case let ctx as PP.PreprocessorImportContext:
-                if ctx.IMPORT() != nil, let importSubject = ctx.directive_text() {
-                    ImportDeclSyntax(
-                        path: ImportPathComponentListSyntax {
-                            // Only import A from `#import <A/B.h>`
-                            // and ignore `#import "C.h"`
-                            if let match = importSubject.getText().firstMatch(of: /<([\w_]+)\/[\w_]+\.\w+>/) {
-                                ImportPathComponentSyntax(
-                                    name: .identifier(String(match.1))
-                                )
-                            }
+        let importedLibraries: OrderedSet<String> = {
+            var set = OrderedSet<String>()
+            for directive in directives {
+                switch directive {
+                case let ctx as PP.PreprocessorImportContext:
+                    if ctx.IMPORT() != nil, let importSubject = ctx.directive_text() {
+                        
+                        // Only import A from `#import <A/B.h>`
+                        // and ignore `#import "C.h"`
+                        if let match = importSubject.getText().firstMatch(of: /<([\w_]+)\/[\w_]+\.\w+>/) {
+                            set.append(String(match.1))
                         }
-                    ).with(\.leadingTrivia, .newline)
+                    }
+                default:
+                    break
                 }
-            default:
-                // No-op
-                CodeBlockItemListSyntax()
             }
+            return set
+        }()
+
+        for importedLibrary in importedLibraries {
+            ImportDeclSyntax(
+                path: ImportPathComponentListSyntax {
+                    ImportPathComponentSyntax(
+                        name: .identifier(importedLibrary)
+                    )
+                }
+            ).with(\.leadingTrivia, .newline)
         }
         
         for topLevelDecl in translationUnit.topLevelDeclaration() {

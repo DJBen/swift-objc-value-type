@@ -63,6 +63,7 @@ let package = Package(
         .product(name: "Antlr4", package: "antlr4"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
         .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
+        .product(name: "OrderedCollections", package: "swift-collections"),
       ]
     ),
 

@@ -25,6 +25,7 @@ swift_library(
         "//Sources/ObjcSyntax",
         "//Sources/SharedUtilities",
         "@swiftpkg_antlr4//:Antlr4Static",
+        "@swiftpkg_swift_collections//:OrderedCollections",
         "@swiftpkg_swift_syntax//:SwiftSyntaxBuilder",
     ],
 )

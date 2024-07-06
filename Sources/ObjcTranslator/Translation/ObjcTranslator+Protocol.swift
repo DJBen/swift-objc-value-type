@@ -53,7 +53,8 @@ extension ObjcTranslator {
                 for section in protocolDecl.protocolDeclarationSection() {
                     try interfaceDeclList(
                         section.interfaceDeclarationList(),
-                        isOptionalConformance: section.OPTIONAL() != nil
+                        isOptionalConformance: section.OPTIONAL() != nil,
+                        sectionBeforeTrivia: beforeTrivia(for: section)
                     )
                 }
             },
@@ -64,7 +65,8 @@ extension ObjcTranslator {
     @MemberBlockItemListBuilder
     private func interfaceDeclList(
         _ interfaceDeclLists: [P.InterfaceDeclarationListContext],
-        isOptionalConformance: Bool
+        isOptionalConformance: Bool,
+        sectionBeforeTrivia: Trivia
     ) throws -> MemberBlockItemListSyntax {
         // interfaceDeclarationList
         //    : (
@@ -77,25 +79,28 @@ extension ObjcTranslator {
         //    ;
 
         for interfaceDeclList in interfaceDeclLists {
-            for propertyDecl in interfaceDeclList.propertyDeclaration() {
+            for (index, propertyDecl) in interfaceDeclList.propertyDeclaration().enumerated() {
                 try translate(
                     propertyDecl: propertyDecl, 
                     isOptionalConformance: isOptionalConformance,
+                    sectionBeforeTrivia: index == 0 ? sectionBeforeTrivia : Trivia(),
                     existingPrefix: existingPrefix
                 )
             }
             
-            for classMethodDecl in interfaceDeclList.classMethodDeclaration() {
+            for (index, classMethodDecl) in interfaceDeclList.classMethodDeclaration().enumerated() {
                 try translate(
                     classMethodDeclaration: classMethodDecl,
-                    isOptionalConformance: isOptionalConformance
+                    isOptionalConformance: isOptionalConformance,
+                    sectionBeforeTrivia: index == 0 ? sectionBeforeTrivia : Trivia()
                 )
             }
             
-            for instanceMethodDecl in interfaceDeclList.instanceMethodDeclaration() {
+            for (index, instanceMethodDecl) in interfaceDeclList.instanceMethodDeclaration().enumerated() {
                 try translate(
                     instanceMethodDeclaration: instanceMethodDecl,
-                    isOptionalConformance: isOptionalConformance
+                    isOptionalConformance: isOptionalConformance,
+                    sectionBeforeTrivia: index == 0 ? sectionBeforeTrivia: Trivia()
                 )
             }
             

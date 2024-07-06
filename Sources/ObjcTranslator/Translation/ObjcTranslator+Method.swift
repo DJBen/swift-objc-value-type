@@ -9,9 +9,11 @@ extension ObjcTranslator {
     @MemberBlockItemListBuilder
     func translate(
         instanceMethodDeclaration methodDecl: P.InstanceMethodDeclarationContext,
-        isOptionalConformance: Bool
+        isOptionalConformance: Bool,
+        sectionBeforeTrivia: Trivia
     ) throws -> MemberBlockItemListSyntax {
         try swiftMethodDecl(
+            sectionBeforeTrivia: sectionBeforeTrivia,
             parentLeadingTrivia: beforeTrivia(for: methodDecl),
             methodDecl: methodDecl.methodDeclaration()!,
             isClassMethod: false,
@@ -23,9 +25,11 @@ extension ObjcTranslator {
     @MemberBlockItemListBuilder
     func translate(
         classMethodDeclaration methodDecl: P.ClassMethodDeclarationContext,
-        isOptionalConformance: Bool
+        isOptionalConformance: Bool,
+        sectionBeforeTrivia: Trivia
     ) throws -> MemberBlockItemListSyntax {
         try swiftMethodDecl(
+            sectionBeforeTrivia: sectionBeforeTrivia,
             parentLeadingTrivia: beforeTrivia(for: methodDecl),
             methodDecl: methodDecl.methodDeclaration()!,
             isClassMethod: true,
@@ -36,6 +40,7 @@ extension ObjcTranslator {
     
     @MemberBlockItemListBuilder
     private func swiftMethodDecl(
+        sectionBeforeTrivia: Trivia,
         parentLeadingTrivia: Trivia,
         methodDecl: P.MethodDeclarationContext,
         isClassMethod: Bool,
@@ -142,7 +147,7 @@ extension ObjcTranslator {
         
         if methodDecl.methodType()?.typeName()?.getText() == "instancetype" {
             InitializerDeclSyntax(
-                leadingTrivia: .newlines(2) + parentLeadingTrivia + beforeTrivia(for: methodDecl),
+                leadingTrivia: .newlines(2) + sectionBeforeTrivia + parentLeadingTrivia + beforeTrivia(for: methodDecl),
                 attributes: AttributeListSyntax {
                     "@objc"
                 }
@@ -152,7 +157,7 @@ extension ObjcTranslator {
             )
         } else {
             FunctionDeclSyntax(
-                leadingTrivia: .newlines(2) + parentLeadingTrivia + beforeTrivia(for: methodDecl),
+                leadingTrivia: .newlines(2) + sectionBeforeTrivia + parentLeadingTrivia + beforeTrivia(for: methodDecl),
                 attributes: AttributeListSyntax {
                     "@objc"
                 }
