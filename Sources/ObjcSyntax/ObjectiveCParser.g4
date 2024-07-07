@@ -167,7 +167,7 @@ instanceMethodDeclaration
     ;
 
 methodDeclaration
-    : methodType? methodSelector macro? ';'
+    : methodType? methodSelector macro* ';'
     ;
 
 implementationDefinitionList
@@ -297,6 +297,7 @@ selectorExpression
 
 selectorName
     : selector
+    | UNDERSCORE
     | (selector? ':')+
     ;
 
@@ -575,6 +576,28 @@ pointer
 
 macro
     : identifier (LP primaryExpression (',' primaryExpression)* RP)?
+    | NS_SWIFT_NAME LP swiftSelectorExpression RP
+    | API_AVAILABLE LP apiAvailableOsVersion (',' apiAvailableOsVersion)* RP
+    | API_UNAVAILABLE LP identifier (',' identifier)* RP
+    | NS_SWIFT_UNAVAILABLE LP stringLiteral RP
+    ;
+    
+swiftSelectorExpression
+    : identifier LP (swiftSelector ':')* RP
+    ;
+    
+swiftSelector
+    : identifier
+    | UNDERSCORE
+    ;
+
+apiAvailableOsVersion
+    : identifier LP version RP
+    ;
+    
+version
+    : FLOATING_POINT_LITERAL
+    | DECIMAL_LITERAL ('.' DECIMAL_LITERAL)*
     ;
 
 arrayInitializer

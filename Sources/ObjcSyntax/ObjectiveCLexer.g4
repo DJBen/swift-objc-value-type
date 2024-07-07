@@ -159,6 +159,12 @@ NS_ENUM    : 'NS_ENUM';
 NS_OPTIONS : 'NS_OPTIONS';
 NS_SWIFT_NAME : 'NS_SWIFT_NAME';
 NS_NOESCAPE : 'NS_NOESCAPE';
+NS_UNAVAILABLE : 'NS_UNAVAILABLE';
+NS_SWIFT_UNAVAILABLE: 'NS_SWIFT_UNAVAILABLE';
+
+// API availablility macros
+API_AVAILABLE: 'API_AVAILABLE';
+API_UNAVAILABLE: 'API_UNAVAILABLE';
 
 // Property attributes
 
@@ -205,6 +211,7 @@ COMMA        : ',';
 DOT          : '.';
 STRUCTACCESS : '->';
 AT           : '@';
+UNDERSCORE   : '_';
 
 // Operators
 

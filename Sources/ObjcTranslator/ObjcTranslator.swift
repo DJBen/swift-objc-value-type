@@ -290,6 +290,8 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
             return "- Parameter \(match.1):"
         }.replacing(/@return(?:s)?/) { match in
             return "- Returns"
+        }.replacing(/@note/) { match in
+            return "- Note"
         }
     }
 }

@@ -149,6 +149,7 @@ extension ObjcTranslator {
             InitializerDeclSyntax(
                 leadingTrivia: .newlines(2) + sectionBeforeTrivia + parentLeadingTrivia + beforeTrivia(for: methodDecl),
                 attributes: AttributeListSyntax {
+                    availabilityAttributes(methodDecl: methodDecl)
                     "@objc"
                 }
                 .with(\.trailingTrivia, .newline),
@@ -159,6 +160,7 @@ extension ObjcTranslator {
             FunctionDeclSyntax(
                 leadingTrivia: .newlines(2) + sectionBeforeTrivia + parentLeadingTrivia + beforeTrivia(for: methodDecl),
                 attributes: AttributeListSyntax {
+                    availabilityAttributes(methodDecl: methodDecl)
                     "@objc"
                 }
                 .with(\.trailingTrivia, .newline),
@@ -176,4 +178,49 @@ extension ObjcTranslator {
             )
         }
     }
+    
+    @AttributeListBuilder
+    private func availabilityAttributes(
+        methodDecl: P.MethodDeclarationContext
+    ) -> AttributeListSyntax {
+        // macro
+        //    : identifier (LP primaryExpression (',' primaryExpression)* RP)?
+        //    | NS_SWIFT_NAME LP swiftSelectorExpression RP
+        //    | API_AVAILABLE LP apiAvailableOsVersion (',' apiAvailableOsVersion)* RP
+        //    | API_UNAVAILABLE LP identifier (',' identifier)* RP
+        //    | NS_SWIFT_UNAVAILABLE LP stringLiteral RP
+        //    ;
+        
+        for `macro` in methodDecl.macro() {
+            if `macro`.API_AVAILABLE() != nil {
+                for osVersion in `macro`.apiAvailableOsVersion() {
+                   let osVersionString = "\(swiftOS(osVersion.identifier()!.getText())) \(osVersion.version()!.getText())"
+                    AttributeSyntax(
+                        "@available(\(raw: osVersionString), *)"
+                    )
+                    .with(\.trailingTrivia, .newline)
+                }
+            } else if `macro`.API_UNAVAILABLE() != nil {
+                for identifier in `macro`.identifier() {
+                    AttributeSyntax(
+                        "@available(\(raw: swiftOS(identifier.getText())), unavailable)"
+                    )
+                    .with(\.trailingTrivia, .newline)
+                }
+            }
+        }
+    }
+}
+
+private func swiftOS(_ os: String) -> String {
+    if os.lowercased() == "ios" {
+        return "iOS"
+    } else if os.lowercased() == "macos" {
+        return "macOS"
+    } else if os.lowercased() == "tvos" {
+        return "tvOS"
+    } else if os.lowercased() == "watchos" {
+        return "watchOS"
+    }
+    return os
 }

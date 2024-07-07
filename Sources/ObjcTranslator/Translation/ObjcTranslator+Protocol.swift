@@ -27,7 +27,7 @@ extension ObjcTranslator {
                 }
             },
             name: {
-                if let macro = protocolDecl.macro(), macro.identifier()?.NS_SWIFT_NAME() != nil, let swiftName = macro.primaryExpression().first?.getText() {
+                if let macro = protocolDecl.macro(), macro.identifier().contains(where: { $0.NS_SWIFT_NAME() != nil }), let swiftName = macro.primaryExpression().first?.getText() {
                     return .identifier(swiftName)
                 } else {
                     return .identifier(

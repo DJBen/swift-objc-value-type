@@ -1243,6 +1243,54 @@ public protocol ObjectiveCParserListener: ParseTreeListener {
 	 */
 	func exitMacro(_ ctx: ObjectiveCParser.MacroContext)
 	/**
+	 * Enter a parse tree produced by {@link ObjectiveCParser#swiftSelectorExpression}.
+	 - Parameters:
+	   - ctx: the parse tree
+	 */
+	func enterSwiftSelectorExpression(_ ctx: ObjectiveCParser.SwiftSelectorExpressionContext)
+	/**
+	 * Exit a parse tree produced by {@link ObjectiveCParser#swiftSelectorExpression}.
+	 - Parameters:
+	   - ctx: the parse tree
+	 */
+	func exitSwiftSelectorExpression(_ ctx: ObjectiveCParser.SwiftSelectorExpressionContext)
+	/**
+	 * Enter a parse tree produced by {@link ObjectiveCParser#swiftSelector}.
+	 - Parameters:
+	   - ctx: the parse tree
+	 */
+	func enterSwiftSelector(_ ctx: ObjectiveCParser.SwiftSelectorContext)
+	/**
+	 * Exit a parse tree produced by {@link ObjectiveCParser#swiftSelector}.
+	 - Parameters:
+	   - ctx: the parse tree
+	 */
+	func exitSwiftSelector(_ ctx: ObjectiveCParser.SwiftSelectorContext)
+	/**
+	 * Enter a parse tree produced by {@link ObjectiveCParser#apiAvailableOsVersion}.
+	 - Parameters:
+	   - ctx: the parse tree
+	 */
+	func enterApiAvailableOsVersion(_ ctx: ObjectiveCParser.ApiAvailableOsVersionContext)
+	/**
+	 * Exit a parse tree produced by {@link ObjectiveCParser#apiAvailableOsVersion}.
+	 - Parameters:
+	   - ctx: the parse tree
+	 */
+	func exitApiAvailableOsVersion(_ ctx: ObjectiveCParser.ApiAvailableOsVersionContext)
+	/**
+	 * Enter a parse tree produced by {@link ObjectiveCParser#version}.
+	 - Parameters:
+	   - ctx: the parse tree
+	 */
+	func enterVersion(_ ctx: ObjectiveCParser.VersionContext)
+	/**
+	 * Exit a parse tree produced by {@link ObjectiveCParser#version}.
+	 - Parameters:
+	   - ctx: the parse tree
+	 */
+	func exitVersion(_ ctx: ObjectiveCParser.VersionContext)
+	/**
 	 * Enter a parse tree produced by {@link ObjectiveCParser#arrayInitializer}.
 	 - Parameters:
 	   - ctx: the parse tree

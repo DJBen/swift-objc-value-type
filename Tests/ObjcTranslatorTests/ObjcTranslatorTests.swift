@@ -135,6 +135,45 @@ final class ObjcTranslatorTests: XCTestCase {
         )
     }
     
+    @available(iOS 14, *)
+    func testMacros() throws {
+        let source = """
+        NS_ASSUME_NONNULL_BEGIN
+        @protocol AdsNetworking <NSObject>
+
+        - (void)startImpression:(AdImpression *)impression
+              completionHandler:(nullable void (^)(NSError *_Nullable error))completion
+            NS_SWIFT_NAME(startImpression(_:completionHandler:))API_AVAILABLE(ios(14.5))
+                API_UNAVAILABLE(macos, watchos)__TVOS_PROHIBITED;
+
+        @end
+        NS_ASSUME_NONNULL_END
+        """
+        
+        let translator = try translator(
+            from: source
+        )
+
+        let result = try translator.translate()
+        
+        assertBuildResult(
+            result,
+            #"""
+
+            
+            @objc
+            public protocol AdsNetworking: NSObjectProtocol {
+
+                @available(iOS 14.5, *)
+                @available(macOS, unavailable) 
+                @available(watchOS, unavailable)
+                @objc
+                func startImpression(_ impression: AdImpression, completion: ((error: Error?) -> Void)?)
+            }
+            """#
+        )
+    }
+    
     func testProtocol_methods_optionalSections() throws {
         let source = """
         NS_ASSUME_NONNULL_BEGIN

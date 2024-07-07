@@ -1354,6 +1354,58 @@ open class ObjectiveCParserBaseListener: ObjectiveCParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	open func enterSwiftSelectorExpression(_ ctx: ObjectiveCParser.SwiftSelectorExpressionContext) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	open func exitSwiftSelectorExpression(_ ctx: ObjectiveCParser.SwiftSelectorExpressionContext) { }
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	open func enterSwiftSelector(_ ctx: ObjectiveCParser.SwiftSelectorContext) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	open func exitSwiftSelector(_ ctx: ObjectiveCParser.SwiftSelectorContext) { }
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	open func enterApiAvailableOsVersion(_ ctx: ObjectiveCParser.ApiAvailableOsVersionContext) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	open func exitApiAvailableOsVersion(_ ctx: ObjectiveCParser.ApiAvailableOsVersionContext) { }
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	open func enterVersion(_ ctx: ObjectiveCParser.VersionContext) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	open func exitVersion(_ ctx: ObjectiveCParser.VersionContext) { }
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	open func enterArrayInitializer(_ ctx: ObjectiveCParser.ArrayInitializerContext) { }
 	/**
 	 * {@inheritDoc}
