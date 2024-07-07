@@ -40,29 +40,31 @@ extension ObjcTranslator {
             //    : specifierQualifierList abstractDeclarator?
             //    | blockType
             //    ;
-            self.propertyNullability = {
-                // nonnull Type
-                if let nullabilitySpecifiers = typeName?.specifierQualifierList()?.nullabilitySpecifier() {
-                    if nullabilitySpecifiers.contains(where: { $0.NULLABLE() != nil }) {
-                        return .nullable
-                    } else if nullabilitySpecifiers.contains(where: { $0.NONNULL() != nil }) {
-                        return .nonnull
+            self.init(
+                propertyNullability: {
+                    // nonnull Type
+                    if let nullabilitySpecifiers = typeName?.specifierQualifierList()?.nullabilitySpecifier() {
+                        if nullabilitySpecifiers.contains(where: { $0.NULLABLE() != nil }) {
+                            return .nullable
+                        } else if nullabilitySpecifiers.contains(where: { $0.NONNULL() != nil }) {
+                            return .nonnull
+                        }
                     }
-                }
-                
-                // Type *_Nullable
-                if let nullabilitySpecifiers = typeName?.abstractDeclarator()?.pointer()?.declarationSpecifiers()?.nullabilitySpecifier() {
-                    if nullabilitySpecifiers.contains(where: { $0.NULLABLE() != nil }) {
-                        return .nullable
-                    } else if nullabilitySpecifiers.contains(where: { $0.NONNULL() != nil }) {
-                        return .nonnull
+                    
+                    // Type *_Nullable
+                    if let nullabilitySpecifiers = typeName?.abstractDeclarator()?.pointer()?.declarationSpecifiers()?.nullabilitySpecifier() {
+                        if nullabilitySpecifiers.contains(where: { $0.NULLABLE() != nil }) {
+                            return .nullable
+                        } else if nullabilitySpecifiers.contains(where: { $0.NONNULL() != nil }) {
+                            return .nonnull
+                        }
                     }
-                }
-                
-                return nil
-            }()
-            self.isNSAssumeNonnull = isNSAssumeNonnull
-            self.isGenericType = isGenericType
+                    
+                    return nil
+                }(),
+                isNSAssumeNonnull: isNSAssumeNonnull,
+                isGenericType: isGenericType
+            )
         }
         
         var isExplicitlyNonnull: Bool {
@@ -147,12 +149,14 @@ extension ObjcTranslator {
         typedefDecl: P.TypedefDeclarationContext,
         nullability: TypeNullability
     ) throws -> any TypeSyntaxProtocol {
+        // When defined in typedef, the return type is nonnull.
         try swiftType(
             typeSpecifiers: typedefDecl.declarationSpecifiers()!.typeSpecifier(),
             blockParam: typedefDecl.typeDeclaratorList()?.typeDeclarator().first?.directDeclarator()?.blockParameters(),
             nullability: nullability,
             context: .propertyOrMethodReturnType,
-            pointerCount: 0
+            pointerCount: 0,
+            isTypedef: true
         )
     }
     
@@ -179,7 +183,8 @@ extension ObjcTranslator {
         hasUnsignedPrefix: Bool = false,
         hasLongPrefix: Bool = false,
         isMutableContainerType: Bool = false,
-        isContainedByPointer: Bool = false
+        isContainedByPointer: Bool = false,
+        isTypedef: Bool = false
     ) throws -> any TypeSyntaxProtocol {
         // typeSpecifier
         //    : 'void'
@@ -261,7 +266,7 @@ extension ObjcTranslator {
                 )
             )
             .optionalized(
-                nullability,
+                isTypedef ? TypeNullability(propertyNullability: .nonnull, isNSAssumeNonnull: false, isGenericType: false) : nullability,
                 isObjcPrimitiveType: false
             )
         }

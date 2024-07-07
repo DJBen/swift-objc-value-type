@@ -172,12 +172,14 @@ final class ObjcTranslatorTests: XCTestCase {
             @objc
             public protocol DataSourceProtocol: NSObjectProtocol {
 
+                // Required methods
                 @objc
                 func numberOfItems() -> Int
 
                 @objc
                 func itemAtIndex(_ index: Int) -> AnyObject
 
+                // Optional methods
                 optional var string: String? {
                     get
                     set
@@ -215,14 +217,15 @@ final class ObjcTranslatorTests: XCTestCase {
         - (instancetype)initWithDataBlock:(nullable NSData *_Nullable (^)(NSError **error))dataBlock;
         
         /// Presents the feature blah blah.
-        /// @param navigationController Navigation controller to set chat screen to.
-        /// @param the index in the tab bar tabBarController
+        /// - Parameter navigationController Navigation controller to set chat screen to.
+        /// - Parameter the index in the tab bar tabBarController
         - (void)presentAttachedToNavigationController:(UINavigationController *)navigationController
                                    withTabBarTagIndex:(NSInteger)tagIndex;
 
         /// Handle logout.
         - (void)handleLogout;
 
+        /// @return a number
         - (nullable NSNumber *)someTypeWithOptionalStr:(nullable NSString *)optionalStr optionalStr2:(NSString *_Nullable)str2;
 
         @end
@@ -266,8 +269,8 @@ final class ObjcTranslatorTests: XCTestCase {
                 init(dataBlock: ((error: UnsafeMutablePointer<Error>) -> Data?)?)
 
                 /// Presents the feature blah blah.
-                /// @param navigationController Navigation controller to set chat screen to.
-                /// @param the index in the tab bar tabBarController
+                /// - Parameter navigationController Navigation controller to set chat screen to.
+                /// - Parameter the index in the tab bar tabBarController
                 @objc
                 func presentAttachedToNavigationController(_ navigationController: UINavigationController, tagIndex: Int)
 
@@ -275,6 +278,7 @@ final class ObjcTranslatorTests: XCTestCase {
                 @objc
                 func handleLogout()
             
+                /// - Returns a number
                 @objc
                 func someType(optionalStr: String?, str2: String?) -> NSNumber?
             }

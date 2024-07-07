@@ -213,7 +213,10 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
             let startTokenIndex = tree.getSourceInterval().a
             let leadingTokens = taking(commentTokens: &commentTokens, until: startTokenIndex)
             for token in leadingTokens {
-                appendToBeforeTrivia(target: tree.getSourceInterval(), token: token)
+                appendToBeforeTrivia(
+                    target: tree.getSourceInterval(),
+                    token: token
+                )
             }
             
             var prevNonTerminalChild: ParseTree?
@@ -257,7 +260,7 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
     func beforeTrivia(for tree: SyntaxTree) -> Trivia {
         if let tokens = beforeTriviaMap[tree.getSourceInterval()] {
             return tokens.compactMap { token in
-                token.getText().map {
+                convertingToSwiftDocs(token.getText()).map {
                     Trivia(pieces: [.lineComment($0), .newlines(1)])
                 }
             }.reduce(Trivia(), +)
@@ -269,7 +272,7 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
     func afterTrivia(for tree: SyntaxTree) -> Trivia {
         if let tokens = afterTriviaMap[tree.getSourceInterval()] {
             return tokens.compactMap { token in
-                token.getText().map {
+                convertingToSwiftDocs(token.getText()).map {
                     Trivia(pieces: [.lineComment($0)])
                 }
             }.reduce(Trivia(), +)
@@ -280,5 +283,13 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
     
     func isNSAssumeNonnull(_ tree: SyntaxTree) -> Bool {
         nsAssumeNonnullRanges.contains(where: { $0.properlyContains(tree.getSourceInterval()) })
+    }
+    
+    private func convertingToSwiftDocs(_ comment: String?) -> String? {
+        comment?.replacing(/@param\s+(\w+):?/) { match in
+            return "- Parameter \(match.1):"
+        }.replacing(/@return(?:s)?/) { match in
+            return "- Returns"
+        }
     }
 }

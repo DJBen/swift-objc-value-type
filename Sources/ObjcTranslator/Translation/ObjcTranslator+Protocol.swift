@@ -78,29 +78,32 @@ extension ObjcTranslator {
         //    )+
         //    ;
 
-        for interfaceDeclList in interfaceDeclLists {
-            for (index, propertyDecl) in interfaceDeclList.propertyDeclaration().enumerated() {
+        for (index, interfaceDeclList) in interfaceDeclLists.enumerated() {
+            
+            let firstChild = index == 0 ? interfaceDeclList.children!.first! : nil
+            
+            for propertyDecl in interfaceDeclList.propertyDeclaration() {
                 try translate(
                     propertyDecl: propertyDecl, 
                     isOptionalConformance: isOptionalConformance,
-                    sectionBeforeTrivia: index == 0 ? sectionBeforeTrivia : Trivia(),
+                    sectionBeforeTrivia: firstChild === propertyDecl ? sectionBeforeTrivia : Trivia(),
                     existingPrefix: existingPrefix
                 )
             }
             
-            for (index, classMethodDecl) in interfaceDeclList.classMethodDeclaration().enumerated() {
+            for classMethodDecl in interfaceDeclList.classMethodDeclaration() {
                 try translate(
                     classMethodDeclaration: classMethodDecl,
                     isOptionalConformance: isOptionalConformance,
-                    sectionBeforeTrivia: index == 0 ? sectionBeforeTrivia : Trivia()
+                    sectionBeforeTrivia: firstChild === classMethodDecl ? sectionBeforeTrivia : Trivia()
                 )
             }
             
-            for (index, instanceMethodDecl) in interfaceDeclList.instanceMethodDeclaration().enumerated() {
+            for instanceMethodDecl in interfaceDeclList.instanceMethodDeclaration() {
                 try translate(
                     instanceMethodDeclaration: instanceMethodDecl,
                     isOptionalConformance: isOptionalConformance,
-                    sectionBeforeTrivia: index == 0 ? sectionBeforeTrivia: Trivia()
+                    sectionBeforeTrivia: firstChild === instanceMethodDecl ? sectionBeforeTrivia: Trivia()
                 )
             }
             
