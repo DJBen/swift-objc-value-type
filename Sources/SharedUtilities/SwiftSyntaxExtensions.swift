@@ -71,6 +71,14 @@ public extension TypeSyntaxProtocol {
                     TupleTypeElementSyntax(type: compositionType)
                 }
             ).optionalized
+        } else if let funcType = self.as(FunctionTypeSyntax.self) {
+            // For function type, wrap with `()` and append `?`
+            return TupleTypeSyntax(
+                elements: TupleTypeElementListSyntax {
+                    TupleTypeElementSyntax(type: funcType)
+                }
+            )
+            .optionalized
         }
         return OptionalTypeSyntax(wrappedType: self)
     }

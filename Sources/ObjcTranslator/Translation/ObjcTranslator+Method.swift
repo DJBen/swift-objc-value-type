@@ -51,7 +51,7 @@ extension ObjcTranslator {
             try swiftType(
                 typeName: $0.typeName()!,
                 nullability: TypeNullability(
-                    propertyNullability: nil,
+                    typeName: $0.typeName()!,
                     isNSAssumeNonnull: isNSAssumeNonnull(methodDecl),
                     isGenericType: false
                 ),
@@ -120,7 +120,7 @@ extension ObjcTranslator {
                             type: try swiftType(
                                 typeName: keywordDecl.methodType().first!.typeName()!,
                                 nullability: TypeNullability(
-                                    propertyNullability: nil,
+                                    typeName: keywordDecl.methodType().first!.typeName()!,
                                     isNSAssumeNonnull: isNSAssumeNonnull(methodDecl),
                                     isGenericType: false
                                 ),

@@ -100,6 +100,8 @@ public enum ObjcSwiftUtils {
             return true
         } else if ["CGPoint", "CGFloat", "CGSize", "CGRect", "CGVector", "CGAffineTransform"].contains(objcType) {
             return true
+        } else if ["dispatch_queue_t"].contains(objcType) {
+            return true
         } else {
             return objcType.contains(Self.primitiveCIntRegex) || objcType.contains(Self.primitiveCIntTRegex)
         }

@@ -223,6 +223,8 @@ final class ObjcTranslatorTests: XCTestCase {
         /// Handle logout.
         - (void)handleLogout;
 
+        - (nullable NSNumber *)someTypeWithOptionalStr:(nullable NSString *)optionalStr optionalStr2:(NSString *_Nullable)str2;
+
         @end
 
         NS_ASSUME_NONNULL_END
@@ -261,7 +263,7 @@ final class ObjcTranslatorTests: XCTestCase {
                 class func archiveEntry(fileName: String) -> Bool
 
                 @objc
-                init(dataBlock: (error: UnsafeMutablePointer<Error>) -> Data)
+                init(dataBlock: ((error: UnsafeMutablePointer<Error>) -> Data?)?)
 
                 /// Presents the feature blah blah.
                 /// @param navigationController Navigation controller to set chat screen to.
@@ -272,6 +274,9 @@ final class ObjcTranslatorTests: XCTestCase {
                 /// Handle logout.
                 @objc
                 func handleLogout()
+            
+                @objc
+                func someType(optionalStr: String?, str2: String?) -> NSNumber?
             }
             """
         )

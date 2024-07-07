@@ -21,11 +21,55 @@ extension ObjcTranslator {
         let isNSAssumeNonnull: Bool
         let isGenericType: Bool
         
+        init(
+            propertyNullability: PropertyNullability? = nil,
+            isNSAssumeNonnull: Bool,
+            isGenericType: Bool
+        ) {
+            self.propertyNullability = propertyNullability
+            self.isNSAssumeNonnull = isNSAssumeNonnull
+            self.isGenericType = isGenericType
+        }
+        
+        init(
+            typeName: P.TypeNameContext? = nil,
+            isNSAssumeNonnull: Bool,
+            isGenericType: Bool
+        ) {
+            // typeName
+            //    : specifierQualifierList abstractDeclarator?
+            //    | blockType
+            //    ;
+            self.propertyNullability = {
+                // nonnull Type
+                if let nullabilitySpecifiers = typeName?.specifierQualifierList()?.nullabilitySpecifier() {
+                    if nullabilitySpecifiers.contains(where: { $0.NULLABLE() != nil }) {
+                        return .nullable
+                    } else if nullabilitySpecifiers.contains(where: { $0.NONNULL() != nil }) {
+                        return .nonnull
+                    }
+                }
+                
+                // Type *_Nullable
+                if let nullabilitySpecifiers = typeName?.abstractDeclarator()?.pointer()?.declarationSpecifiers()?.nullabilitySpecifier() {
+                    if nullabilitySpecifiers.contains(where: { $0.NULLABLE() != nil }) {
+                        return .nullable
+                    } else if nullabilitySpecifiers.contains(where: { $0.NONNULL() != nil }) {
+                        return .nonnull
+                    }
+                }
+                
+                return nil
+            }()
+            self.isNSAssumeNonnull = isNSAssumeNonnull
+            self.isGenericType = isGenericType
+        }
+        
         var isExplicitlyNonnull: Bool {
             if isGenericType {
                 return true
             }
-            if propertyNullability == .nonnull || isNSAssumeNonnull {
+            if propertyNullability == .nonnull || (isNSAssumeNonnull && propertyNullability != .nullable) {
                 return true
             }
             return false
@@ -215,6 +259,10 @@ extension ObjcTranslator {
                         pointerCount: typeSpecifier.pointer()?.pointerCount ?? 0
                     )
                 )
+            )
+            .optionalized(
+                nullability,
+                isObjcPrimitiveType: false
             )
         }
         
