@@ -2,6 +2,7 @@ import Foundation
 import SharedUtilities
 import ObjcSyntax
 import Antlr4
+import OrderedCollections
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
@@ -145,44 +146,47 @@ extension ObjcTranslator {
             }()
         )
         
-        if methodDecl.methodType()?.typeName()?.getText() == "instancetype" {
-            InitializerDeclSyntax(
-                leadingTrivia: .newlines(2) + sectionBeforeTrivia + parentLeadingTrivia + beforeTrivia(for: methodDecl),
-                attributes: AttributeListSyntax {
-                    availabilityAttributes(methodDecl: methodDecl)
-                    "@objc"
-                }
-                .with(\.trailingTrivia, .newline),
-                signature: funcSignature,
-                trailingTrivia: parentTrailingTrivia + afterTrivia(for: methodDecl)
-            )
-        } else {
-            FunctionDeclSyntax(
-                leadingTrivia: .newlines(2) + sectionBeforeTrivia + parentLeadingTrivia + beforeTrivia(for: methodDecl),
-                attributes: AttributeListSyntax {
-                    availabilityAttributes(methodDecl: methodDecl)
-                    "@objc"
-                }
-                .with(\.trailingTrivia, .newline),
-                modifiers: DeclModifierListSyntax {
-                    if isClassMethod {
-                        DeclModifierSyntax(name: .keyword(.class))
+        if !methodDecl.hasUnavailableAttribute {
+            if methodDecl.methodType()?.typeName()?.getText() == "instancetype" {
+                InitializerDeclSyntax(
+                    leadingTrivia: .newlines(2) + sectionBeforeTrivia + parentLeadingTrivia + beforeTrivia(for: methodDecl),
+                    attributes: AttributeListSyntax {
+                        methodDecl.availabilityAttributes
+                        "@objc"
                     }
-                    if isOptionalConformance {
-                        DeclModifierSyntax(name: .keyword(.optional))
+                        .with(\.trailingTrivia, .newline),
+                    signature: funcSignature,
+                    trailingTrivia: parentTrailingTrivia + afterTrivia(for: methodDecl)
+                )
+            } else {
+                FunctionDeclSyntax(
+                    leadingTrivia: .newlines(2) + sectionBeforeTrivia + parentLeadingTrivia + beforeTrivia(for: methodDecl),
+                    attributes: AttributeListSyntax {
+                        methodDecl.availabilityAttributes
+                        "@objc"
                     }
-                },
-                name: .identifier(functionName),
-                signature: funcSignature,
-                trailingTrivia: parentTrailingTrivia + afterTrivia(for: methodDecl)
-            )
+                        .with(\.trailingTrivia, .newline),
+                    modifiers: DeclModifierListSyntax {
+                        if isClassMethod {
+                            DeclModifierSyntax(name: .keyword(.class))
+                        }
+                        if isOptionalConformance {
+                            DeclModifierSyntax(name: .keyword(.optional))
+                        }
+                    },
+                    name: .identifier(functionName),
+                    signature: funcSignature,
+                    trailingTrivia: parentTrailingTrivia + afterTrivia(for: methodDecl)
+                )
+            }
         }
     }
-    
+}
+
+extension P.MethodDeclarationContext {
+    // https://clang.llvm.org/docs/AttributeReference.html#availability
     @AttributeListBuilder
-    private func availabilityAttributes(
-        methodDecl: P.MethodDeclarationContext
-    ) -> AttributeListSyntax {
+    var availabilityAttributes: AttributeListSyntax {
         // macro
         //    : identifier (LP primaryExpression (',' primaryExpression)* RP)?
         //    | NS_SWIFT_NAME LP swiftSelectorExpression RP
@@ -191,16 +195,17 @@ extension ObjcTranslator {
         //    | NS_SWIFT_UNAVAILABLE LP stringLiteral RP
         //    ;
         
-        for `macro` in methodDecl.macro() {
+        for `macro` in self.macro() {
             if `macro`.API_AVAILABLE() != nil {
                 for osVersion in `macro`.apiAvailableOsVersion() {
-                   let osVersionString = "\(swiftOS(osVersion.identifier()!.getText())) \(osVersion.version()!.getText())"
-                    AttributeSyntax(
-                        "@available(\(raw: osVersionString), *)"
-                    )
-                    .with(\.trailingTrivia, .newline)
+                    let osVersionString = "\(swiftOS(osVersion.identifier()!.getText())) \(osVersion.version()!.getText())"
+                     AttributeSyntax(
+                         "@available(\(raw: osVersionString), *)"
+                     )
+                     .with(\.trailingTrivia, .newline)
                 }
-            } else if `macro`.API_UNAVAILABLE() != nil {
+            }
+            if `macro`.API_UNAVAILABLE() != nil {
                 for identifier in `macro`.identifier() {
                     AttributeSyntax(
                         "@available(\(raw: swiftOS(identifier.getText())), unavailable)"
@@ -208,7 +213,66 @@ extension ObjcTranslator {
                     .with(\.trailingTrivia, .newline)
                 }
             }
+            if `macro`.ATTRIBUTE() != nil {
+                for clangAttr in `macro`.clangAttribute() {
+                    // __attribute__((availability(macos,introduced=10.4,deprecated=10.6,obsoleted=10.7)))
+                    if clangAttr.identifier()?.getText() == "availability" {
+                        let os = swiftOS(clangAttr.clangAttributeArgument(0)!.getText())
+                        let isUnavailble = clangAttr.clangAttributeArgument().contains(where: { $0.identifier()?.getText() == "unavailable" })
+                        let message = clangAttr.clangAttributeArgument().first(where: { $0.identifier()?.getText() == "message" }).map {
+                            "message: \($0.stringLiteral()!.getText())"
+                        }
+                        if isUnavailble {
+                            if let message {
+                                AttributeSyntax(
+                                    "@available(\(raw: os), unavailable, \(raw: message))"
+                                )
+                                .with(\.trailingTrivia, .newline)
+                            } else {
+                                AttributeSyntax(
+                                    "@available(\(raw: os), unavailable)"
+                                )
+                                .with(\.trailingTrivia, .newline)
+                            }
+                        } else {
+                            let introduced = clangAttr.clangAttributeArgument().first(where: { $0.identifier()?.getText() == "introduced" }).map {
+                                "introduced: \($0.version()!.getText())"
+                            }
+                            let deprecated = clangAttr.clangAttributeArgument().first(where: { $0.identifier()?.getText() == "deprecated" }).map {
+                                "deprecated: \($0.version()!.getText())"
+                            }
+                            let obsoleted = clangAttr.clangAttributeArgument().first(where: { $0.identifier()?.getText() == "obsoleted" }).map {
+                                "obsoleted: \($0.version()!.getText())"
+                            }
+                            
+                            let args = [introduced, deprecated, obsoleted, message].compactMap({ $0 }).joined(separator: ", ")
+                                                    
+                            AttributeSyntax(
+                                "@available(\(raw: os), \(raw: args))"
+                            )
+                            .with(\.trailingTrivia, .newline)
+                        }
+                    }
+                }
+            }
         }
+    }
+    
+    var hasUnavailableAttribute: Bool {
+        for `macro` in self.macro() {
+            if `macro`.identifier().contains(where: { $0.getText() == "NS_UNAVAILABLE" }) {
+                return true
+            }
+            if `macro`.NS_SWIFT_UNAVAILABLE() != nil {
+                return true
+            }
+            if `macro`.clangAttribute().contains(where: { clangAttr in
+                clangAttr.identifier()!.getText() == "unavailable"
+            }) {
+                return true
+            }
+        }
+        return false
     }
 }
 
@@ -221,6 +285,10 @@ private func swiftOS(_ os: String) -> String {
         return "tvOS"
     } else if os.lowercased() == "watchos" {
         return "watchOS"
+    } else if os.lowercased() == "visionos" {
+        return "visionOS"
+    } else if os.lowercased() == "driverkit" {
+        return "driverKit"
     }
     return os
 }

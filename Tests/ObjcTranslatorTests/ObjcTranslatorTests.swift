@@ -135,7 +135,6 @@ final class ObjcTranslatorTests: XCTestCase {
         )
     }
     
-    @available(iOS 14, *)
     func testMacros() throws {
         let source = """
         NS_ASSUME_NONNULL_BEGIN
@@ -145,6 +144,10 @@ final class ObjcTranslatorTests: XCTestCase {
               completionHandler:(nullable void (^)(NSError *_Nullable error))completion
             NS_SWIFT_NAME(startImpression(_:completionHandler:))API_AVAILABLE(ios(14.5))
                 API_UNAVAILABLE(macos, watchos)__TVOS_PROHIBITED;
+
+        -(instancetype)init __attribute__((unavailable("init is not available.")));
+        +(instancetype) new __attribute__((unavailable("new is not available")));
+        -(void)f __attribute__((availability(macosx,introduced=10.4,deprecated=10.6,message="hello world")));
 
         @end
         NS_ASSUME_NONNULL_END
@@ -169,6 +172,10 @@ final class ObjcTranslatorTests: XCTestCase {
                 @available(watchOS, unavailable)
                 @objc
                 func startImpression(_ impression: AdImpression, completion: ((error: Error?) -> Void)?)
+            
+                @available(macosx, introduced: 10.4, deprecated: 10.6, message: "hello world")
+                @objc
+                func f()
             }
             """#
         )

@@ -1243,6 +1243,30 @@ public protocol ObjectiveCParserListener: ParseTreeListener {
 	 */
 	func exitMacro(_ ctx: ObjectiveCParser.MacroContext)
 	/**
+	 * Enter a parse tree produced by {@link ObjectiveCParser#clangAttribute}.
+	 - Parameters:
+	   - ctx: the parse tree
+	 */
+	func enterClangAttribute(_ ctx: ObjectiveCParser.ClangAttributeContext)
+	/**
+	 * Exit a parse tree produced by {@link ObjectiveCParser#clangAttribute}.
+	 - Parameters:
+	   - ctx: the parse tree
+	 */
+	func exitClangAttribute(_ ctx: ObjectiveCParser.ClangAttributeContext)
+	/**
+	 * Enter a parse tree produced by {@link ObjectiveCParser#clangAttributeArgument}.
+	 - Parameters:
+	   - ctx: the parse tree
+	 */
+	func enterClangAttributeArgument(_ ctx: ObjectiveCParser.ClangAttributeArgumentContext)
+	/**
+	 * Exit a parse tree produced by {@link ObjectiveCParser#clangAttributeArgument}.
+	 - Parameters:
+	   - ctx: the parse tree
+	 */
+	func exitClangAttributeArgument(_ ctx: ObjectiveCParser.ClangAttributeArgumentContext)
+	/**
 	 * Enter a parse tree produced by {@link ObjectiveCParser#swiftSelectorExpression}.
 	 - Parameters:
 	   - ctx: the parse tree

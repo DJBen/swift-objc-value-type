@@ -31,7 +31,7 @@ extension ObjcTranslator {
                 name: typedefEnumIdentifier.getText(),
                 objcTypeName: typeName
             )
-        } else if enumSpecifier.NS_ENUM() != nil, let identifier = enumSpecifier.identifier().first, let typeName = enumSpecifier.typeName()?.getText() {
+        } else if enumSpecifier.NS_ENUM() != nil || enumSpecifier.NS_CLOSED_ENUM() != nil, let identifier = enumSpecifier.identifier().first, let typeName = enumSpecifier.typeName()?.getText() {
             // typedef NS_ENUM(Iden, type)
             
             try buildEnumDecl(

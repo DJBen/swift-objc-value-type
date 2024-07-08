@@ -1354,6 +1354,32 @@ open class ObjectiveCParserBaseListener: ObjectiveCParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	open func enterClangAttribute(_ ctx: ObjectiveCParser.ClangAttributeContext) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	open func exitClangAttribute(_ ctx: ObjectiveCParser.ClangAttributeContext) { }
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	open func enterClangAttributeArgument(_ ctx: ObjectiveCParser.ClangAttributeArgumentContext) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	open func exitClangAttributeArgument(_ ctx: ObjectiveCParser.ClangAttributeArgumentContext) { }
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	open func enterSwiftSelectorExpression(_ ctx: ObjectiveCParser.SwiftSelectorExpressionContext) { }
 	/**
 	 * {@inheritDoc}

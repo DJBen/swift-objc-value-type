@@ -541,7 +541,7 @@ enumSpecifier
         identifier ('{' enumeratorList '}')?
         | '{' enumeratorList '}'
     )
-    | ('NS_OPTIONS' | 'NS_ENUM') LP typeName ',' identifier RP '{' enumeratorList '}'
+    | ('NS_OPTIONS' | 'NS_ENUM' | 'NS_CLOSED_ENUM') LP typeName ',' identifier RP '{' enumeratorList '}'
     ;
 
 enumeratorList
@@ -580,8 +580,23 @@ macro
     | API_AVAILABLE LP apiAvailableOsVersion (',' apiAvailableOsVersion)* RP
     | API_UNAVAILABLE LP identifier (',' identifier)* RP
     | NS_SWIFT_UNAVAILABLE LP stringLiteral RP
+    | ATTRIBUTE LP LP clangAttribute (',' clangAttribute)* RP RP
+    ;
+
+// A list of __attribute__ are elaborated https://nshipster.com/__attribute__/
+clangAttribute
+    : identifier
+    | identifier LP clangAttributeArgument (',' clangAttributeArgument)* RP
     ;
     
+clangAttributeArgument
+    : identifier
+    | DECIMAL_LITERAL
+    | stringLiteral
+    | identifier '=' version
+    | identifier '=' stringLiteral
+    ;
+
 swiftSelectorExpression
     : identifier LP (swiftSelector ':')* RP
     ;
