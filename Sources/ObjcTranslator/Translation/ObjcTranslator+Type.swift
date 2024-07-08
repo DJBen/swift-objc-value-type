@@ -132,6 +132,33 @@ extension ObjcTranslator {
     }
     
     func swiftType(
+        typeSpecifierWithPrefixes: P.TypeSpecifierWithPrefixesContext,
+        nullability: TypeNullability,
+        context: TypeDeclarationContext
+    ) throws -> any TypeSyntaxProtocol {
+        // typeSpecifierWithPrefixes
+        //    : typePrefix* typeSpecifier
+        //    | typeName
+        //    ;
+
+        if let typeName = typeSpecifierWithPrefixes.typeName() {
+            return try swiftType(
+                typeName: typeName,
+                nullability: nullability,
+                context: context
+            )
+        } else {
+            return try swiftType(
+                typeSpecifiers: [typeSpecifierWithPrefixes.typeSpecifier()!],
+                blockParam: nil,
+                nullability: nullability,
+                context: context,
+                pointerCount: 0
+            )
+        }
+    }
+    
+    func swiftType(
         typeVariableDecl: P.TypeVariableDeclaratorContext,
         nullability: TypeNullability,
         context: TypeDeclarationContext
@@ -182,7 +209,6 @@ extension ObjcTranslator {
         pointerCount: Int,
         hasUnsignedPrefix: Bool = false,
         hasLongPrefix: Bool = false,
-        isMutableContainerType: Bool = false,
         isContainedByPointer: Bool = false,
         isTypedef: Bool = false
     ) throws -> any TypeSyntaxProtocol {
@@ -419,16 +445,12 @@ extension ObjcTranslator {
                 // Handle special cases for NSArray, NSDictionary
                 if typeName == "NSArray" || typeName == "NSMutableArray" {
                     // Array at most only have one generic arg
-                    if let typeSpecifier = genericsSpecifier.typeSpecifierWithPrefixes().first {
+                    if let typeSpecifierWithPrefixes = genericsSpecifier.typeSpecifierWithPrefixes().first {
                         return ArrayTypeSyntax(
                             element: try swiftType(
-                                // TODO: Handle the case where it only has typeName
-                                typeSpecifiers: [typeSpecifier.typeSpecifier()!],
-                                blockParam: blockParam,
+                                typeSpecifierWithPrefixes: typeSpecifierWithPrefixes,
                                 nullability: nullability.with(isGenericType: true), // Objc generics are considered nonnull
-                                context: context,
-                                pointerCount: pointerCount,
-                                isMutableContainerType: typeName.contains("Mutable")
+                                context: context
                             )
                         )
                         .optionalized(
@@ -441,22 +463,14 @@ extension ObjcTranslator {
                     let valueType = genericsSpecifier.typeSpecifierWithPrefixes()[1]
                     return DictionaryTypeSyntax(
                         key: try swiftType(
-                            // TODO: Handle the case where it only has typeName
-                            typeSpecifiers: [keyType.typeSpecifier()!],
-                            blockParam: blockParam,
-                            nullability: nullability.with(isGenericType: true),
-                            context: context,
-                            pointerCount: pointerCount,
-                            isMutableContainerType: typeName.contains("Mutable")
+                            typeSpecifierWithPrefixes: keyType,
+                            nullability: nullability.with(isGenericType: true), // Objc generics are considered nonnull
+                            context: context
                         ),
                         value: try swiftType(
-                            // TODO: Handle the case where it only has typeName
-                            typeSpecifiers: [valueType.typeSpecifier()!],
-                            blockParam: blockParam,
-                            nullability: nullability.with(isGenericType: true),
-                            context: context,
-                            pointerCount: pointerCount,
-                            isMutableContainerType: typeName.contains("Mutable")
+                            typeSpecifierWithPrefixes: valueType,
+                            nullability: nullability.with(isGenericType: true), // Objc generics are considered nonnull
+                            context: context
                         )
                     )
                     .optionalized(
@@ -471,13 +485,9 @@ extension ObjcTranslator {
                                 for typeSpecifierWithPrefixes in genericsSpecifier.typeSpecifierWithPrefixes() {
                                     GenericArgumentSyntax(
                                         argument: try swiftType(
-                                            // TODO: Handle the case where it only has typeName
-                                            typeSpecifiers: [typeSpecifierWithPrefixes.typeSpecifier()!],
-                                            blockParam: blockParam,
-                                            nullability: nullability.with(isGenericType: true),
-                                            context: context,
-                                            pointerCount: pointerCount,
-                                            isMutableContainerType: typeName.contains("Mutable")
+                                            typeSpecifierWithPrefixes: typeSpecifierWithPrefixes,
+                                            nullability: nullability.with(isGenericType: true), // Objc generics are considered nonnull
+                                            context: context
                                         )
                                     )
                                 }
