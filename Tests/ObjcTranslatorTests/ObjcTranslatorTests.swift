@@ -81,6 +81,112 @@ final class ObjcTranslatorTests: XCTestCase {
         )
     }
     
+    func testEnum_optionSet() throws {
+        // Excerpt from Masonry
+        let source = """
+        typedef NS_OPTIONS(NSInteger, MASAttribute) {
+            MASAttributeLeft = 1 << NSLayoutAttributeLeft,
+            MASAttributeRight = 1 << NSLayoutAttributeRight,
+            MASAttributeTop = 1 << NSLayoutAttributeTop,
+            MASAttributeBottom = 1 << NSLayoutAttributeBottom,
+            MASAttributeLeading = 1 << NSLayoutAttributeLeading,
+            MASAttributeTrailing = 1 << NSLayoutAttributeTrailing,
+            MASAttributeWidth = 1 << NSLayoutAttributeWidth,
+            MASAttributeHeight = 1 << NSLayoutAttributeHeight,
+            MASAttributeCenterX = 1 << NSLayoutAttributeCenterX,
+            MASAttributeCenterY = 1 << NSLayoutAttributeCenterY,
+            MASAttributeBaseline = 1 << NSLayoutAttributeBaseline,
+
+        #if (__IPHONE_OS_VERSION_MIN_REQUIRED >= 80000) || (__TV_OS_VERSION_MIN_REQUIRED >= 9000) ||                           \
+            (__MAC_OS_X_VERSION_MIN_REQUIRED >= 101100)
+
+            MASAttributeFirstBaseline = 1 << NSLayoutAttributeFirstBaseline,
+            MASAttributeLastBaseline = 1 << NSLayoutAttributeLastBaseline,
+
+        #endif
+
+        #if (__IPHONE_OS_VERSION_MIN_REQUIRED >= 80000) || (__TV_OS_VERSION_MIN_REQUIRED >= 9000)
+
+            MASAttributeLeftMargin = 1 << NSLayoutAttributeLeftMargin,
+            MASAttributeRightMargin = 1 << NSLayoutAttributeRightMargin,
+            MASAttributeTopMargin = 1 << NSLayoutAttributeTopMargin,
+            MASAttributeBottomMargin = 1 << NSLayoutAttributeBottomMargin,
+            MASAttributeLeadingMargin = 1 << NSLayoutAttributeLeadingMargin,
+            MASAttributeTrailingMargin = 1 << NSLayoutAttributeTrailingMargin,
+            MASAttributeCenterXWithinMargins = 1 << NSLayoutAttributeCenterXWithinMargins,
+            MASAttributeCenterYWithinMargins = 1 << NSLayoutAttributeCenterYWithinMargins,
+
+        #endif
+
+        };
+
+        """
+        
+        let translator = try translator(
+            from: source,
+            existingPrefix: "MAS"
+        )
+
+        let result = try translator.translate()
+        
+        assertBuildResult(
+            result,
+            """
+
+            
+            public struct Attribute: OptionSet {
+                public let rawValue: UInt
+
+                public let left = Attribute(rawValue: 1 << NSLayoutAttributeLeft)
+
+                public let right = Attribute(rawValue: 1 << NSLayoutAttributeRight)
+
+                public let top = Attribute(rawValue: 1 << NSLayoutAttributeTop)
+
+                public let bottom = Attribute(rawValue: 1 << NSLayoutAttributeBottom)
+
+                public let leading = Attribute(rawValue: 1 << NSLayoutAttributeLeading)
+
+                public let trailing = Attribute(rawValue: 1 << NSLayoutAttributeTrailing)
+
+                public let width = Attribute(rawValue: 1 << NSLayoutAttributeWidth)
+
+                public let height = Attribute(rawValue: 1 << NSLayoutAttributeHeight)
+
+                public let centerX = Attribute(rawValue: 1 << NSLayoutAttributeCenterX)
+
+                public let centerY = Attribute(rawValue: 1 << NSLayoutAttributeCenterY)
+
+                public let baseline = Attribute(rawValue: 1 << NSLayoutAttributeBaseline)
+
+                public let firstBaseline = Attribute(rawValue: 1 << NSLayoutAttributeFirstBaseline)
+
+                public let lastBaseline = Attribute(rawValue: 1 << NSLayoutAttributeLastBaseline)
+
+                public let leftMargin = Attribute(rawValue: 1 << NSLayoutAttributeLeftMargin)
+
+                public let rightMargin = Attribute(rawValue: 1 << NSLayoutAttributeRightMargin)
+
+                public let topMargin = Attribute(rawValue: 1 << NSLayoutAttributeTopMargin)
+
+                public let bottomMargin = Attribute(rawValue: 1 << NSLayoutAttributeBottomMargin)
+
+                public let leadingMargin = Attribute(rawValue: 1 << NSLayoutAttributeLeadingMargin)
+
+                public let trailingMargin = Attribute(rawValue: 1 << NSLayoutAttributeTrailingMargin)
+
+                public let centerXWithinMargins = Attribute(rawValue: 1 << NSLayoutAttributeCenterXWithinMargins)
+
+                public let centerYWithinMargins = Attribute(rawValue: 1 << NSLayoutAttributeCenterYWithinMargins)
+
+                public init(rawValue: UInt) {
+                    self.rawValue = rawValue
+                }
+            }
+            """
+        )
+    }
+    
     func testProtocol_properties() throws {
         let source = """
         typedef unsigned char HelloWorld;
@@ -263,8 +369,8 @@ final class ObjcTranslatorTests: XCTestCase {
         - (instancetype)initWithDataBlock:(nullable NSData *_Nullable (^)(NSError **error))dataBlock;
         
         /// Presents the feature blah blah.
-        /// - Parameter navigationController Navigation controller to set chat screen to.
-        /// - Parameter the index in the tab bar tabBarController
+        /// @param navigationController Navigation controller to set chat screen to.
+        /// @param tagIndex the index in the tab bar tabBarController
         - (void)presentAttachedToNavigationController:(UINavigationController *)navigationController
                                    withTabBarTagIndex:(NSInteger)tagIndex;
 
@@ -315,8 +421,8 @@ final class ObjcTranslatorTests: XCTestCase {
                 init(dataBlock: ((error: UnsafeMutablePointer<Error>) -> Data?)?)
 
                 /// Presents the feature blah blah.
-                /// - Parameter navigationController Navigation controller to set chat screen to.
-                /// - Parameter the index in the tab bar tabBarController
+                /// - Parameter navigationController: Navigation controller to set chat screen to.
+                /// - Parameter tagIndex: the index in the tab bar tabBarController
                 @objc
                 func presentAttachedToNavigationController(_ navigationController: UINavigationController, tagIndex: Int)
 
