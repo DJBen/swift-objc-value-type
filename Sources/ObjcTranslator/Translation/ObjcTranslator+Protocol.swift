@@ -53,8 +53,7 @@ extension ObjcTranslator {
                     try interfaceDeclList(
                         section.interfaceDeclarationList(),
                         isOptionalConformance: section.OPTIONAL() != nil,
-                        // When section does not have prefix and only has one interfaceDeclarationList, it is exactly the same interval as interfaceDeclarationList; thus skip. Otherwise we will have duplicated comments
-                        sectionBeforeTrivia: section.withRequiredOrOptionalPrefix || section.interfaceDeclarationList().count > 1 ? beforeTrivia(for: section) : Trivia()
+                        sectionBeforeTrivia: beforeTrivia(for: section)
                     )
                 }
             },
@@ -111,11 +110,5 @@ extension ObjcTranslator {
                 
             }
         }
-    }
-}
-
-extension P.ProtocolDeclarationSectionContext {
-    var withRequiredOrOptionalPrefix: Bool {
-        REQUIRED() != nil || OPTIONAL() != nil
     }
 }
