@@ -417,7 +417,6 @@ declarationSpecifiers
         | typeQualifier
     )* typeSpecifier (
         attributeSpecifier
-        | nullabilitySpecifier
         | typeQualifier
     )*
     ;
@@ -510,12 +509,12 @@ typeSpecifier
     | typeSpecifierModifier* 'float'
     | typeSpecifierModifier* 'double'
     | typeofExpression
-    | genericTypeSpecifier
     | structOrUnionSpecifier
     | enumSpecifier
     | nsEnumOrOptionSpecifier
-    | identifier
-    | typeSpecifier '*'
+    | genericTypeSpecifier nullabilitySpecifier?
+    | identifier nullabilitySpecifier?
+    | typeSpecifier '*' nullabilitySpecifier?
     ;
 
 typeofExpression

@@ -84,6 +84,10 @@ extension ObjcTranslator {
             )
         }
         
+        func with(nullabilitySpecifier: P.NullabilitySpecifierContext?) -> TypeNullability {
+            nullabilitySpecifier.map { with(nullabilitySpecifier: [$0]) } ?? self
+        }
+        
         func with(nullabilitySpecifier: [P.NullabilitySpecifierContext]?) -> TypeNullability {
             guard let nullabilitySpecifier else {
                 return self
@@ -268,7 +272,7 @@ extension ObjcTranslator {
                                     typeSpecifier: subTypeSpecifier,
                                     blockParam: blockParam,
                                     nullability: nullability.with(
-                                        isGenericType: true
+                                        nullabilitySpecifier: typeSpecifier.nullabilitySpecifier()
                                     ),
                                     context: context,
                                     isContainedByPointer: true
@@ -282,7 +286,9 @@ extension ObjcTranslator {
                 return try swiftType(
                     typeSpecifier: subTypeSpecifier,
                     blockParam: blockParam,
-                    nullability: nullability,
+                    nullability: nullability.with(
+                        nullabilitySpecifier: typeSpecifier.nullabilitySpecifier()
+                    ),
                     context: context,
                     isContainedByPointer: true
                 )

@@ -406,7 +406,7 @@ final class ObjcTranslatorTests: XCTestCase {
         // Some class method
         + (BOOL)archiveEntryWithFileName:(NSString *)fileName;
 
-        - (instancetype)initWithDataBlock:(nullable NSData *_Nullable (^)(NSError **error))dataBlock;
+        - (instancetype)initWithDataBlock:(nullable NSData *_Nullable (^)(NSError * _Nonnull *error))dataBlock;
         
         /// Presents the feature blah blah.
         /// @param navigationController Navigation controller to set chat screen to.
