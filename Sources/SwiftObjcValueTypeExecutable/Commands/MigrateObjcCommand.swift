@@ -33,6 +33,13 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
     )
     var access: String = "public"
     
+    @Option(
+        name: [.long],
+        parsing: .upToNextOption,
+        help: "A list of file paths in which #define macros are defined; used for preprocessing sources."
+    )
+    var macroDefinitionPaths: [String] = []
+    
     func run() throws {
         if fileArguments.sourcePaths.isEmpty {
             // Read from stdin
@@ -81,19 +88,22 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
     private func translate(
         _ charStream: () throws -> CharStream
     ) throws -> CodeBlockItemListSyntax {
-        let collector = CollectorTokenSource(
-            source: ObjectiveCLexer(try charStream())
-        )
-
-        let parser = try ObjectiveCParser(
-            CommonTokenStream(
-                collector
-            )
+        let charStreams = try macroDefinitionPaths.map {
+            try ANTLRFileStream($0)
+        }
+        
+        let sourcePreprocessor = ObjcPreprocessor(
+            macroSources: try charStreams.map {
+                let preprocessorParser = try ObjectiveCPreprocessorParser(
+                    CommonTokenStream(ObjectiveCPreprocessorLexer($0))
+                )
+                return try preprocessorParser.objectiveCDocument()
+            }
         )
         
-        let translationUnit = try parser.translationUnit()
-
-        let preprocessorSource = try charStream()
+        let preprocessedSourceText = try sourcePreprocessor.preprocess(try charStream())
+        
+        let preprocessorSource = ANTLRInputStream(preprocessedSourceText)
         let preprocessorLexer = ObjectiveCPreprocessorLexer(preprocessorSource)
         
         let preprocessorParser = try ObjectiveCPreprocessorParser(
@@ -108,6 +118,19 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
                 return nil
             }
         }
+        
+        let parserSource = ANTLRInputStream(preprocessedSourceText)
+        let collector = CollectorTokenSource(
+            source: ObjectiveCLexer(parserSource)
+        )
+
+        let parser = try ObjectiveCParser(
+            CommonTokenStream(
+                collector
+            )
+        )
+        
+        let translationUnit = try parser.translationUnit()
         
         let translator = ObjcTranslator(
             preprocessorSource: preprocessorSource,
