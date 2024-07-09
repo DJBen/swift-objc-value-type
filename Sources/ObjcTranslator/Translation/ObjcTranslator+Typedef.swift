@@ -8,18 +8,12 @@ import SwiftSyntaxBuilder
 extension ObjcTranslator {
     @CodeBlockItemListBuilder
     func translate(
-        typedefDecl: P.TypedefDeclarationContext
+        typedefDecl: P.TypedefDeclarationContext,
+        declLeadingTrivia: Trivia
     ) throws -> CodeBlockItemListSyntax {
-        // typedefDeclaration
-        //    : attributeSpecifier? TYPEDEF (
-        //        declarationSpecifiers typeDeclaratorList
-        //        | declarationSpecifiers
-        //    ) ';'
-        //    ;
-        
         if let typeDeclarator = typedefDecl.typeDeclaratorList()?.declarator().first {
             TypeAliasDeclSyntax(
-                leadingTrivia: .newlines(2) + beforeTrivia(for: typedefDecl),
+                leadingTrivia: .newlines(2) + declLeadingTrivia + beforeTrivia(for: typedefDecl),
                 name: swiftIdentifier(
                     declarator: typeDeclarator
                 ),

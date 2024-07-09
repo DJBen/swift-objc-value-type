@@ -8,68 +8,61 @@ import SwiftSyntaxBuilder
 extension ObjcTranslator {
     @CodeBlockItemListBuilder
     func translate(
-        enumDecl: P.EnumDeclarationContext
+        enumDecl: P.EnumDeclarationContext,
+        declLeadingTrivia: Trivia
     ) throws -> CodeBlockItemListSyntax {
-        // enumDeclaration
-        //    : attributeSpecifier? TYPEDEF? enumSpecifier identifier? ';'
-        //    ;
-        // enumSpecifier  
-        //    : 'enum' (identifier? ':' typeName)? (
-        //        identifier ('{' enumeratorList '}')?
-        //        | '{' enumeratorList '}'
-        //    )
-        //    | ('NS_OPTIONS' | 'NS_ENUM') LP typeName ',' identifier RP '{' enumeratorList '}'
-        //    ;
-        let enumSpecifier = enumDecl.enumSpecifier()!
-        
-        if enumSpecifier.ENUM() != nil, let typedefEnumIdentifier = enumDecl.identifier() {
+        if let enumSpecifier = enumDecl.enumSpecifier(), let typedefEnumIdentifier = enumDecl.identifier() {
             // typedef enum {...} Iden
             let typeName = enumSpecifier.typeName()?.getText() ?? "int"
             try buildEnumDecl(
                 enumDecl: enumDecl,
                 enumeratorList: enumSpecifier.enumeratorList()!,
+                declLeadingTrivia: declLeadingTrivia,
                 name: typedefEnumIdentifier.getText(),
                 objcTypeName: typeName
             )
-        } else if enumSpecifier.NS_ENUM() != nil || enumSpecifier.NS_CLOSED_ENUM() != nil, let identifier = enumSpecifier.identifier().first, let typeName = enumSpecifier.typeName() {
-            // typedef NS_ENUM(Iden, type)
-            
-            if let enumeratorList = enumSpecifier.enumeratorList() {
-                try buildEnumDecl(
+        } else if let nsEnumOrOptionSpecifier = enumDecl.nsEnumOrOptionSpecifier() {
+            if nsEnumOrOptionSpecifier.NS_ENUM() != nil || nsEnumOrOptionSpecifier.NS_CLOSED_ENUM() != nil || nsEnumOrOptionSpecifier.NS_ERROR_ENUM() != nil, let identifier = nsEnumOrOptionSpecifier.identifier(), let typeName = nsEnumOrOptionSpecifier.typeName() {
+                // typedef NS_ENUM(Iden, type)
+                
+                if let enumeratorList = nsEnumOrOptionSpecifier.enumeratorList() {
+                    try buildEnumDecl(
+                        enumDecl: enumDecl,
+                        enumeratorList: enumeratorList,
+                        declLeadingTrivia: declLeadingTrivia,
+                        name: identifier.getText(),
+                        objcTypeName: typeName.getText()
+                    )
+                } else {
+                    // Treat definition without an enumerator list as typedef
+                    TypeAliasDeclSyntax(
+                        leadingTrivia: .newlines(2) + beforeTrivia(for: enumDecl),
+                        name: .identifier(identifier.getText()),
+                        initializer: TypeInitializerClauseSyntax(
+                            value: try swiftType(
+                                typeName: typeName,
+                                nullability: TypeNullability(
+                                    propertyNullability: nil,
+                                    isNSAssumeNonnull: true,
+                                    isGenericType: false
+                                ),
+                                context: .propertyOrMethodReturnType
+                            )
+                        ),
+                        trailingTrivia: afterTrivia(for: enumDecl)
+                    )
+                }
+            } else if nsEnumOrOptionSpecifier.NS_OPTIONS() != nil, let identifier = nsEnumOrOptionSpecifier.identifier(), let typeName = nsEnumOrOptionSpecifier.typeName()?.getText() {
+                // Note that Swift OptionSet is not backward compatible with Objective-C consumers.
+                
+                try buildOptionSetDecl(
                     enumDecl: enumDecl,
-                    enumeratorList: enumeratorList,
+                    enumeratorList: nsEnumOrOptionSpecifier.enumeratorList()!,
+                    declLeadingTrivia: declLeadingTrivia,
                     name: identifier.getText(),
-                    objcTypeName: typeName.getText()
-                )
-            } else {
-                // Treat definition without an enumerator list as typedef
-                TypeAliasDeclSyntax(
-                    leadingTrivia: .newlines(2) + beforeTrivia(for: enumDecl),
-                    name: .identifier(identifier.getText()),
-                    initializer: TypeInitializerClauseSyntax(
-                        value: try swiftType(
-                            typeName: typeName,
-                            nullability: TypeNullability(
-                                propertyNullability: nil,
-                                isNSAssumeNonnull: true,
-                                isGenericType: false
-                            ),
-                            context: .propertyOrMethodReturnType
-                        )
-                    ),
-                    trailingTrivia: afterTrivia(for: enumDecl)
+                    objcTypeName: typeName
                 )
             }
-
-        } else if enumSpecifier.NS_OPTIONS() != nil, let identifier = enumSpecifier.identifier().first, let typeName = enumSpecifier.typeName()?.getText() {
-            // Note that Swift OptionSet is not backward compatible with Objective-C consumers.
-            
-            try buildOptionSetDecl(
-                enumDecl: enumDecl,
-                enumeratorList: enumSpecifier.enumeratorList()!,
-                name: identifier.getText(),
-                objcTypeName: typeName
-            )
         }
     }
     
@@ -77,11 +70,12 @@ extension ObjcTranslator {
     private func buildOptionSetDecl(
         enumDecl: P.EnumDeclarationContext,
         enumeratorList: P.EnumeratorListContext,
+        declLeadingTrivia: Trivia,
         name: String,
         objcTypeName: String
     ) throws -> CodeBlockItemListSyntax {
         StructDeclSyntax(
-            leadingTrivia: .newlines(2) + beforeTrivia(for: enumDecl),
+            leadingTrivia: .newlines(2) + declLeadingTrivia + beforeTrivia(for: enumDecl),
             attributes: AttributeListSyntax {
             }
             .with(\.trailingTrivia, .newline),
@@ -161,6 +155,7 @@ extension ObjcTranslator {
     private func buildEnumDecl(
         enumDecl: P.EnumDeclarationContext,
         enumeratorList: P.EnumeratorListContext,
+        declLeadingTrivia: Trivia,
         name: String,
         objcTypeName: String
     ) throws -> CodeBlockItemListSyntax {
@@ -178,7 +173,7 @@ extension ObjcTranslator {
         //    ;
         
         EnumDeclSyntax(
-            leadingTrivia: .newlines(2) + beforeTrivia(for: enumDecl),
+            leadingTrivia: .newlines(2) + declLeadingTrivia + beforeTrivia(for: enumDecl),
             attributes: AttributeListSyntax {
                 if existingPrefix.isEmpty {
                     "@objc"

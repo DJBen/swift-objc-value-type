@@ -46,8 +46,13 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
     )
     var isSilentMode: Bool = false
     
+    @Flag(
+        name: .customLong("keep-going")
+    )
+    var keepGoingOnError: Bool = false
+    
     func run() throws {
-        if fileArguments.sourcePaths.isEmpty {
+        if fileArguments.sourcePaths.isEmpty && fileArguments.inputFileListPath == nil {
             // Read from stdin
             try translateAndWrite(inputPath: nil) {
                 ANTLRInputStream(
@@ -60,6 +65,7 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
         } else {
             var sourceFilesIterator = SourceFileIterator(
                 sourcePaths: Set(fileArguments.sourcePaths),
+                inputFileListPath: fileArguments.inputFileListPath,
                 filteringExtension: {
                     ["h"].contains($0.lowercased())
                 }
@@ -69,14 +75,22 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
                     print("swift-objc-value-type: reading from (\(sourceFile.path))")
                 }
             
-                if isSilentMode {
-                    let _ = try translate {
-                        try ANTLRFileStream(sourceFile.path)
+                do {
+                    if isSilentMode {
+                        let _ = try translate {
+                            try ANTLRFileStream(sourceFile.path)
+                        }
+                        .formatted()
+                    } else {
+                        try translateAndWrite(inputPath: sourceFile) {
+                            try ANTLRFileStream(sourceFile.path)
+                        }
                     }
-                    .formatted()
-                } else {
-                    try translateAndWrite(inputPath: sourceFile) {
-                        try ANTLRFileStream(sourceFile.path)
+                } catch {
+                    if keepGoingOnError {
+                        print("Error processing \(sourceFile.path): \(error)")
+                    } else {
+                        throw error
                     }
                 }
             }

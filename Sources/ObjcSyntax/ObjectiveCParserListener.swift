@@ -979,18 +979,6 @@ public protocol ObjectiveCParserListener: ParseTreeListener {
 	 */
 	func exitFieldDeclaration(_ ctx: ObjectiveCParser.FieldDeclarationContext)
 	/**
-	 * Enter a parse tree produced by {@link ObjectiveCParser#specifierQualifierList}.
-	 - Parameters:
-	   - ctx: the parse tree
-	 */
-	func enterSpecifierQualifierList(_ ctx: ObjectiveCParser.SpecifierQualifierListContext)
-	/**
-	 * Exit a parse tree produced by {@link ObjectiveCParser#specifierQualifierList}.
-	 - Parameters:
-	   - ctx: the parse tree
-	 */
-	func exitSpecifierQualifierList(_ ctx: ObjectiveCParser.SpecifierQualifierListContext)
-	/**
 	 * Enter a parse tree produced by {@link ObjectiveCParser#ibOutletQualifier}.
 	 - Parameters:
 	   - ctx: the parse tree
@@ -1075,6 +1063,18 @@ public protocol ObjectiveCParserListener: ParseTreeListener {
 	 */
 	func exitProtocolQualifier(_ ctx: ObjectiveCParser.ProtocolQualifierContext)
 	/**
+	 * Enter a parse tree produced by {@link ObjectiveCParser#typeSpecifierModifier}.
+	 - Parameters:
+	   - ctx: the parse tree
+	 */
+	func enterTypeSpecifierModifier(_ ctx: ObjectiveCParser.TypeSpecifierModifierContext)
+	/**
+	 * Exit a parse tree produced by {@link ObjectiveCParser#typeSpecifierModifier}.
+	 - Parameters:
+	   - ctx: the parse tree
+	 */
+	func exitTypeSpecifierModifier(_ ctx: ObjectiveCParser.TypeSpecifierModifierContext)
+	/**
 	 * Enter a parse tree produced by {@link ObjectiveCParser#typeSpecifier}.
 	 - Parameters:
 	   - ctx: the parse tree
@@ -1134,6 +1134,18 @@ public protocol ObjectiveCParserListener: ParseTreeListener {
 	   - ctx: the parse tree
 	 */
 	func exitEnumSpecifier(_ ctx: ObjectiveCParser.EnumSpecifierContext)
+	/**
+	 * Enter a parse tree produced by {@link ObjectiveCParser#nsEnumOrOptionSpecifier}.
+	 - Parameters:
+	   - ctx: the parse tree
+	 */
+	func enterNsEnumOrOptionSpecifier(_ ctx: ObjectiveCParser.NsEnumOrOptionSpecifierContext)
+	/**
+	 * Exit a parse tree produced by {@link ObjectiveCParser#nsEnumOrOptionSpecifier}.
+	 - Parameters:
+	   - ctx: the parse tree
+	 */
+	func exitNsEnumOrOptionSpecifier(_ ctx: ObjectiveCParser.NsEnumOrOptionSpecifierContext)
 	/**
 	 * Enter a parse tree produced by {@link ObjectiveCParser#enumeratorList}.
 	 - Parameters:
@@ -1207,18 +1219,6 @@ public protocol ObjectiveCParserListener: ParseTreeListener {
 	 */
 	func exitParameterList(_ ctx: ObjectiveCParser.ParameterListContext)
 	/**
-	 * Enter a parse tree produced by {@link ObjectiveCParser#pointer}.
-	 - Parameters:
-	   - ctx: the parse tree
-	 */
-	func enterPointer(_ ctx: ObjectiveCParser.PointerContext)
-	/**
-	 * Exit a parse tree produced by {@link ObjectiveCParser#pointer}.
-	 - Parameters:
-	   - ctx: the parse tree
-	 */
-	func exitPointer(_ ctx: ObjectiveCParser.PointerContext)
-	/**
 	 * Enter a parse tree produced by {@link ObjectiveCParser#macro}.
 	 - Parameters:
 	   - ctx: the parse tree
@@ -1254,6 +1254,18 @@ public protocol ObjectiveCParserListener: ParseTreeListener {
 	   - ctx: the parse tree
 	 */
 	func exitClangAttributeArgument(_ ctx: ObjectiveCParser.ClangAttributeArgumentContext)
+	/**
+	 * Enter a parse tree produced by {@link ObjectiveCParser#swiftAliasExpression}.
+	 - Parameters:
+	   - ctx: the parse tree
+	 */
+	func enterSwiftAliasExpression(_ ctx: ObjectiveCParser.SwiftAliasExpressionContext)
+	/**
+	 * Exit a parse tree produced by {@link ObjectiveCParser#swiftAliasExpression}.
+	 - Parameters:
+	   - ctx: the parse tree
+	 */
+	func exitSwiftAliasExpression(_ ctx: ObjectiveCParser.SwiftAliasExpressionContext)
 	/**
 	 * Enter a parse tree produced by {@link ObjectiveCParser#swiftSelectorExpression}.
 	 - Parameters:

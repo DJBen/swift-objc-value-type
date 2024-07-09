@@ -26,6 +26,14 @@ struct FileHandlingArguments: ParsableArguments {
         completion: .directory
     )
     var outputDir: String?
+    
+    @Option(
+        name: [.long],
+        help: """
+        A file containing a list of line separated paths of input files.
+        """
+    )
+    var inputFileListPath: String?
 
     @Flag(
         name: [.long],
@@ -71,12 +79,12 @@ extension FileHandlingCommand {
     func makeSourceContentIterator(
         filteringExtension: ((String) -> Bool)? = { _ in true }
     ) -> any IteratorProtocol<File> {
-        if fileArguments.sourcePaths.isEmpty {
+        if fileArguments.sourcePaths.isEmpty && fileArguments.inputFileListPath == nil {
             return StdinIterator()
         } else {
-            let dedupedSourcePaths = Set(fileArguments.sourcePaths)
             return SourceFileContentIterator(
-                sourcePaths: dedupedSourcePaths, 
+                sourcePaths: Set(fileArguments.sourcePaths),
+                inputFileListPath: fileArguments.inputFileListPath,
                 filteringExtension: filteringExtension
             )
         }

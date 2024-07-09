@@ -54,10 +54,12 @@ public struct SourceFileContentIterator: IteratorProtocol {
     
     public init(
         sourcePaths: any Sequence<String>,
+        inputFileListPath: String?,
         filteringExtension: ((String) -> Bool)?
     ) {
         sourceFileIterator = SourceFileIterator(
             sourcePaths: sourcePaths,
+            inputFileListPath: inputFileListPath,
             filteringExtension: filteringExtension
         )
     }
@@ -81,11 +83,12 @@ public struct SourceFileIterator: IteratorProtocol {
 
     public init(
         sourcePaths: any Sequence<String>,
+        inputFileListPath: String?,
         filteringExtension: ((String) -> Bool)?
     ) {
         var files = Set<IteratedPath>()
         let fileManager = FileManager.default
-
+        
         func iterateFiles(at path: String, sourcePath: String) {
             var isDirectory: ObjCBool = false
             if fileManager.fileExists(atPath: path, isDirectory: &isDirectory) {
@@ -108,6 +111,12 @@ public struct SourceFileIterator: IteratorProtocol {
                         files.insert(IteratedPath(path: path, sourcePath: sourcePath))
                     }
                 }
+            }
+        }
+        
+        if let inputFileListPath, let list = try? String(contentsOfFile: inputFileListPath) {
+            for filePath in list.components(separatedBy: .newlines) {
+                files.insert(IteratedPath(path: filePath, sourcePath: filePath))
             }
         }
 

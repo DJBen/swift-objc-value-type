@@ -27,7 +27,9 @@ struct GenerateValueTypeCommand: ParsableCommand, FileHandlingCommand {
     ) -> any IteratorProtocol<File> {
         let referencePaths = Set(genArguments.referencedSourcesForObjcAliasing).subtracting(Set(fileArguments.sourcePaths))
         return SourceFileContentIterator(
-            sourcePaths: referencePaths, filteringExtension: filteringExtension
+            sourcePaths: referencePaths, 
+            inputFileListPath: nil,
+            filteringExtension: filteringExtension
         )
     }
 

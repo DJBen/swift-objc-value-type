@@ -377,29 +377,28 @@ attributeParameterAssignment
     ;
 
 declaration
-    : functionCallExpression
-    | enumDeclaration
-    | varDeclaration
-    | typedefDeclaration
+    : (
+        functionCallExpression
+        | enumDeclaration
+        | varDeclaration
+        | typedefDeclaration
+    ) macro? ';'
     ;
 
 functionCallExpression
-    : attributeSpecifier? identifier attributeSpecifier? LP declarator RP ';'
+    : attributeSpecifier? identifier attributeSpecifier? LP declarator RP
     ;
 
 enumDeclaration
-    : attributeSpecifier? TYPEDEF? enumSpecifier identifier? ';'
+    : attributeSpecifier? TYPEDEF? (enumSpecifier identifier | nsEnumOrOptionSpecifier)
     ;
 
 varDeclaration
-    : (declarationSpecifiers initDeclaratorList | declarationSpecifiers) ';'
+    : (declarationSpecifiers initDeclaratorList | declarationSpecifiers)
     ;
 
 typedefDeclaration
-    : attributeSpecifier? TYPEDEF (
-        declarationSpecifiers typeDeclaratorList
-        | declarationSpecifiers
-    ) ';'
+    : attributeSpecifier? TYPEDEF declarationSpecifiers typeDeclaratorList?
     ;
 
 typeDeclaratorList
@@ -413,10 +412,14 @@ declarationSpecifiers
         | arcBehaviourSpecifier
         | nullabilitySpecifier
         | ibOutletQualifier
+        | NS_NOESCAPE
         | typePrefix
         | typeQualifier
-        | typeSpecifier
-    )+
+    )* typeSpecifier (
+        attributeSpecifier
+        | nullabilitySpecifier
+        | typeQualifier
+    )*
     ;
 
 attributeSpecifier
@@ -436,18 +439,7 @@ structOrUnionSpecifier
     ;
 
 fieldDeclaration
-    : specifierQualifierList fieldDeclaratorList macro? ';'
-    ;
-
-specifierQualifierList
-    : (
-        arcBehaviourSpecifier
-        | nullabilitySpecifier
-        | ibOutletQualifier
-        | typePrefix
-        | typeQualifier
-        | typeSpecifier
-    )+
+    : declarationSpecifiers fieldDeclaratorList macro? ';'
     ;
 
 ibOutletQualifier
@@ -501,23 +493,29 @@ protocolQualifier
     | 'byref'
     | 'oneway'
     ;
+    
+typeSpecifierModifier
+    : 'short'
+    | 'long'
+    | 'signed'
+    | 'unsigned'
+    ;
 
 typeSpecifier
     : 'void'
-    | 'char'
-    | 'short'
-    | 'int'
-    | 'long'
-    | 'float'
-    | 'double'
-    | 'signed'
-    | 'unsigned'
+    | typeSpecifierModifier* 'char'
+    | typeSpecifierModifier* 'short'
+    | typeSpecifierModifier* 'int'
+    | typeSpecifierModifier* 'long'
+    | typeSpecifierModifier* 'float'
+    | typeSpecifierModifier* 'double'
     | typeofExpression
     | genericTypeSpecifier
     | structOrUnionSpecifier
     | enumSpecifier
+    | nsEnumOrOptionSpecifier
     | identifier
-    | typeSpecifier pointer
+    | typeSpecifier '*'
     ;
 
 typeofExpression
@@ -538,7 +536,10 @@ enumSpecifier
         identifier ('{' enumeratorList '}')?
         | '{' enumeratorList '}'
     )
-    | ('NS_OPTIONS' | 'NS_ENUM' | 'NS_CLOSED_ENUM') LP typeName ',' identifier RP ('{' enumeratorList '}')?
+    ;
+    
+nsEnumOrOptionSpecifier
+    : ('NS_OPTIONS' | 'NS_ENUM' | 'NS_CLOSED_ENUM' | 'NS_ERROR_ENUM') LP typeName ',' identifier RP ('{' enumeratorList '}')?
     ;
 
 enumeratorList
@@ -567,13 +568,10 @@ parameterList
     : parameterDeclarationList (',' '...')?
     ;
 
-pointer
-    : '*' declarationSpecifiers?
-    ;
-
 macro
     : identifier (LP primaryExpression (',' primaryExpression)* RP)?
-    | NS_SWIFT_NAME LP swiftSelectorExpression RP
+    | NS_UNAVAILABLE
+    | NS_SWIFT_NAME LP (swiftAliasExpression | swiftSelectorExpression) RP
     | API_AVAILABLE LP apiAvailableOsVersion (',' apiAvailableOsVersion)* RP
     | API_UNAVAILABLE LP identifier (',' identifier)* RP
     | NS_SWIFT_UNAVAILABLE LP stringLiteral RP
@@ -593,14 +591,20 @@ clangAttributeArgument
     | identifier '=' version
     | identifier '=' stringLiteral
     ;
+    
+swiftAliasExpression
+    : identifier ('.' identifier)*
+    ;
 
 swiftSelectorExpression
     : identifier LP (swiftSelector ':')* RP
     ;
     
+// Swift selector may use reserved words
 swiftSelector
     : identifier
     | UNDERSCORE
+    | 'for'
     ;
 
 apiAvailableOsVersion
@@ -625,7 +629,7 @@ initializerList
     ;
 
 typeName
-    : specifierQualifierList abstractDeclarator?
+    : declarationSpecifiers abstractDeclarator?
     | blockType
     ;
 

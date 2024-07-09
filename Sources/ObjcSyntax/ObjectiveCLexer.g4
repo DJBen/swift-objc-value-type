@@ -157,6 +157,7 @@ NULL_RESETTABLE  : 'null_resettable';
 NS_INLINE           : 'NS_INLINE';
 NS_ENUM             : 'NS_ENUM';
 NS_CLOSED_ENUM      : 'NS_CLOSED_ENUM';
+NS_ERROR_ENUM       : 'NS_ERROR_ENUM';
 NS_OPTIONS          : 'NS_OPTIONS';
 NS_SWIFT_NAME       : 'NS_SWIFT_NAME';
 NS_NOESCAPE         : 'NS_NOESCAPE';

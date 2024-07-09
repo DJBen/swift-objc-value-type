@@ -139,13 +139,17 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
             //    ;
             if let typedefDecl = decl.typedefDeclaration() {
                try translate(
-                   typedefDecl: typedefDecl
+                   typedefDecl: typedefDecl,
+                   declLeadingTrivia: beforeTrivia(for: decl)
                )
             } else if let _ = decl.functionCallExpression() {
                 // Ignore for now
             } else if let enumDecl = decl.enumDeclaration() {
                 // Includes enum and optionSet decls
-                try translate(enumDecl: enumDecl)
+                try translate(
+                    enumDecl: enumDecl,
+                    declLeadingTrivia: beforeTrivia(for: decl)
+                )
             } else if let _ = decl.varDeclaration() {
                 // Ingore for now
             }

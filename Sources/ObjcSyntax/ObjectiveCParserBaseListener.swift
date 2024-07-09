@@ -1068,19 +1068,6 @@ open class ObjectiveCParserBaseListener: ObjectiveCParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	open func enterSpecifierQualifierList(_ ctx: ObjectiveCParser.SpecifierQualifierListContext) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	open func exitSpecifierQualifierList(_ ctx: ObjectiveCParser.SpecifierQualifierListContext) { }
-
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	open func enterIbOutletQualifier(_ ctx: ObjectiveCParser.IbOutletQualifierContext) { }
 	/**
 	 * {@inheritDoc}
@@ -1172,6 +1159,19 @@ open class ObjectiveCParserBaseListener: ObjectiveCParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	open func enterTypeSpecifierModifier(_ ctx: ObjectiveCParser.TypeSpecifierModifierContext) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	open func exitTypeSpecifierModifier(_ ctx: ObjectiveCParser.TypeSpecifierModifierContext) { }
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	open func enterTypeSpecifier(_ ctx: ObjectiveCParser.TypeSpecifierContext) { }
 	/**
 	 * {@inheritDoc}
@@ -1231,6 +1231,19 @@ open class ObjectiveCParserBaseListener: ObjectiveCParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	open func exitEnumSpecifier(_ ctx: ObjectiveCParser.EnumSpecifierContext) { }
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	open func enterNsEnumOrOptionSpecifier(_ ctx: ObjectiveCParser.NsEnumOrOptionSpecifierContext) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	open func exitNsEnumOrOptionSpecifier(_ ctx: ObjectiveCParser.NsEnumOrOptionSpecifierContext) { }
 
 	/**
 	 * {@inheritDoc}
@@ -1315,19 +1328,6 @@ open class ObjectiveCParserBaseListener: ObjectiveCParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	open func enterPointer(_ ctx: ObjectiveCParser.PointerContext) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	open func exitPointer(_ ctx: ObjectiveCParser.PointerContext) { }
-
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	open func enterMacro(_ ctx: ObjectiveCParser.MacroContext) { }
 	/**
 	 * {@inheritDoc}
@@ -1361,6 +1361,19 @@ open class ObjectiveCParserBaseListener: ObjectiveCParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	open func exitClangAttributeArgument(_ ctx: ObjectiveCParser.ClangAttributeArgumentContext) { }
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	open func enterSwiftAliasExpression(_ ctx: ObjectiveCParser.SwiftAliasExpressionContext) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	open func exitSwiftAliasExpression(_ ctx: ObjectiveCParser.SwiftAliasExpressionContext) { }
 
 	/**
 	 * {@inheritDoc}

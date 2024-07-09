@@ -32,7 +32,7 @@ extension ObjcTranslator {
             bindingSpecifier: .keyword(.var),
             bindingsBuilder: {
                 // fieldDeclaration
-                //    : specifierQualifierList fieldDeclaratorList macro? ';'
+                //    : declarationSpecifiers fieldDeclaratorList macro? ';'
                 //    ;
 
                 let identifier = swiftIdentifier(
