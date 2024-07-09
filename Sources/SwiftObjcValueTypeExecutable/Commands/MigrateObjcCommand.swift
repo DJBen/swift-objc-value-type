@@ -52,9 +52,23 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
     var keepGoingOnError: Bool = false
     
     func run() throws {
+        let charStreams = try macroDefinitionPaths.map {
+            try ANTLRFileStream($0)
+        }
+        
+        let sourcePreprocessor = ObjcPreprocessor(
+            macroSources: try charStreams.map {
+                let preprocessorParser = try ObjectiveCPreprocessorParser(
+                    CommonTokenStream(ObjectiveCPreprocessorLexer($0))
+                )
+                return try preprocessorParser.objectiveCDocument()
+            },
+            definedSymbols: []
+        )
+        
         if fileArguments.sourcePaths.isEmpty && fileArguments.inputFileListPath == nil {
             // Read from stdin
-            try translateAndWrite(inputPath: nil) {
+            try translateAndWrite(inputPath: nil, sourcePreprocessor: sourcePreprocessor) {
                 ANTLRInputStream(
                     String(
                         data: FileHandle.standardInput.readDataToEndOfFile(),
@@ -70,6 +84,7 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
                     ["h"].contains($0.lowercased())
                 }
             )
+            
             while let sourceFile = sourceFilesIterator.next() {
                 if fileArguments.verbose {
                     print("swift-objc-value-type: reading from (\(sourceFile.path))")
@@ -77,12 +92,12 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
             
                 do {
                     if isSilentMode {
-                        let _ = try translate {
+                        let _ = try translate(sourcePreprocessor: sourcePreprocessor) {
                             try ANTLRFileStream(sourceFile.path)
                         }
                         .formatted()
                     } else {
-                        try translateAndWrite(inputPath: sourceFile) {
+                        try translateAndWrite(inputPath: sourceFile, sourcePreprocessor: sourcePreprocessor) {
                             try ANTLRFileStream(sourceFile.path)
                         }
                     }
@@ -99,6 +114,7 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
     
     private func translateAndWrite(
         inputPath: IteratedPath?,
+        sourcePreprocessor: ObjcPreprocessor,
         _ charStream: () throws -> CharStream
     ) throws {
         try withFileHandler(
@@ -107,27 +123,18 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
             extensionTransform: { _ in "swift" }
         ) { sink in
             try sink.stream(
-                try translate(charStream).formatted()
+                try translate(
+                    sourcePreprocessor: sourcePreprocessor,
+                    charStream
+                ).formatted()
             )
         }
     }
     
     private func translate(
+        sourcePreprocessor: ObjcPreprocessor,
         _ charStream: () throws -> CharStream
     ) throws -> CodeBlockItemListSyntax {
-        let charStreams = try macroDefinitionPaths.map {
-            try ANTLRFileStream($0)
-        }
-        
-        let sourcePreprocessor = ObjcPreprocessor(
-            macroSources: try charStreams.map {
-                let preprocessorParser = try ObjectiveCPreprocessorParser(
-                    CommonTokenStream(ObjectiveCPreprocessorLexer($0))
-                )
-                return try preprocessorParser.objectiveCDocument()
-            }
-        )
-        
         let preprocessedSourceText = try sourcePreprocessor.preprocess(try charStream())
         
         let preprocessorSource = ANTLRInputStream(preprocessedSourceText)

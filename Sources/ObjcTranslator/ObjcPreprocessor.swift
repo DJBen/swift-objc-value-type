@@ -11,13 +11,91 @@ struct MacroDefinition {
 public class ObjcPreprocessor {
     let macroDefinitions: [MacroDefinition]
     
+    // Keep track of all the ifdefs.
+    struct IfDefState {
+        var ifDefs = [String]()
+        var ifNDefs = [String]()
+        var isLastIfDefs: [Bool] = []
+        
+        mutating func ifDef(_ def: String) {
+            ifDefs.append(def)
+            isLastIfDefs.append(true)
+        }
+        
+        mutating func ifNDef(_ def: String) {
+            ifNDefs.append(def)
+            isLastIfDefs.append(false)
+        }
+        
+        mutating func elseBranch() {
+            let isLastIfDef = isLastIfDefs.removeLast()
+            if isLastIfDef {
+                let def = ifDefs.removeLast()
+                ifNDefs.append(def)
+                isLastIfDefs.append(false)
+            } else {
+                let def = ifNDefs.removeLast()
+                ifDefs.append(def)
+                isLastIfDefs.append(true)
+            }
+        }
+        
+        mutating func elif(_ def: String) {
+            let isLastIfDef = isLastIfDefs.removeLast()
+            if isLastIfDef {
+                ifDefs.removeLast()
+            } else {
+                ifNDefs.removeLast()
+            }
+            ifDefs.append(def)
+            isLastIfDefs.append(true)
+        }
+        
+        mutating func endIf() {
+            let isLastIfDef = isLastIfDefs.removeLast()
+            if isLastIfDef {
+                ifDefs.removeLast()
+            } else {
+                ifNDefs.removeLast()
+            }
+        }
+        
+        func isInContext(_ definedSymbols: [String]) -> Bool {
+            return ifDefs.allSatisfy({ definedSymbols.contains($0) }) &&
+            ifNDefs.allSatisfy({ !definedSymbols.contains($0) })
+        }
+    }
+    
+    private(set) var definedSymbols: [String]
+
     public init(
-        macroSources: [ObjectiveCPreprocessorParser.ObjectiveCDocumentContext]
+        macroSources: [ObjectiveCPreprocessorParser.ObjectiveCDocumentContext],
+        definedSymbols: [String]
     ) {
         var macroDefinitions = [MacroDefinition]()
         for macroSource in macroSources {
+            var ifDefState = IfDefState()
             for text in macroSource.text() {
-                if let defineDirective = text.directive() as? PP.PreprocessorDefineContext {
+                if let defDirective = text.directive() as? PP.PreprocessorDefContext {
+                    if defDirective.IFDEF() != nil {
+                        ifDefState.ifDef(defDirective.CONDITIONAL_SYMBOL()!.getText())
+                    } else if defDirective.IFNDEF() != nil {
+                        ifDefState.ifNDef(defDirective.CONDITIONAL_SYMBOL()!.getText())
+                    }
+                } else if let conditional = text.directive() as? PP.PreprocessorConditionalContext {
+                    if conditional.IF() != nil {
+                        ifDefState.ifDef(conditional.preprocessor_expression()!.getText())
+                    } else if conditional.ELIF() != nil {
+                        ifDefState.elif(conditional.preprocessor_expression()!.getText())
+                    } else if conditional.ELSE() != nil {
+                        ifDefState.elseBranch()
+                    } else if conditional.ENDIF() != nil {
+                        ifDefState.endIf()
+                    }
+                } else if let defineDirective = text.directive() as? PP.PreprocessorDefineContext {
+                    guard ifDefState.isInContext(definedSymbols) else {
+                        continue
+                    }
                     let key = defineDirective.CONDITIONAL_SYMBOL()!.getText()
                     // Ignore metamacro because it creates so many clutter
                     if key.contains("metamacro") {
@@ -35,6 +113,7 @@ public class ObjcPreprocessor {
             }
         }
         self.macroDefinitions = macroDefinitions
+        self.definedSymbols = definedSymbols
     }
     
     private static func parseMacroDefinition(key: String, value: String) -> MacroDefinition {

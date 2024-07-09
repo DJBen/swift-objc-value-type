@@ -6,6 +6,8 @@ import Antlr4
 import CustomDump
 
 final class ObjcPreprocessorTests: XCTestCase {
+    typealias IfDefState = ObjcPreprocessor.IfDefState
+    
     func testExpandMacro() throws {
         let expandedMacro = ObjcPreprocessor.expandMacro(
             MacroDefinition(
@@ -56,5 +58,32 @@ final class ObjcPreprocessorTests: XCTestCase {
             function_call(metamacro_head(3,4))
             """
         )
+    }
+    
+    func testIfDefState() {
+        var state = IfDefState()
+        state.ifDef("foo")
+        XCTAssertTrue(state.isInContext(["foo", "bar"]))
+        state.elseBranch()
+        XCTAssertFalse(state.isInContext(["foo", "bar"]))
+        state.endIf()
+        XCTAssertTrue(state.isInContext(["foo", "bar"]))
+        
+        state.ifDef("_cplusplus")
+        state.ifDef("nested2")
+        XCTAssertFalse(state.isInContext(["_cplusplus"]))
+        XCTAssertTrue(state.isInContext(["_cplusplus", "nested2"]))
+        state.elseBranch()
+        XCTAssertTrue(state.isInContext(["_cplusplus"]))
+        XCTAssertFalse(state.isInContext(["_cplusplus", "nested2"]))
+        XCTAssertFalse(state.isInContext([]))
+        state.endIf()
+        XCTAssertTrue(state.isInContext(["_cplusplus"]))
+        state.elseBranch()
+        XCTAssertTrue(state.isInContext([]))
+        XCTAssertFalse(state.isInContext(["_cplusplus"]))
+        XCTAssertFalse(state.isInContext(["_cplusplus", "nested2"]))
+        state.endIf()
+        XCTAssertTrue(state.isInContext([]))
     }
 }

@@ -226,7 +226,7 @@ propertySynthesizeItem
     ;
 
 blockType
-    : nullabilitySpecifier? typeSpecifier nullabilitySpecifier? LP NS_NOESCAPE? '^'
+    : NS_NOESCAPE? nullabilitySpecifier? typeSpecifier nullabilitySpecifier? LP NS_NOESCAPE? '^'
         nullabilitySpecifier? RP blockParameters?
     ;
 
@@ -394,7 +394,7 @@ enumDeclaration
     ;
 
 varDeclaration
-    : (declarationSpecifiers initDeclaratorList | declarationSpecifiers)
+    : declarationSpecifiers initDeclaratorList?
     ;
 
 typedefDeclaration
@@ -417,7 +417,6 @@ declarationSpecifiers
         | typeQualifier
     )* typeSpecifier (
         attributeSpecifier
-        | typeQualifier
     )*
     ;
 
@@ -501,20 +500,20 @@ typeSpecifierModifier
     ;
 
 typeSpecifier
-    : 'void'
-    | typeSpecifierModifier* 'char'
-    | typeSpecifierModifier* 'short'
-    | typeSpecifierModifier* 'int'
-    | typeSpecifierModifier* 'long'
-    | typeSpecifierModifier* 'float'
-    | typeSpecifierModifier* 'double'
+    : 'void' typeQualifier*
+    | typeSpecifierModifier* 'char' typeQualifier*
+    | typeSpecifierModifier* 'short' typeQualifier*
+    | typeSpecifierModifier* 'int' typeQualifier*
+    | typeSpecifierModifier* 'long' typeQualifier*
+    | typeSpecifierModifier* 'float' typeQualifier*
+    | typeSpecifierModifier* 'double' typeQualifier*
     | typeofExpression
     | structOrUnionSpecifier
     | enumSpecifier
     | nsEnumOrOptionSpecifier
-    | genericTypeSpecifier nullabilitySpecifier?
-    | identifier nullabilitySpecifier?
-    | typeSpecifier '*' nullabilitySpecifier?
+    | genericTypeSpecifier (arcBehaviourSpecifier | nullabilitySpecifier | typeQualifier)*
+    | identifier (arcBehaviourSpecifier | nullabilitySpecifier | typeQualifier)*
+    | typeSpecifier '*' (arcBehaviourSpecifier | nullabilitySpecifier | typeQualifier)*
     ;
 
 typeofExpression

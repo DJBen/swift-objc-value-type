@@ -52,10 +52,11 @@ extension ObjcTranslator {
             try swiftType(
                 typeName: $0.typeName()!,
                 nullability: TypeNullability(
-                    typeName: $0.typeName()!,
+                    propertyNullability: nil,
                     isNSAssumeNonnull: isNSAssumeNonnull(methodDecl),
                     isGenericType: false
-                ),
+                )
+                .with(typeName: $0.typeName()),
                 context: .propertyOrMethodReturnType
             )
         }
@@ -87,10 +88,6 @@ extension ObjcTranslator {
                 return (String(fragments[0]), String(fragments[1...].joined()).lowercasingFirst)
             }
         }()
-        
-        // keywordDeclarator
-        //    : selector? ':' methodType* arcBehaviourSpecifier? identifier
-        //    ;
         
         let funcSignature = FunctionSignatureSyntax(
             parameterClause: FunctionParameterClauseSyntax(
@@ -124,7 +121,8 @@ extension ObjcTranslator {
                                     propertyNullability: nil,
                                     isNSAssumeNonnull: isNSAssumeNonnull(methodDecl),
                                     isGenericType: false
-                                ),
+                                )
+                                .with(typeName: keywordDecl.methodType().first?.typeName()),
                                 context: .methodArgument
                             )
                         )

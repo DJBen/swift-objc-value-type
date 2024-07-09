@@ -31,33 +31,6 @@ extension ObjcTranslator {
             self.isGenericType = isGenericType
         }
         
-        init(
-            typeName: P.TypeNameContext? = nil,
-            isNSAssumeNonnull: Bool,
-            isGenericType: Bool
-        ) {
-            // typeName
-            //    : declarationSpecifiers abstractDeclarator?
-            //    | blockType
-            //    ;
-            self.init(
-                propertyNullability: {
-                    // Prefix `nonnull Type` and postfix `Type *_Nullable`
-                    if let nullabilitySpecifiers = typeName?.declarationSpecifiers()?.nullabilitySpecifier() {
-                        if nullabilitySpecifiers.contains(where: { $0.NULLABLE() != nil }) {
-                            return .nullable
-                        } else if nullabilitySpecifiers.contains(where: { $0.NONNULL() != nil }) {
-                            return .nonnull
-                        }
-                    }
-                    
-                    return nil
-                }(),
-                isNSAssumeNonnull: isNSAssumeNonnull,
-                isGenericType: isGenericType
-            )
-        }
-        
         var isExplicitlyNonnull: Bool {
             if isGenericType {
                 return true
@@ -77,11 +50,33 @@ extension ObjcTranslator {
         }
         
         func with(propertyNullability: PropertyNullability?) -> TypeNullability {
+            guard let propertyNullability else {
+                return self
+            }
             return TypeNullability(
                 propertyNullability: propertyNullability,
                 isNSAssumeNonnull: isNSAssumeNonnull,
                 isGenericType: isGenericType
             )
+        }
+        
+        func with(declarationSpecifiers: P.DeclarationSpecifiersContext?) -> TypeNullability {
+            guard let declarationSpecifiers else {
+                return self
+            }
+            // Prefix `nonnull Type` and postfix `Type *_Nullable`
+            let nullabilitySpecifiers = declarationSpecifiers.nullabilitySpecifier() +  (declarationSpecifiers.typeSpecifier()?.nullabilitySpecifier() ?? [])
+            if nullabilitySpecifiers.contains(where: { $0.NULLABLE() != nil }) {
+                return with(propertyNullability: .nullable)
+            } else if nullabilitySpecifiers.contains(where: { $0.NONNULL() != nil }) {
+                return with(propertyNullability: .nonnull)
+            }
+            
+            return self
+        }
+        
+        func with(typeName: P.TypeNameContext?) -> TypeNullability {
+            return with(declarationSpecifiers: typeName?.declarationSpecifiers())
         }
         
         func with(nullabilitySpecifier: P.NullabilitySpecifierContext?) -> TypeNullability {
@@ -136,7 +131,7 @@ extension ObjcTranslator {
             return try swiftType(
                 typeSpecifier: typeName.declarationSpecifiers()!.typeSpecifier()!,
                 blockParam: nil,
-                nullability: nullability.with(nullabilitySpecifier: typeName.declarationSpecifiers()!.nullabilitySpecifier()),
+                nullability: nullability, // nullability specified in parent
                 context: context
             )
         }
@@ -231,7 +226,7 @@ extension ObjcTranslator {
                                 colon: .colonToken(),
                                 type: try swiftType(
                                     typeVariableDecl: typeVariableDecl,
-                                    nullability: nullability,
+                                    nullability: nullability.with(declarationSpecifiers: typeVariableDecl.declarationSpecifiers()),
                                     context: context
                                 )
                             )
@@ -239,7 +234,7 @@ extension ObjcTranslator {
                             TupleTypeElementSyntax(
                                 type: try swiftType(
                                     typeName: typeName,
-                                    nullability: nullability,
+                                    nullability: nullability.with(typeName: typeName),
                                     context: context
                                 )
                             )
@@ -271,9 +266,7 @@ extension ObjcTranslator {
                                 argument: try swiftType(
                                     typeSpecifier: subTypeSpecifier,
                                     blockParam: blockParam,
-                                    nullability: nullability.with(
-                                        nullabilitySpecifier: typeSpecifier.nullabilitySpecifier()
-                                    ),
+                                    nullability: nullability.with(nullabilitySpecifier: subTypeSpecifier.nullabilitySpecifier()),
                                     context: context,
                                     isContainedByPointer: true
                                 )
@@ -286,9 +279,7 @@ extension ObjcTranslator {
                 return try swiftType(
                     typeSpecifier: subTypeSpecifier,
                     blockParam: blockParam,
-                    nullability: nullability.with(
-                        nullabilitySpecifier: typeSpecifier.nullabilitySpecifier()
-                    ),
+                    nullability: nullability,
                     context: context,
                     isContainedByPointer: true
                 )
