@@ -299,6 +299,8 @@ final class ObjcTranslatorTests: XCTestCase {
                               completionQueue:(nonnull dispatch_queue_t)completionQueue
                                    completion:(nonnull dispatch_block_t)completion;
         
+        - (void)noEscapeBlock:(NS_NOESCAPE Section* (^_Nonnull)())block;
+        
         @end
         """
         
@@ -321,7 +323,10 @@ final class ObjcTranslatorTests: XCTestCase {
              This override the existing sections with mutated results.
              */
                 @objc
-                func saveSections(mutationBlock: (dataAccessor: DataAccessing) -> [Section], completionQueue: dispatch_queue_t, completion: dispatch_block_t)
+                func saveSections(mutationBlock: @escaping (dataAccessor: DataAccessing) -> [Section], completionQueue: dispatch_queue_t, completion: dispatch_block_t)
+            
+                @objc
+                func noEscapeBlock(_ block: () -> Section)
             }
             """#
         )

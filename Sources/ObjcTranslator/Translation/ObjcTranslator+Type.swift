@@ -125,7 +125,8 @@ extension ObjcTranslator {
                 blockParam: blockType.blockParameters(),
                 nullability: nullability
                     .with(nullabilitySpecifier: blockType.nullabilitySpecifier()),
-                context: context
+                context: context,
+                isEscaping: blockType.NS_NOESCAPE().isEmpty
             )
         } else {
             return try swiftType(
@@ -209,7 +210,8 @@ extension ObjcTranslator {
         nullability: TypeNullability,
         context: TypeDeclarationContext,
         isContainedByPointer: Bool = false,
-        isTypedef: Bool = false
+        isTypedef: Bool = false,
+        isEscaping: Bool = false
     ) throws -> any TypeSyntaxProtocol {
         if let blockParam {
             // BOOL (^enumerateProviders)(id<ABProviderProtocol> provider, BOOL *stop)
@@ -250,6 +252,7 @@ extension ObjcTranslator {
                     )
                 )
             )
+            .escaping(isEscaping)
             .optionalized(
                 isTypedef ? TypeNullability(propertyNullability: .nonnull, isNSAssumeNonnull: false, isGenericType: false) : nullability,
                 isObjcPrimitiveType: false
@@ -507,5 +510,26 @@ private extension TypeSyntaxProtocol {
             return self
         }
         return optionalized(!nullability.isExplicitlyNonnull)
+    }
+}
+
+extension FunctionTypeSyntax {
+    func escaping(_ shouldEscape: Bool) -> any TypeSyntaxProtocol {
+        guard shouldEscape else {
+            return self
+        }
+        
+        return AttributedTypeSyntax(
+            attributes: AttributeListSyntax {
+                AttributeSyntax(
+                    atSign: .atSignToken(),
+                    attributeName: IdentifierTypeSyntax(
+                        name: .identifier("escaping")
+                    )
+                    .with(\.trailingTrivia, .space)
+                )
+            },
+            baseType: self
+        )
     }
 }

@@ -79,6 +79,18 @@ public extension TypeSyntaxProtocol {
                 }
             )
             .optionalized
+        } else if let attributedType = self.as(AttributedTypeSyntax.self) {
+            // If it is an escaping function type, remove the escape
+            if attributedType.attributes.contains(where: {
+                switch $0 {
+                case .attribute(let attr):
+                    return attr.attributeName.as(IdentifierTypeSyntax.self)?.name != "escaping"
+                case .ifConfigDecl(_):
+                    return false
+                }
+            }) {
+                return attributedType.baseType.optionalized
+            }
         }
         return OptionalTypeSyntax(wrappedType: self)
     }
