@@ -119,9 +119,9 @@ extension ObjcTranslator {
                             firstName: firstName.map { .identifier($0) } ?? .wildcardToken(),
                             secondName: secondName.map { .identifier($0) },
                             type: try swiftType(
-                                typeName: keywordDecl.methodType().first!.typeName()!,
+                                typeName: keywordDecl.methodType().first?.typeName(),
                                 nullability: TypeNullability(
-                                    typeName: keywordDecl.methodType().first!.typeName()!,
+                                    propertyNullability: nil,
                                     isNSAssumeNonnull: isNSAssumeNonnull(methodDecl),
                                     isGenericType: false
                                 ),
@@ -146,10 +146,12 @@ extension ObjcTranslator {
             }()
         )
         
+        let coalescedTrivia = sectionBeforeTrivia == parentLeadingTrivia ? sectionBeforeTrivia : sectionBeforeTrivia + parentLeadingTrivia
+        
         if !methodDecl.hasUnavailableAttribute {
             if methodDecl.methodType()?.typeName()?.getText() == "instancetype" {
                 InitializerDeclSyntax(
-                    leadingTrivia: .newlines(2) + sectionBeforeTrivia + parentLeadingTrivia + beforeTrivia(for: methodDecl),
+                    leadingTrivia: .newlines(2) + coalescedTrivia + beforeTrivia(for: methodDecl),
                     attributes: AttributeListSyntax {
                         methodDecl.availabilityAttributes
                         "@objc"
@@ -160,7 +162,7 @@ extension ObjcTranslator {
                 )
             } else {
                 FunctionDeclSyntax(
-                    leadingTrivia: .newlines(2) + sectionBeforeTrivia + parentLeadingTrivia + beforeTrivia(for: methodDecl),
+                    leadingTrivia: .newlines(2) + coalescedTrivia + beforeTrivia(for: methodDecl),
                     attributes: AttributeListSyntax {
                         methodDecl.availabilityAttributes
                         "@objc"

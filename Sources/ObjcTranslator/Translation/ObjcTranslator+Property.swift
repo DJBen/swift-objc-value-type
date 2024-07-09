@@ -36,7 +36,7 @@ extension ObjcTranslator {
                 //    ;
 
                 let identifier = swiftIdentifier(
-                    directDeclarator: propertyDecl.fieldDeclaration()!.fieldDeclaratorList()!.fieldDeclarator(0)!.declarator()!.directDeclarator()!
+                    declarator: propertyDecl.fieldDeclaration()!.fieldDeclaratorList()!.fieldDeclarator(0)!.declarator()!
                 )
                 
                 let type = try swiftType(

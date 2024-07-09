@@ -990,19 +990,6 @@ open class ObjectiveCParserBaseListener: ObjectiveCParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	open func enterTypeDeclarator(_ ctx: ObjectiveCParser.TypeDeclaratorContext) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	open func exitTypeDeclarator(_ ctx: ObjectiveCParser.TypeDeclaratorContext) { }
-
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	open func enterDeclarationSpecifiers(_ ctx: ObjectiveCParser.DeclarationSpecifiersContext) { }
 	/**
 	 * {@inheritDoc}
@@ -1289,13 +1276,13 @@ open class ObjectiveCParserBaseListener: ObjectiveCParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	open func enterDirectDeclarator(_ ctx: ObjectiveCParser.DirectDeclaratorContext) { }
+	open func enterDeclarator(_ ctx: ObjectiveCParser.DeclaratorContext) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	open func exitDirectDeclarator(_ ctx: ObjectiveCParser.DirectDeclaratorContext) { }
+	open func exitDeclarator(_ ctx: ObjectiveCParser.DeclaratorContext) { }
 
 	/**
 	 * {@inheritDoc}
@@ -1530,19 +1517,6 @@ open class ObjectiveCParserBaseListener: ObjectiveCParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	open func exitParameterDeclaration(_ ctx: ObjectiveCParser.ParameterDeclarationContext) { }
-
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	open func enterDeclarator(_ ctx: ObjectiveCParser.DeclaratorContext) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	open func exitDeclarator(_ ctx: ObjectiveCParser.DeclaratorContext) { }
 
 	/**
 	 * {@inheritDoc}

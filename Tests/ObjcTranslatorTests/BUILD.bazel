@@ -4,6 +4,7 @@ swift_test(
     name = "ObjcTranslatorTests",
     srcs = [
         "EnumOptionConverterTests.swift",
+        "ObjcPreprocessorTests.swift",
         "ObjcTranslatorTests.swift",
     ],
     module_name = "ObjcTranslatorTests",

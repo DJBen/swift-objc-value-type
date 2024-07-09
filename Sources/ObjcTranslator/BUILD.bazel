@@ -5,9 +5,9 @@ swift_library(
     srcs = [
         "CollectorTokenSource.swift",
         "EnumOptionConverter.swift",
+        "ObjcPreprocessor.swift",
         "ObjcSyntax.swift",
         "ObjcTranslator.swift",
-        "ObjectiveCParser+Utils.swift",
         "ProtocolConverter.swift",
         "SwiftSyntaxExtensions.swift",
         "Translation/ObjcTranslator+Declaration.swift",

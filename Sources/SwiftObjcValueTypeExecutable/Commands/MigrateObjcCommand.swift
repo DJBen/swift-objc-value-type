@@ -40,6 +40,12 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
     )
     var macroDefinitionPaths: [String] = []
     
+    @Flag(
+        name: .customLong("silent"),
+        help: "Disable outputs."
+    )
+    var isSilentMode: Bool = false
+    
     func run() throws {
         if fileArguments.sourcePaths.isEmpty {
             // Read from stdin
@@ -63,8 +69,15 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
                     print("swift-objc-value-type: reading from (\(sourceFile.path))")
                 }
             
-                try translateAndWrite(inputPath: sourceFile) {
-                    try ANTLRFileStream(sourceFile.path)
+                if isSilentMode {
+                    let _ = try translate {
+                        try ANTLRFileStream(sourceFile.path)
+                    }
+                    .formatted()
+                } else {
+                    try translateAndWrite(inputPath: sourceFile) {
+                        try ANTLRFileStream(sourceFile.path)
+                    }
                 }
             }
         }

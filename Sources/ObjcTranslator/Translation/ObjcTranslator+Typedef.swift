@@ -17,11 +17,11 @@ extension ObjcTranslator {
         //    ) ';'
         //    ;
         
-        if let typeDeclarator = typedefDecl.typeDeclaratorList()?.typeDeclarator().first {
+        if let typeDeclarator = typedefDecl.typeDeclaratorList()?.declarator().first {
             TypeAliasDeclSyntax(
                 leadingTrivia: .newlines(2) + beforeTrivia(for: typedefDecl),
                 name: swiftIdentifier(
-                    directDeclarator: typeDeclarator.directDeclarator()!
+                    declarator: typeDeclarator
                 ),
                 initializer: TypeInitializerClauseSyntax(
                     value: try swiftType(

@@ -287,6 +287,46 @@ final class ObjcTranslatorTests: XCTestCase {
         )
     }
     
+    func testProtocol_methods_block() throws {
+        let source = """
+        @protocol SaverProtocol <NSObject>
+
+        /**
+         This override the existing sections with mutated results.
+         */
+        - (void)saveSectionsWithMutationBlock:(nonnull NSArray<Section *> *_Nonnull (^)(
+                                                  id<DataAccessing> _Nonnull dataAccessor))mutationBlock
+                              completionQueue:(nonnull dispatch_queue_t)completionQueue
+                                   completion:(nonnull dispatch_block_t)completion;
+        
+        @end
+        """
+        
+        
+        let translator = try translator(
+            from: source
+        )
+
+        let result = try translator.translate()
+        
+        assertBuildResult(
+            result,
+            #"""
+            
+            
+            @objc
+            public protocol SaverProtocol: NSObjectProtocol {
+
+                /**
+             This override the existing sections with mutated results.
+             */
+                @objc
+                func saveSections(mutationBlock: (dataAccessor: DataAccessing) -> [Section], completionQueue: dispatch_queue_t, completion: dispatch_block_t)
+            }
+            """#
+        )
+    }
+    
     func testProtocol_methods_optionalSections() throws {
         let source = """
         NS_ASSUME_NONNULL_BEGIN
@@ -329,7 +369,7 @@ final class ObjcTranslatorTests: XCTestCase {
                 func numberOfItems() -> Int
 
                 @objc
-                func itemAtIndex(_ index: Int) -> AnyObject
+                func itemAtIndex(_ index: Int) -> Any
 
                 // Optional methods
                 optional var string: String? {
@@ -379,6 +419,9 @@ final class ObjcTranslatorTests: XCTestCase {
 
         /// @return a number
         - (nullable NSNumber *)someTypeWithOptionalStr:(nullable NSString *)optionalStr optionalStr2:(NSString *_Nullable)str2;
+        
+        /// Method with no type specified
+        - (void)methodWithNoTypeSpecified:idArg;
 
         @end
 
@@ -433,6 +476,10 @@ final class ObjcTranslatorTests: XCTestCase {
                 /// - Returns a number
                 @objc
                 func someType(optionalStr: String?, str2: String?) -> NSNumber?
+            
+                /// Method with no type specified
+                @objc
+                func method(noTypeSpecified idArg: Any)
             }
             """
         )

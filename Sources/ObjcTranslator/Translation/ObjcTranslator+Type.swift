@@ -42,17 +42,8 @@ extension ObjcTranslator {
             //    ;
             self.init(
                 propertyNullability: {
-                    // nonnull Type
+                    // Prefix `nonnull Type` and postfix `Type *_Nullable`
                     if let nullabilitySpecifiers = typeName?.specifierQualifierList()?.nullabilitySpecifier() {
-                        if nullabilitySpecifiers.contains(where: { $0.NULLABLE() != nil }) {
-                            return .nullable
-                        } else if nullabilitySpecifiers.contains(where: { $0.NONNULL() != nil }) {
-                            return .nonnull
-                        }
-                    }
-                    
-                    // Type *_Nullable
-                    if let nullabilitySpecifiers = typeName?.abstractDeclarator()?.pointer()?.declarationSpecifiers()?.nullabilitySpecifier() {
                         if nullabilitySpecifiers.contains(where: { $0.NULLABLE() != nil }) {
                             return .nullable
                         } else if nullabilitySpecifiers.contains(where: { $0.NONNULL() != nil }) {
@@ -92,13 +83,38 @@ extension ObjcTranslator {
                 isGenericType: isGenericType
             )
         }
+        
+        func with(nullabilitySpecifier: [P.NullabilitySpecifierContext]?) -> TypeNullability {
+            guard let nullabilitySpecifier else {
+                return self
+            }
+            return TypeNullability(
+                propertyNullability: {
+                    if nullabilitySpecifier.contains(where: { $0.NONNULL() != nil }) {
+                        return .nonnull
+                    } else if nullabilitySpecifier.contains(where: { $0.NULLABLE() != nil }) {
+                        return .nullable
+                    }
+                    return nil
+                }(),
+                isNSAssumeNonnull: isNSAssumeNonnull,
+                isGenericType: isGenericType
+            )
+        }
     }
     
     func swiftType(
-        typeName: P.TypeNameContext,
+        typeName: P.TypeNameContext?,
         nullability: TypeNullability,
         context: TypeDeclarationContext
     ) throws -> any TypeSyntaxProtocol {
+        guard let typeName else {
+            return IdentifierTypeSyntax(
+                name: .identifier("Any")
+            )
+            .optionalized(nullability, isObjcPrimitiveType: false)
+        }
+        
         // typeName
         //    : specifierQualifierList abstractDeclarator?
         //    | blockType
@@ -106,27 +122,18 @@ extension ObjcTranslator {
         
         if let blockType = typeName.blockType() {
             return try swiftType(
-                typeSpecifiers: blockType.typeSpecifier(),
+                typeSpecifiers: [blockType.typeSpecifier()!],
                 blockParam: blockType.blockParameters(),
-                nullability: {
-                    var newNullability = nullability
-                    if blockType.nullabilitySpecifier().contains(where: { $0.NULLABLE() != nil }) {
-                        newNullability = newNullability.with(propertyNullability: .nullable)
-                    } else if blockType.nullabilitySpecifier().contains(where: { $0.NONNULL() != nil }) {
-                        newNullability = newNullability.with(propertyNullability: .nonnull)
-                    }
-                    return newNullability
-                }(),
-                context: context,
-                pointerCount: typeName.abstractDeclarator()?.pointerCount ?? 0
+                nullability: nullability
+                    .with(nullabilitySpecifier: blockType.nullabilitySpecifier()),
+                context: context
             )
         } else {
             return try swiftType(
                 typeSpecifiers: typeName.specifierQualifierList()!.typeSpecifier(),
                 blockParam: nil,
-                nullability: nullability,
-                context: context,
-                pointerCount: typeName.abstractDeclarator()?.pointerCount ?? 0
+                nullability: nullability.with(nullabilitySpecifier: typeName.specifierQualifierList()?.nullabilitySpecifier()),
+                context: context
             )
         }
     }
@@ -152,8 +159,7 @@ extension ObjcTranslator {
                 typeSpecifiers: [typeSpecifierWithPrefixes.typeSpecifier()!],
                 blockParam: nil,
                 nullability: nullability,
-                context: context,
-                pointerCount: 0
+                context: context
             )
         }
     }
@@ -165,10 +171,9 @@ extension ObjcTranslator {
     ) throws -> any TypeSyntaxProtocol {
         try swiftType(
             typeSpecifiers: typeVariableDecl.declarationSpecifiers()!.typeSpecifier(),
-            blockParam: typeVariableDecl.declarator()?.directDeclarator()?.blockParameters(),
+            blockParam: typeVariableDecl.declarator()?.blockParameters(),
             nullability: nullability,
-            context: context,
-            pointerCount: typeVariableDecl.declarator()?.pointerCount ?? 0
+            context: context
         )
     }
     
@@ -179,10 +184,9 @@ extension ObjcTranslator {
         // When defined in typedef, the return type is nonnull.
         try swiftType(
             typeSpecifiers: typedefDecl.declarationSpecifiers()!.typeSpecifier(),
-            blockParam: typedefDecl.typeDeclaratorList()?.typeDeclarator().first?.directDeclarator()?.blockParameters(),
+            blockParam: typedefDecl.typeDeclaratorList()?.declarator().first?.blockParameters(),
             nullability: nullability,
             context: .propertyOrMethodReturnType,
-            pointerCount: 0,
             isTypedef: true
         )
     }
@@ -194,10 +198,9 @@ extension ObjcTranslator {
         try swiftType(
             typeSpecifiers: propertyDecl.fieldDeclaration()!.specifierQualifierList()!.typeSpecifier(),
             // Only read the first item, assume there isn't multiple decls in the same line e.g. `BOOL a, b, c`;
-            blockParam: propertyDecl.fieldDeclaration()?.fieldDeclaratorList()?.fieldDeclarator(0)?.declarator()?.directDeclarator()?.blockParameters(),
+            blockParam: propertyDecl.fieldDeclaration()?.fieldDeclaratorList()?.fieldDeclarator(0)?.declarator()?.blockParameters(),
             nullability: nullability,
-            context: .propertyOrMethodReturnType,
-            pointerCount: 0
+            context: .propertyOrMethodReturnType
         )
     }
     
@@ -206,7 +209,6 @@ extension ObjcTranslator {
         blockParam: P.BlockParametersContext?,
         nullability: TypeNullability,
         context: TypeDeclarationContext,
-        pointerCount: Int,
         hasUnsignedPrefix: Bool = false,
         hasLongPrefix: Bool = false,
         isContainedByPointer: Bool = false,
@@ -257,7 +259,7 @@ extension ObjcTranslator {
                         if let typeVariableDecl = typeVariableDeclOrName.typeVariableDeclarator() {
                             TupleTypeElementSyntax(
                                 firstName: .identifier(
-                                    typeVariableDecl.declarator()!.directDeclarator()!.identifier()!.getText()
+                                    typeVariableDecl.declarator()!.identifier()!.getText()
                                 ),
                                 colon: .colonToken(),
                                 type: try swiftType(
@@ -286,8 +288,7 @@ extension ObjcTranslator {
                             isNSAssumeNonnull: nullability.isNSAssumeNonnull,
                             isGenericType: false
                         ),
-                        context: .propertyOrMethodReturnType,
-                        pointerCount: typeSpecifier.pointer()?.pointerCount ?? 0
+                        context: .propertyOrMethodReturnType
                     )
                 )
             )
@@ -297,19 +298,20 @@ extension ObjcTranslator {
             )
         }
         
-        if pointerCount > 0 {
-            if ObjcSwiftUtils.isObjcPrimitive(typeSpecifier.getText()) || isContainedByPointer {
+        if let pointer = typeSpecifier.pointer(), let subTypeSpecifier = typeSpecifier.typeSpecifier() {
+            if ObjcSwiftUtils.isObjcPrimitive(subTypeSpecifier.getText()) || isContainedByPointer {
                 return try IdentifierTypeSyntax(
                     name: .identifier("UnsafeMutablePointer"),
                     genericArgumentClause: GenericArgumentClauseSyntax {
                         try GenericArgumentListSyntax {
                             GenericArgumentSyntax(
                                 argument: try swiftType(
-                                    typeSpecifiers: typeSpecifiers,
+                                    typeSpecifiers: [subTypeSpecifier],
                                     blockParam: blockParam,
-                                    nullability: nullability.with(isGenericType: true),
+                                    nullability: nullability.with(
+                                        isGenericType: true
+                                    ),
                                     context: context,
-                                    pointerCount: pointerCount - 1,
                                     isContainedByPointer: true
                                 )
                             )
@@ -319,11 +321,10 @@ extension ObjcTranslator {
             } else {
                 // `NSString *` types tolerate at most one pointer
                 return try swiftType(
-                    typeSpecifiers: typeSpecifiers,
+                    typeSpecifiers: [subTypeSpecifier],
                     blockParam: blockParam,
-                    nullability: nullability,
+                    nullability: nullability.with(nullabilitySpecifier: pointer.declarationSpecifiers()?.nullabilitySpecifier()),
                     context: context,
-                    pointerCount: pointerCount - 1,
                     isContainedByPointer: true
                 )
             }
@@ -362,7 +363,6 @@ extension ObjcTranslator {
                     blockParam: blockParam,
                     nullability: nullability,
                     context: context,
-                    pointerCount: pointerCount,
                     hasLongPrefix: true
                 )
             } else {
@@ -381,8 +381,7 @@ extension ObjcTranslator {
                 typeSpecifiers: Array(typeSpecifiers.dropFirst()),
                 blockParam: blockParam,
                 nullability: nullability,
-                context: context,
-                pointerCount: pointerCount
+                context: context
             )
         } else if typeSpecifier.UNSIGNED() != nil {
             return try swiftType(
@@ -390,7 +389,6 @@ extension ObjcTranslator {
                 blockParam: blockParam,
                 nullability: nullability,
                 context: context,
-                pointerCount: pointerCount,
                 hasUnsignedPrefix: true
             )
         } else if let _ = typeSpecifier.typeofExpression() {
@@ -546,20 +544,11 @@ extension ObjcTranslator {
                 identifier.getText()
             )
             
-            var newNullability = nullability
-            if let nullabilitySpecifiers = typeSpecifier.pointer()?.declarationSpecifiers()?.nullabilitySpecifier() {
-                if nullabilitySpecifiers.contains(where: { $0.NULLABLE() != nil }) {
-                    newNullability = newNullability.with(propertyNullability: .nullable)
-                } else if nullabilitySpecifiers.contains(where: { $0.NONNULL() != nil }) { 
-                    newNullability = newNullability.with(propertyNullability: .nonnull)
-                }
-            }
-            
             return IdentifierTypeSyntax(
                 name: .identifier(mappedTypeName)
             )
             .optionalized(
-                newNullability,
+                nullability.with(nullabilitySpecifier: typeSpecifier.pointer()?.declarationSpecifiers()?.nullabilitySpecifier()),
                 isObjcPrimitiveType: ObjcSwiftUtils.isObjcPrimitive(identifier.getText())
             )
         }

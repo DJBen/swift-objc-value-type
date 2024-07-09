@@ -7,7 +7,7 @@ import SwiftSyntaxBuilder
 
 extension ObjcTranslator {
     func swiftIdentifier(
-        directDeclarator: P.DirectDeclaratorContext
+        declarator: P.DeclaratorContext
     ) -> TokenSyntax {
         // fieldDeclarator
         //    : declarator
@@ -24,7 +24,7 @@ extension ObjcTranslator {
         //    ;
         
         return .identifier(
-            directDeclarator.identifier()!.getText()
+            declarator.identifier()!.getText()
         )
     }
 }

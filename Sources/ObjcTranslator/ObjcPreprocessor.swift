@@ -87,7 +87,7 @@ public class ObjcPreprocessor {
         // Remove _Pragma
         let pragmaPattern = /_Pragma\(\s*"(?:[^"\\]|\\.)*"\s*\)/
         allText.replace(pragmaPattern, with: "")
-        print(allText)
+//        print(allText)
         return allText
     }
 }

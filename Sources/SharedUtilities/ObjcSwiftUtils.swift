@@ -81,7 +81,7 @@ public enum ObjcSwiftUtils {
         } else if objcType == "void" {
             return "Void"
         } else if objcType == "id" {
-            return "AnyObject"
+            return "Any"
         } else if let mappedSwiftType = objcToSwiftFoundationTypeMap[objcType] {
             return mappedSwiftType
         } else {

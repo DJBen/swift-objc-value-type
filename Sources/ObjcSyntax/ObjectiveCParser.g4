@@ -96,7 +96,7 @@ protocolDeclarationList
     ;
 
 classDeclarationList
-    : '@class' identifier (',' identifier)* ';'
+    : '@class' genericTypeSpecifier (',' genericTypeSpecifier)* ';'
     ;
 
 protocolList
@@ -226,10 +226,8 @@ propertySynthesizeItem
     ;
 
 blockType
-    : nullabilitySpecifier? typeSpecifier nullabilitySpecifier? LP NS_NOESCAPE? '^' (
-        nullabilitySpecifier
-        | typeSpecifier
-    )? RP blockParameters?
+    : nullabilitySpecifier? typeSpecifier nullabilitySpecifier? LP NS_NOESCAPE? '^'
+        nullabilitySpecifier? RP blockParameters?
     ;
 
 genericsSpecifier
@@ -386,7 +384,7 @@ declaration
     ;
 
 functionCallExpression
-    : attributeSpecifier? identifier attributeSpecifier? LP directDeclarator RP ';'
+    : attributeSpecifier? identifier attributeSpecifier? LP declarator RP ';'
     ;
 
 enumDeclaration
@@ -405,11 +403,7 @@ typedefDeclaration
     ;
 
 typeDeclaratorList
-    : typeDeclarator (',' typeDeclarator)*
-    ;
-
-typeDeclarator
-    : pointer? directDeclarator
+    : declarator (',' declarator)*
     ;
 
 declarationSpecifiers
@@ -522,7 +516,8 @@ typeSpecifier
     | genericTypeSpecifier
     | structOrUnionSpecifier
     | enumSpecifier
-    | identifier pointer?
+    | identifier
+    | typeSpecifier pointer
     ;
 
 typeofExpression
@@ -559,7 +554,7 @@ enumeratorIdentifier
     | 'default'
     ;
 
-directDeclarator
+declarator
     : (identifier | LP declarator RP) declaratorSuffix*
     | LP '^' nullabilitySpecifier? identifier? RP blockParameters
     ;
@@ -573,7 +568,7 @@ parameterList
     ;
 
 pointer
-    : '*' declarationSpecifiers? pointer?
+    : '*' declarationSpecifiers?
     ;
 
 macro
@@ -635,8 +630,7 @@ typeName
     ;
 
 abstractDeclarator
-    : pointer abstractDeclarator?
-    | LP abstractDeclarator? RP abstractDeclaratorSuffix+
+    : LP abstractDeclarator? RP abstractDeclaratorSuffix+
     | ('[' constantExpression? ']')+
     ;
 
@@ -652,10 +646,6 @@ parameterDeclarationList
 parameterDeclaration
     : declarationSpecifiers declarator
     | 'void'
-    ;
-
-declarator
-    : pointer? directDeclarator
     ;
 
 statement
