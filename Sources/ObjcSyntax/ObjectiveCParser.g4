@@ -51,6 +51,7 @@ topLevelDeclaration
     | protocolDeclarationList
     | classDeclarationList
     | functionDefinition
+    | ';'
     ;
 
 importDeclaration
@@ -155,6 +156,7 @@ interfaceDeclarationList
         | instanceMethodDeclaration
         | propertyDeclaration
         | functionDeclaration
+        | ';'
     )+
     ;
 
@@ -541,7 +543,7 @@ enumSpecifier
         identifier ('{' enumeratorList '}')?
         | '{' enumeratorList '}'
     )
-    | ('NS_OPTIONS' | 'NS_ENUM' | 'NS_CLOSED_ENUM') LP typeName ',' identifier RP '{' enumeratorList '}'
+    | ('NS_OPTIONS' | 'NS_ENUM' | 'NS_CLOSED_ENUM') LP typeName ',' identifier RP ('{' enumeratorList '}')?
     ;
 
 enumeratorList

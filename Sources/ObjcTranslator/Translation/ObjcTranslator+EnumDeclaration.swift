@@ -31,15 +31,36 @@ extension ObjcTranslator {
                 name: typedefEnumIdentifier.getText(),
                 objcTypeName: typeName
             )
-        } else if enumSpecifier.NS_ENUM() != nil || enumSpecifier.NS_CLOSED_ENUM() != nil, let identifier = enumSpecifier.identifier().first, let typeName = enumSpecifier.typeName()?.getText() {
+        } else if enumSpecifier.NS_ENUM() != nil || enumSpecifier.NS_CLOSED_ENUM() != nil, let identifier = enumSpecifier.identifier().first, let typeName = enumSpecifier.typeName() {
             // typedef NS_ENUM(Iden, type)
             
-            try buildEnumDecl(
-                enumDecl: enumDecl,
-                enumeratorList: enumSpecifier.enumeratorList()!,
-                name: identifier.getText(),
-                objcTypeName: typeName
-            )
+            if let enumeratorList = enumSpecifier.enumeratorList() {
+                try buildEnumDecl(
+                    enumDecl: enumDecl,
+                    enumeratorList: enumeratorList,
+                    name: identifier.getText(),
+                    objcTypeName: typeName.getText()
+                )
+            } else {
+                // Treat definition without an enumerator list as typedef
+                TypeAliasDeclSyntax(
+                    leadingTrivia: .newlines(2) + beforeTrivia(for: enumDecl),
+                    name: .identifier(identifier.getText()),
+                    initializer: TypeInitializerClauseSyntax(
+                        value: try swiftType(
+                            typeName: typeName,
+                            nullability: TypeNullability(
+                                propertyNullability: nil,
+                                isNSAssumeNonnull: true,
+                                isGenericType: false
+                            ),
+                            context: .propertyOrMethodReturnType
+                        )
+                    ),
+                    trailingTrivia: afterTrivia(for: enumDecl)
+                )
+            }
+
         } else if enumSpecifier.NS_OPTIONS() != nil, let identifier = enumSpecifier.identifier().first, let typeName = enumSpecifier.typeName()?.getText() {
             // Note that Swift OptionSet is not backward compatible with Objective-C consumers.
             
