@@ -104,16 +104,18 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
             ).with(\.leadingTrivia, .newline)
         }
         
-        for topLevelDecl in translationUnit.topLevelDeclaration() {
+        for (index, topLevelDecl) in translationUnit.topLevelDeclaration().enumerated() {
             try translate(
-                topLevelDecl
+                topLevelDecl,
+                translationUnitTrivia: index == 0 ? beforeTrivia(for: translationUnit) : Trivia()
             )
         }
     }
     
     @CodeBlockItemListBuilder
     func translate(
-        _ topLevelDecl: ObjectiveCParser.TopLevelDeclarationContext
+        _ topLevelDecl: ObjectiveCParser.TopLevelDeclarationContext,
+        translationUnitTrivia: Trivia
     ) throws -> CodeBlockItemListSyntax {
         if let importDecl = topLevelDecl.importDeclaration() {
             // importDeclaration
@@ -150,8 +152,67 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
                     enumDecl: enumDecl,
                     declLeadingTrivia: beforeTrivia(for: decl)
                 )
-            } else if let _ = decl.varDeclaration() {
-                // Ingore for now
+            } else if let varDecl = decl.varDeclaration() {
+                // For constant holder structs,
+                // port to a @objc class that exposes static constants
+                if let _ = varDecl.declarationSpecifiers()?.typeSpecifier()?.structOrUnionSpecifier(), let initDeclList = varDecl.initDeclaratorList() {
+                    for initDecl in initDeclList.initDeclarator() {
+                        let identifier =  initDecl.declarator()!.identifier()!.getText()
+                        if let initializer = initDecl.initializer(), let structInitializer = initializer.structInitializer() {
+                            ClassDeclSyntax(
+                                leadingTrivia: .newlines(2) + translationUnitTrivia + beforeTrivia(for: decl),
+                                attributes: AttributeListSyntax {
+                                    if existingPrefix.isEmpty {
+                                        "@objc"
+                                    } else {
+                                        "@objc(\(raw: identifier))"
+                                    }
+                                }.with(\.trailingTrivia, .newline),
+                                modifiers: DeclModifierListSyntax {
+                                    if access == .public {
+                                        DeclModifierSyntax(name: .keyword(.public))
+                                    }
+                                },
+                                name: .identifier(identifier.removingPrefix(existingPrefix)),
+                                inheritanceClause: InheritanceClauseSyntax {
+                                    InheritedTypeListSyntax {
+                                        InheritedTypeSyntax(type: IdentifierTypeSyntax(name: .identifier("NSObject")))
+                                    }
+                                },
+                                memberBlockBuilder: {
+                                    // .landingPage = @"landing_page",
+                                    for expression in structInitializer.expression() {
+                                        let constName = expression.unaryExpression()!.getText()
+                                        
+                                        VariableDeclSyntax(
+                                            leadingTrivia: .newlines(2) + beforeTrivia(for: expression),
+                                            attributes: AttributeListSyntax {
+                                                "@objc"
+                                            }.with(\.trailingTrivia, .newline),
+                                            modifiers: DeclModifierListSyntax {
+                                                if access == .public {
+                                                    DeclModifierSyntax(name: .keyword(.public))
+                                                }
+                                                DeclModifierSyntax(name: .keyword(.static))
+                                            },
+                                            bindingSpecifier: .keyword(.let),
+                                            bindingsBuilder: {
+                                                PatternBindingSyntax(
+                                                    pattern: IdentifierPatternSyntax(identifier: .identifier(constName.lowercasingFirst)),
+                                                    initializer: InitializerClauseSyntax(
+                                                        equal: .equalToken(),
+                                                        value: swiftExpr(expression.expression(0)!)
+                                                    )
+                                                )
+                                            }
+                                        )
+                                    }
+                                }
+                            )
+                            
+                        }
+                    }
+                }
             }
         } else if let _ = topLevelDecl.classInterface() {
             // Ignore

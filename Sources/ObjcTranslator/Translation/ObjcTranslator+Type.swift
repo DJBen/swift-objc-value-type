@@ -470,12 +470,20 @@ extension ObjcTranslator {
                     )
                 }
             }
-        } else if let _ = typeSpecifier.structOrUnionSpecifier() {
-            // Ignore struct or union
-            throw ObjcTranslatorError.unsupported(
-                "structOrUnionSpecifier",
-                parseTreeType: String(describing: type(of: typeSpecifier))
-            )
+        } else if let structOrUnion = typeSpecifier.structOrUnionSpecifier() {
+            if structOrUnion.UNION() != nil {
+                // Ignore struct or union
+                throw ObjcTranslatorError.unsupported(
+                    "union",
+                    parseTreeType: String(describing: type(of: typeSpecifier))
+                )
+            } else if structOrUnion.STRUCT() != nil {
+                return IdentifierTypeSyntax(
+                    name: .identifier(
+                        structOrUnion.identifier()!.getText()
+                    )
+                )
+            }
         } else if let _ = typeSpecifier.enumSpecifier() {
             // Ignore explicit enum type declaration
             throw ObjcTranslatorError.unsupported(

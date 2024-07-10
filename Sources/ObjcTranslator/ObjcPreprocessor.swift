@@ -149,9 +149,16 @@ public class ObjcPreprocessor {
                     if param == "..." {
                         replacedBody = replacedBody.replacingOccurrences(of: "__VA_ARGS__", with: args[index...].joined(separator: ","))
                     } else {
+                        // Support stringizing https://gcc.gnu.org/onlinedocs/cpp/Stringizing.html
+                        replacedBody = replacedBody.replacingOccurrences(of: "#\(param)", with: "\"\(arg)\"")
                         replacedBody = replacedBody.replacingOccurrences(of: param, with: arg)
                     }
                 }
+                // Support concatenation https://gcc.gnu.org/onlinedocs/cpp/Concatenation.html
+                replacedBody.replace(/##/) { match in
+                    ""
+                }
+                
                 return replacedBody
             }
         }
@@ -166,7 +173,7 @@ public class ObjcPreprocessor {
         // Remove _Pragma
         let pragmaPattern = /_Pragma\(\s*"(?:[^"\\]|\\.)*"\s*\)/
         allText.replace(pragmaPattern, with: "")
-//        print(allText)
+        print(allText)
         return allText
     }
 }

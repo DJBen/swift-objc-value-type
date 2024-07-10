@@ -287,6 +287,97 @@ final class ObjcTranslatorTests: XCTestCase {
         )
     }
     
+    func testVar_struct() throws {
+        let source = """
+        /// AccessibilityIdentifiers for UI tests
+        const struct UITestAccessibilityIdType UITestAccessibilityId =
+        {
+             .mainPage = @"main_page",
+             .signOut = @"sign_out",
+             .displayButton = @"display_content",
+             .cacheButton = @"cache_content",
+             .browserTab = @"browser_view",
+             .installTab = @"install_view",
+             .linkTab = @"link_view",
+             .mediaTab = @"media_view",
+             .autoCloseEnable = @"auto_close_enable",
+             .autoCloseDisable = @"auto_close_disable",
+             .invalidLinkDisable = @"invalid_link_disable",
+             .invalidLinkEnable = @"invalid_link_enable",
+        }
+        ;
+
+        /// Config passed by UI Tests
+        const struct UITestConfigType UITestConfig =
+        {
+             .browserType = @"browser_type",
+        }
+        ;
+        """
+        
+        let translator = try translator(
+            from: source
+        )
+
+        let result = try translator.translate()
+        
+        assertBuildResult(
+            result,
+            #"""
+            
+            
+            /// AccessibilityIdentifiers for UI tests
+            @objc
+            public class UITestAccessibilityId: NSObject {
+                         
+                @objc
+                public static let mainPage = "main_page"
+
+                @objc
+                public static let signOut = "sign_out"
+
+                @objc
+                public static let displayButton = "display_content"
+
+                @objc
+                public static let cacheButton = "cache_content"
+
+                @objc
+                public static let browserTab = "browser_view"
+
+                @objc
+                public static let installTab = "install_view"
+
+                @objc
+                public static let linkTab = "link_view"
+
+                @objc
+                public static let mediaTab = "media_view"
+
+                @objc
+                public static let autoCloseEnable = "auto_close_enable"
+
+                @objc
+                public static let autoCloseDisable = "auto_close_disable"
+
+                @objc
+                public static let invalidLinkDisable = "invalid_link_disable"
+
+                @objc
+                public static let invalidLinkEnable = "invalid_link_enable"
+            }
+
+            /// Config passed by UI Tests
+            @objc
+            public class UITestConfig: NSObject {
+
+                @objc
+                public static let browserType = "browser_type"
+            }
+            """#
+        )
+    }
+    
     func testProtocol_methods_block() throws {
         let source = """
         @protocol SaverProtocol <NSObject>

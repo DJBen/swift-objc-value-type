@@ -40,6 +40,13 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
     )
     var macroDefinitionPaths: [String] = []
     
+    @Option(
+        name: [.long],
+        parsing: .upToNextOption,
+        help: "A list of defined symbols to pass in preprocessor"
+    )
+    var preprocessorDefines: [String] = []
+    
     @Flag(
         name: .customLong("silent"),
         help: "Disable outputs."
@@ -63,7 +70,7 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
                 )
                 return try preprocessorParser.objectiveCDocument()
             },
-            definedSymbols: []
+            definedSymbols: preprocessorDefines
         )
         
         if fileArguments.sourcePaths.isEmpty && fileArguments.inputFileListPath == nil {
