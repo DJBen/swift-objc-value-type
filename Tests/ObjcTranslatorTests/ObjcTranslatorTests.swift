@@ -436,7 +436,7 @@ final class ObjcTranslatorTests: XCTestCase {
 
         // Optional methods
         @optional
-        @property (nonatomic, strong) NSString *string;
+        @property (nonatomic, strong, nullable) NSString *string;
         
         - (NSString *)titleForItemAtIndex:(NSInteger)index;
         - (void)didSelectItemAtIndex:(NSInteger)index;
@@ -497,7 +497,7 @@ final class ObjcTranslatorTests: XCTestCase {
         
         @property (nonatomic) NSDictionary<NSNumber *, NSString *> *viewTagMap;
         
-        @property (nonatomic, weak) id<Foo, Bar> fooBarDelegate;
+        @property (nonatomic, weak, nullable) id<Foo, Bar> fooBarDelegate;
         
         // Some class method
         + (BOOL)archiveEntryWithFileName:(NSString *)fileName;
@@ -542,7 +542,7 @@ final class ObjcTranslatorTests: XCTestCase {
             @objc(EXViewPresenting)
             public protocol SwiftViewPresenting: NSObjectProtocol {
 
-                var viewTagMap: [NSNumber: String]? {
+                var viewTagMap: [NSNumber: String] {
                     get
                     set
                 }
@@ -576,6 +576,75 @@ final class ObjcTranslatorTests: XCTestCase {
                 /// Method with no type specified
                 @objc
                 func method(noTypeSpecified idArg: Any)
+            }
+            """
+        )
+    }
+    
+    func testClassInterface() throws {
+        let source = """
+        #import <SCBase/SCMacros.h>
+        #import <SCLazy/SCLazy.h>
+
+        #import <SCContactPermissionInfoServices/SCContactPermissionInfoProvider.h>
+        #import <SCContactPermissionInfoServices/SCContactPermissionManager.h>
+
+        #import <Foundation/Foundation.h>
+
+        NS_ASSUME_NONNULL_BEGIN
+
+        /// Provides contactPermissionInfoProvider in a given user scope.
+        @interface SCContactPermissionInfoServices : NSObject
+
+        /// Provides the current cpntact permission status.
+        @property (nonatomic, readonly) SCLazy<id<SCContactPermissionInfoProvider>> *contactPermissionInfoProvider;
+        @property (nonatomic, readonly) SCLazy<id<SCContactPermissionManager>> *contactPermissionManager;
+
+        -(instancetype)init __attribute__((unavailable("init is not available.")));
+        +(instancetype) new __attribute__((unavailable("new is not available")));
+
+        - (instancetype)
+            initWithContactPermissionInfoProvider:(SCLazy<id<SCContactPermissionInfoProvider>> *)contactPermissionInfoProvider
+                         contactPermissionManager:(SCLazy<id<SCContactPermissionManager>> *)contactPermissionManager;
+
+        @end
+
+        NS_ASSUME_NONNULL_END
+
+        """
+        
+        let translator = try translator(
+            from: source,
+            existingPrefix: "SC"
+        )
+
+        let result = try translator.translate()
+        
+        assertBuildResult(
+            result,
+            """
+            
+            import SCBase
+            import SCLazy
+            import SCContactPermissionInfoServices
+            import Foundation
+
+            /// Provides contactPermissionInfoProvider in a given user scope.
+            @objc(SCContactPermissionInfoServices)
+            public class ContactPermissionInfoServices: NSObject {
+
+                @objc
+                public let contactPermissionInfoProvider: SCLazy<SCContactPermissionInfoProvider>
+
+                @objc
+                public let contactPermissionManager: SCLazy<SCContactPermissionManager>
+
+                @objc
+                public init(contactPermissionInfoProvider: SCLazy<SCContactPermissionInfoProvider>, contactPermissionManager: SCLazy<SCContactPermissionManager>) {
+                    self.contactPermissionInfoProvider = contactPermissionInfoProvider
+                    self.contactPermissionManager = contactPermissionManager
+                    super.init()
+                }
             }
             """
         )

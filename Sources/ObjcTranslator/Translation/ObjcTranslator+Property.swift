@@ -50,7 +50,7 @@ extension ObjcTranslator {
                             }
                             return nil
                         }(),
-                        isNSAssumeNonnull: false, // TODO: add NS_ASSUME_NONNULL
+                        isNSAssumeNonnull: isNSAssumeNonnull(propertyDecl),
                         isGenericType: false
                     )
                 )

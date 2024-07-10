@@ -54,9 +54,16 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
     var isSilentMode: Bool = false
     
     @Flag(
-        name: .customLong("keep-going")
+        name: .customLong("keep-going"),
+        help: "Keep processing even encountered error."
     )
     var keepGoingOnError: Bool = false
+    
+    @Flag(
+        name: .long,
+        help: "Copy original source as comment for reference."
+    )
+    var copyOriginalSourceAsComment: Bool = false
     
     func run() throws {
         let charStreams = try macroDefinitionPaths.map {

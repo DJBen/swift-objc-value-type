@@ -214,8 +214,10 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
                     }
                 }
             }
-        } else if let _ = topLevelDecl.classInterface() {
-            // Ignore
+        } else if let classInterface = topLevelDecl.classInterface() {
+            try translate(
+                classInterfaceDecl: classInterface
+            )
         } else if let _ = topLevelDecl.classImplementation() {
             // Ignore
         } else if let _ = topLevelDecl.categoryInterface() {
@@ -224,8 +226,7 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
             // Ignore
         } else if let protocolDecl = topLevelDecl.protocolDeclaration() {
             try translate(
-                protocolDecl: protocolDecl,
-                existingPrefix: existingPrefix
+                protocolDecl: protocolDecl
             )
         } else if let _ = topLevelDecl.protocolDeclarationList() {
             // Forward protocol declaration, ignore

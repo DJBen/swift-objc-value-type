@@ -137,7 +137,7 @@ public class ObjcPreprocessor {
             // Handle function-like macros
             let pattern = Regex {
                 macro.name
-                /\s*\((.*?)\)/
+                /\s*\(((?:.|\n|\r)*?)\)/
             }
             result = result.replacing(pattern) { match in
                 let paramString = String(match.1)
@@ -173,7 +173,7 @@ public class ObjcPreprocessor {
         // Remove _Pragma
         let pragmaPattern = /_Pragma\(\s*"(?:[^"\\]|\\.)*"\s*\)/
         allText.replace(pragmaPattern, with: "")
-//        print(allText)
+        print(allText)
         return allText
     }
 }

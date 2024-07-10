@@ -154,7 +154,7 @@ extension ObjcTranslator {
                         methodDecl.availabilityAttributes
                         "@objc"
                     }
-                        .with(\.trailingTrivia, .newline),
+                    .with(\.trailingTrivia, .newline),
                     signature: funcSignature,
                     trailingTrivia: parentTrailingTrivia + afterTrivia(for: methodDecl)
                 )

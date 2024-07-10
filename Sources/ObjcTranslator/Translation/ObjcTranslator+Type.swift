@@ -478,9 +478,15 @@ extension ObjcTranslator {
                     parseTreeType: String(describing: type(of: typeSpecifier))
                 )
             } else if structOrUnion.STRUCT() != nil {
+                guard let structIdentifier = structOrUnion.identifier()?.getText() else {
+                    throw ObjcTranslatorError.unsupported(
+                        "typedef struct",
+                        parseTreeType: String(describing: type(of: typeSpecifier))
+                    )
+                }
                 return IdentifierTypeSyntax(
                     name: .identifier(
-                        structOrUnion.identifier()!.getText()
+                        structIdentifier
                     )
                 )
             }

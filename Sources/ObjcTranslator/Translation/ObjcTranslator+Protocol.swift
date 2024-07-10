@@ -8,10 +8,8 @@ import SwiftSyntaxBuilder
 extension ObjcTranslator {
     @CodeBlockItemListBuilder
     func translate(
-        protocolDecl: P.ProtocolDeclarationContext,
-        existingPrefix: String
+        protocolDecl: P.ProtocolDeclarationContext
     ) throws -> CodeBlockItemListSyntax {
-        
         try ProtocolDeclSyntax(
             leadingTrivia: .newlines(2) + beforeTrivia(for: protocolDecl),
             attributes: AttributeListSyntax {
@@ -104,10 +102,6 @@ extension ObjcTranslator {
                     isOptionalConformance: isOptionalConformance,
                     sectionBeforeTrivia: firstChild === instanceMethodDecl ? sectionBeforeTrivia: Trivia()
                 )
-            }
-            
-            for functionDecl in interfaceDeclList.functionDeclaration() {
-                
             }
         }
     }
