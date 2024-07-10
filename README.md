@@ -103,7 +103,7 @@ public class ValueObjc: NSObject, NSCopying, NSCoding {
 
     public func encode(with coder: NSCoder) {
         coder.encode(doubleValue, forKey: kDoubleValueKey)
-        coder.encodeObject(optInt, forKey: kOptIntKey)
+        coder.encode(optInt, forKey: kOptIntKey)
         coder.encode(stringArray, forKey: kStringArrayKey)
         coder.encode(map, forKey: kMapKey)
     }

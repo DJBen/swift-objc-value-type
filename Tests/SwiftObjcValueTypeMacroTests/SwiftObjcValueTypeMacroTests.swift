@@ -123,7 +123,7 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
 
                 public func encode(with coder: NSCoder) {
                     coder.encode(doubleValue, forKey: Self.kDoubleValueKey)
-                    coder.encodeObject(optInt, forKey: Self.kOptIntKey)
+                    coder.encode(optInt, forKey: Self.kOptIntKey)
                     coder.encode(stringArray, forKey: Self.kStringArrayKey)
                     coder.encode(map, forKey: Self.kMapKey)
                 }

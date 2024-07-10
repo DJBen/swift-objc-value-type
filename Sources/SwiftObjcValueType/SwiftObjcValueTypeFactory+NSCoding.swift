@@ -185,13 +185,7 @@ extension SwiftObjcValueTypeFactory {
             calledExpression: MemberAccessExprSyntax(
                 base: DeclReferenceExprSyntax(baseName: .identifier("coder")),
                 period: .periodToken(),
-                declName: DeclReferenceExprSyntax(baseName: {
-                    if type.is(OptionalTypeSyntax.self) {
-                        return .identifier("encodeObject")
-                    } else {
-                        return .identifier("encode")
-                    }
-                }())
+                declName: DeclReferenceExprSyntax(baseName: .identifier("encode"))
             ),
             leftParen: .leftParenToken(),
             arguments: LabeledExprListSyntax {
