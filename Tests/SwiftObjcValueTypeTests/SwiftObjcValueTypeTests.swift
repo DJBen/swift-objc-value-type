@@ -94,7 +94,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
         public func encode(with coder: NSCoder) {
             coder.encode(doubleValue, forKey: Self.kDoubleValueKey)
-            coder.encodeConditionalObject(optInt, forKey: Self.kOptIntKey)
+            coder.encodeObject(optInt, forKey: Self.kOptIntKey)
             coder.encode(stringArray, forKey: Self.kStringArrayKey)
             coder.encode(map, forKey: Self.kMapKey)
         }
@@ -563,7 +563,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     coder.encode(doubleValue, forKey: Self.kDoubleValueKey)
                     coder.encode(ref, forKey: Self.kRefKey)
                     coder.encode(ref2, forKey: Self.kRef2Key)
-                    coder.encodeConditionalObject(ref3, forKey: Self.kRef3Key)
+                    coder.encodeObject(ref3, forKey: Self.kRef3Key)
                     coder.encode(foo, forKey: Self.kFooKey)
                     coder.encode(ref4, forKey: Self.kRef4Key)
                 }
@@ -1109,7 +1109,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
                 public func encode(with coder: NSCoder) {
                     coder.encode(doubleValue, forKey: Self.kDoubleValueKey)
-                    coder.encodeConditionalObject(optInt, forKey: Self.kOptIntKey)
+                    coder.encodeObject(optInt, forKey: Self.kOptIntKey)
                     coder.encode(stringArray, forKey: Self.kStringArrayKey)
                     coder.encode(map, forKey: Self.kMapKey)
                 }
@@ -1531,11 +1531,11 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     case .saveSucceeded:
                         coder.encode(saveSucceededSavedToAlpha, forKey: Self.kSaveSucceededSavedToAlphaKey)
                         coder.encode(saveSucceededSavedToBeta, forKey: Self.kSaveSucceededSavedToBetaKey)
-                        coder.encodeConditionalObject(saveSucceededOptFloat, forKey: Self.kSaveSucceededOptFloatKey)
-                        coder.encodeConditionalObject(saveSucceededDisplayName, forKey: Self.kSaveSucceededDisplayNameKey)
+                        coder.encodeObject(saveSucceededOptFloat, forKey: Self.kSaveSucceededOptFloatKey)
+                        coder.encodeObject(saveSucceededDisplayName, forKey: Self.kSaveSucceededDisplayNameKey)
                         coder.encode("SUBTYPE_SAVE_SUCCEEDED", forKey: Self.kCodedSubtypeKey)
                     case .saveFailed:
-                        coder.encodeConditionalObject(saveFailedError, forKey: Self.kSaveFailedErrorKey)
+                        coder.encodeObject(saveFailedError, forKey: Self.kSaveFailedErrorKey)
                         coder.encode("SUBTYPE_SAVE_FAILED", forKey: Self.kCodedSubtypeKey)
                     }
                 }
