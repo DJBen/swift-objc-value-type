@@ -49,7 +49,7 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
     
     @Flag(
         name: .customLong("silent"),
-        help: "Disable outputs."
+        help: "Disable outputs. Useful for evaluating performance."
     )
     var isSilentMode: Bool = false
     
@@ -58,13 +58,7 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
         help: "Keep processing even encountered error."
     )
     var keepGoingOnError: Bool = false
-    
-    @Flag(
-        name: .long,
-        help: "Copy original source as comment for reference."
-    )
-    var copyOriginalSourceAsComment: Bool = false
-    
+
     func run() throws {
         let charStreams = try macroDefinitionPaths.map {
             try ANTLRFileStream($0)

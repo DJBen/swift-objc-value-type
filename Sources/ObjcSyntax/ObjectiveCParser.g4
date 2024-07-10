@@ -874,6 +874,7 @@ identifier
     | ATOMIC
     | NONATOMIC
     | RETAIN
+    | REGISTER
     | AUTORELEASING_QUALIFIER
     | BLOCK
     | BRIDGE_RETAINED

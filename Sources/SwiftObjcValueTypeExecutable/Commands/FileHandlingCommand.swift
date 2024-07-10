@@ -51,6 +51,13 @@ struct FileHandlingArguments: ParsableArguments {
         help: "Enables verbose debug outputs"
     )
     var verbose: Bool = false
+    
+    @Flag(
+        name: .long,
+        help: "Copy original source as comment for reference. Only takes effect if input is from a file not stdin."
+    )
+    var copySourceAsComment: Bool = false
+    
 }
 
 /// A command that has arguments to parse source code
@@ -104,9 +111,9 @@ extension FileHandlingCommand {
         writeBlock: (TextOutputStreamableSink) throws -> Void
     ) throws -> Void {
         guard let outputDir = fileArguments.outputDir else {
-            try writeBlock(
-                FileStreamSink(stream: FileHandlerOutputStream(.standardOutput))
-            )
+            let sink = FileStreamSink(stream: FileHandlerOutputStream(.standardOutput))
+            try copySourceAsComment(sink: sink, inputPath: inputPath)
+            try writeBlock(sink)
             return
         }
 
@@ -146,10 +153,22 @@ extension FileHandlingCommand {
         }
 
         let fileHandle = try FileHandle(forWritingTo: outputUrl)
-
-        try writeBlock(FileStreamSink(stream: FileHandlerOutputStream(fileHandle)))
+        let sink = FileStreamSink(stream: FileHandlerOutputStream(fileHandle))
+        
+        try copySourceAsComment(sink: sink, inputPath: inputPath)
+        try writeBlock(sink)
 
         fileHandle.closeFile()
+    }
+    
+    private func copySourceAsComment(sink: FileStreamSink, inputPath: IteratedPath?) throws {
+        if fileArguments.copySourceAsComment, let path = inputPath?.path {
+            try sink.stream("/\((0..<119).map({ _ in "*"}).joined())\n")
+            try sink.stream("Original source for reference. Please verify generated files and report any issues to #swift-codegen and/or tag authors.\n")
+            try sink.stream("```") // In Xcode, this will format the code section in monospace
+            try sink.stream(String(contentsOfFile: path, encoding: .utf8))
+            try sink.stream("\((0..<119).map({ _ in "*"}).joined())/\n")
+        }
     }
 }
 

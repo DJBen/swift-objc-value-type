@@ -63,7 +63,12 @@ extension ObjcTranslator {
                                     DeclModifierSyntax(name: .keyword(.weak))
                                 }
                             },
-                            bindingSpecifier: .keyword(.let),
+                            bindingSpecifier: {
+                                if attributes.contains(where: { $0.WEAK() != nil }) {
+                                    return .keyword(.var)
+                                }
+                                return .keyword(.let)
+                            }(),
                             bindingsBuilder: {
                                 let identifier = swiftIdentifier(
                                     declarator: propertyDecl.fieldDeclaration()!.fieldDeclaratorList()!.fieldDeclarator(0)!.declarator()!
@@ -183,7 +188,7 @@ extension ObjcTranslator {
                             ),
                             returnClause: {
                                 // Omit for initializers
-                                if methodDecl.methodType()?.typeName()?.getText() == "instancetype" {
+                                if methodDecl.isInitializer {
                                     return nil
                                 }
                                 // Omit for void return types
@@ -197,7 +202,7 @@ extension ObjcTranslator {
                         )
                                                 
                         if !methodDecl.hasUnavailableAttribute {
-                            if methodDecl.methodType()?.typeName()?.getText() == "instancetype" {
+                            if methodDecl.isInitializer {
                                 InitializerDeclSyntax(
                                     leadingTrivia: .newlines(2) + beforeTrivia(for: instanceMethodDecl) + beforeTrivia(for: methodDecl),
                                     attributes: AttributeListSyntax {

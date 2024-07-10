@@ -50,9 +50,6 @@ extension ObjcTranslator {
         }
         
         func with(propertyNullability: PropertyNullability?) -> TypeNullability {
-            guard let propertyNullability else {
-                return self
-            }
             return TypeNullability(
                 propertyNullability: propertyNullability,
                 isNSAssumeNonnull: isNSAssumeNonnull,
@@ -87,18 +84,13 @@ extension ObjcTranslator {
             guard let nullabilitySpecifier else {
                 return self
             }
-            return TypeNullability(
-                propertyNullability: {
-                    if nullabilitySpecifier.contains(where: { $0.NONNULL() != nil }) {
-                        return .nonnull
-                    } else if nullabilitySpecifier.contains(where: { $0.NULLABLE() != nil }) {
-                        return .nullable
-                    }
-                    return nil
-                }(),
-                isNSAssumeNonnull: isNSAssumeNonnull,
-                isGenericType: isGenericType
-            )
+            if nullabilitySpecifier.contains(where: { $0.NONNULL() != nil }) {
+                return with(propertyNullability: .nonnull)
+            } else if nullabilitySpecifier.contains(where: { $0.NULLABLE() != nil }) {
+                return with(propertyNullability: .nullable)
+            }
+            
+            return self
         }
     }
     
@@ -221,14 +213,19 @@ extension ObjcTranslator {
                 parameters: try TupleTypeElementListSyntax {
                     for typeVariableDeclOrName in blockParam.typeVariableDeclaratorOrName() {
                         if let typeVariableDecl = typeVariableDeclOrName.typeVariableDeclarator() {
+                            let identifier = typeVariableDecl.declarator()!.identifier()
                             TupleTypeElementSyntax(
-                                firstName: .identifier(
-                                    typeVariableDecl.declarator()!.identifier()!.getText()
-                                ),
-                                colon: .colonToken(),
+                                firstName: identifier.map {
+                                    .identifier(
+                                        $0.getText()
+                                    )
+                                },
+                                colon: identifier != nil ? .colonToken() : nil,
                                 type: try swiftType(
                                     typeVariableDecl: typeVariableDecl,
-                                    nullability: nullability.with(declarationSpecifiers: typeVariableDecl.declarationSpecifiers()),
+                                    nullability: nullability
+                                        .with(propertyNullability: nil)
+                                        .with(declarationSpecifiers: typeVariableDecl.declarationSpecifiers()),
                                     context: context
                                 )
                             )
@@ -236,7 +233,9 @@ extension ObjcTranslator {
                             TupleTypeElementSyntax(
                                 type: try swiftType(
                                     typeName: typeName,
-                                    nullability: nullability.with(typeName: typeName),
+                                    nullability: nullability
+                                        .with(propertyNullability: nil)
+                                        .with(typeName: typeName),
                                     context: context
                                 )
                             )

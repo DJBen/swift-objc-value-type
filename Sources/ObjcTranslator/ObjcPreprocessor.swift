@@ -137,7 +137,7 @@ public class ObjcPreprocessor {
             // Handle function-like macros
             let pattern = Regex {
                 macro.name
-                /\s*\(((?:.|\n|\r)*?)\)/
+                /\s*\(([\s\S]*?)\)/
             }
             result = result.replacing(pattern) { match in
                 let paramString = String(match.1)

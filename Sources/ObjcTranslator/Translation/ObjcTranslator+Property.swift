@@ -41,18 +41,15 @@ extension ObjcTranslator {
                 
                 let type = try swiftType(
                     propertyDecl: propertyDecl,
-                    nullability: TypeNullability(
-                        propertyNullability: {
-                            if attributes.contains(where: { $0.nullabilitySpecifier()?.NULLABLE() != nil }) {
-                                return .nullable
-                            } else if attributes.contains(where: { $0.nullabilitySpecifier()?.NONNULL() != nil }) {
-                                return .nonnull
-                            }
-                            return nil
-                        }(),
-                        isNSAssumeNonnull: isNSAssumeNonnull(propertyDecl),
-                        isGenericType: false
-                    )
+                    nullability: {
+                        var nullability = TypeNullability(isNSAssumeNonnull: isNSAssumeNonnull(propertyDecl), isGenericType: false)
+                        if attributes.contains(where: { $0.nullabilitySpecifier()?.NULLABLE() != nil }) {
+                            nullability = nullability.with(propertyNullability: .nullable)
+                        } else if attributes.contains(where: { $0.nullabilitySpecifier()?.NONNULL() != nil }) {
+                            nullability = nullability.with(propertyNullability: .nonnull)
+                        }
+                        return nullability
+                    }()
                 )
                 PatternBindingSyntax(
                     pattern: IdentifierPatternSyntax(

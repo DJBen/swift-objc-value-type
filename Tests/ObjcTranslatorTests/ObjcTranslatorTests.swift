@@ -187,6 +187,44 @@ final class ObjcTranslatorTests: XCTestCase {
         )
     }
     
+    func testProtocol_properties_nestedBlocks() throws {
+        let source = """
+        NS_ASSUME_NONNULL_BEGIN
+
+        @protocol ABFoo <NSObject, ABAnotherProtocol>
+
+        @property (nonatomic, copy, nullable) void (^handler_resultsForQuery)
+            (Query *, void (^)(SCResult<QueryResultModel *> *));
+        
+        @end
+        
+        NS_ASSUME_NONNULL_END
+        """
+        
+        let translator = try translator(
+            from: source,
+            existingPrefix: "AB"
+        )
+
+        let result = try translator.translate()
+        
+        assertBuildResult(
+            result,
+            """
+             
+            
+            @objc(ABFoo)
+            public protocol Foo: NSObjectProtocol, ABAnotherProtocol {
+            
+                var handler_resultsForQuery: ((Query, (SCResult<QueryResultModel>) -> Void) -> Void)? {
+                    get
+                    set
+                }
+            }
+            """
+        )
+    }
+    
     func testProtocol_properties() throws {
         let source = """
         typedef unsigned char HelloWorld;
@@ -232,12 +270,43 @@ final class ObjcTranslatorTests: XCTestCase {
                     set
                 }
             
-                var enumerateProviders: (provider: ABProviderProtocol, stop: UnsafeMutablePointer<ObjCBool>) -> Bool {
+                var enumerateProviders: (provider: ABProviderProtocol?, stop: UnsafeMutablePointer<ObjCBool>) -> Bool {
                     get
                     set
                 }
             }
             """
+        )
+    }
+    
+    func testClassInterface_generics() throws {
+        let source = """
+        
+        @interface PluginRegistry<PlugIn> : NSObject
+
+        /// Registers a plug-in
+        - (void)register:(PlugIn)plugIn;
+
+        @end
+        
+        """
+        
+        let translator = try translator(
+            from: source
+        )
+
+        let result = try translator.translate()
+        
+        // Ignore non-initializers for classes
+        assertBuildResult(
+            result,
+            #"""
+            
+            
+            @objc
+            public class PluginRegistry<PlugIn>: NSObject {
+            }
+            """#
         )
     }
     

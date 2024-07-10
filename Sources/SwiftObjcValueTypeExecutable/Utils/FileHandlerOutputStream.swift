@@ -9,7 +9,7 @@ struct FileHandlerOutputStream: TextOutputStream {
         self.encoding = encoding
     }
 
-    mutating func write(_ string: String) {
+    func write(_ string: String) {
         if let data = string.data(using: encoding) {
             fileHandle.write(data)
         }

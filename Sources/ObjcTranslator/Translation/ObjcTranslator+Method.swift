@@ -131,7 +131,7 @@ extension ObjcTranslator {
             ),
             returnClause: {
                 // Omit for initializers
-                if methodDecl.methodType()?.typeName()?.getText() == "instancetype" {
+                if methodDecl.isInitializer {
                     return nil
                 }
                 // Omit for void return types
@@ -147,7 +147,7 @@ extension ObjcTranslator {
         let coalescedTrivia = sectionBeforeTrivia == parentLeadingTrivia ? sectionBeforeTrivia : sectionBeforeTrivia + parentLeadingTrivia
         
         if !methodDecl.hasUnavailableAttribute {
-            if methodDecl.methodType()?.typeName()?.getText() == "instancetype" {
+            if methodDecl.isInitializer {
                 InitializerDeclSyntax(
                     leadingTrivia: .newlines(2) + coalescedTrivia + beforeTrivia(for: methodDecl),
                     attributes: AttributeListSyntax {
@@ -273,6 +273,10 @@ extension P.MethodDeclarationContext {
             }
         }
         return false
+    }
+        
+    var isInitializer: Bool {
+        methodType()?.typeName()?.declarationSpecifiers()?.typeSpecifier()?.genericTypeSpecifier()?.getText() == "instancetype"
     }
 }
 
