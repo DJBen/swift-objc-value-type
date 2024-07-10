@@ -9,10 +9,6 @@ struct GenerateValueTypeCommand: ParsableCommand, FileHandlingCommand {
         commandName: "gen",
         abstract: """
         Generate objc compatible value type interfaces for Swift structs and enums.
-        """,
-        discussion: """
-        A list of gen options available for struct-configs are as followed:
-        - PLACEHOLDER
         """
     )
 

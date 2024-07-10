@@ -20,6 +20,7 @@ swift_library(
         "Translation/ObjcTranslator+Protocol.swift",
         "Translation/ObjcTranslator+Type.swift",
         "Translation/ObjcTranslator+Typedef.swift",
+        "Translation/ObjcTranslator+VarDecl.swift",
     ],
     module_name = "ObjcTranslator",
     visibility = ["//visibility:public"],

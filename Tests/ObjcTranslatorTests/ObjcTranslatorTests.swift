@@ -494,6 +494,8 @@ final class ObjcTranslatorTests: XCTestCase {
     
     func testProtocol_methods_optionalSections() throws {
         let source = """
+        static NSString *const kSomeDeviceId = @"SomeDeviceId";
+
         NS_ASSUME_NONNULL_BEGIN
         
         @protocol DataSourceProtocol <NSObject>
@@ -525,6 +527,9 @@ final class ObjcTranslatorTests: XCTestCase {
             result,
             #"""
             
+            
+            // WARNING: this const declaration is not accessible from ObjC; consider wrap it with a @objc class.
+            public static let kSomeDeviceId = "SomeDeviceId"
             
             @objc
             public protocol DataSourceProtocol: NSObjectProtocol {

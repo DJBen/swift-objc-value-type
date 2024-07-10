@@ -15,6 +15,11 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
         Migrate Objective-C code into Swift code.
         """,
         discussion: """
+        **Features**
+        - Fully supports const declarations, protocols, methods, properties and limitedly supports classes.
+        - Full fledged nullability translation.
+        - Preserves imports and comments.
+        - Simulates C-preprocessor for source expansion.
         """
     )
 
