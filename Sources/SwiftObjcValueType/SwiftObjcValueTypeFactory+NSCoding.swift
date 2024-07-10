@@ -187,7 +187,7 @@ extension SwiftObjcValueTypeFactory {
                 period: .periodToken(),
                 declName: DeclReferenceExprSyntax(baseName: {
                     if type.is(OptionalTypeSyntax.self) {
-                        return .identifier("encodeConditionalObject")
+                        return .identifier("encodeObject")
                     } else {
                         return .identifier("encode")
                     }
