@@ -119,6 +119,32 @@ open class ObjectiveCParserBaseListener: ObjectiveCParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	open func enterGenericConformanceList(_ ctx: ObjectiveCParser.GenericConformanceListContext) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	open func exitGenericConformanceList(_ ctx: ObjectiveCParser.GenericConformanceListContext) { }
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	open func enterGenericConformance(_ ctx: ObjectiveCParser.GenericConformanceContext) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	open func exitGenericConformance(_ ctx: ObjectiveCParser.GenericConformanceContext) { }
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	open func enterProtocolDeclaration(_ ctx: ObjectiveCParser.ProtocolDeclarationContext) { }
 	/**
 	 * {@inheritDoc}
@@ -483,6 +509,19 @@ open class ObjectiveCParserBaseListener: ObjectiveCParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	open func enterGenericsSpecifierList(_ ctx: ObjectiveCParser.GenericsSpecifierListContext) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	open func exitGenericsSpecifierList(_ ctx: ObjectiveCParser.GenericsSpecifierListContext) { }
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	open func enterGenericsSpecifier(_ ctx: ObjectiveCParser.GenericsSpecifierContext) { }
 	/**
 	 * {@inheritDoc}
@@ -490,19 +529,6 @@ open class ObjectiveCParserBaseListener: ObjectiveCParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	open func exitGenericsSpecifier(_ ctx: ObjectiveCParser.GenericsSpecifierContext) { }
-
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	open func enterTypeSpecifierWithPrefixes(_ ctx: ObjectiveCParser.TypeSpecifierWithPrefixesContext) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	open func exitTypeSpecifierWithPrefixes(_ ctx: ObjectiveCParser.TypeSpecifierWithPrefixesContext) { }
 
 	/**
 	 * {@inheritDoc}

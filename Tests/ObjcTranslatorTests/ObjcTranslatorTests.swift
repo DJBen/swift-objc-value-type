@@ -278,38 +278,7 @@ final class ObjcTranslatorTests: XCTestCase {
             """
         )
     }
-    
-    func testClassInterface_generics() throws {
-        let source = """
         
-        @interface PluginRegistry<PlugIn> : NSObject
-
-        /// Registers a plug-in
-        - (void)register:(PlugIn)plugIn;
-
-        @end
-        
-        """
-        
-        let translator = try translator(
-            from: source
-        )
-
-        let result = try translator.translate()
-        
-        // Ignore non-initializers for classes
-        assertBuildResult(
-            result,
-            #"""
-            
-            
-            @objc
-            public class PluginRegistry<PlugIn>: NSObject {
-            }
-            """#
-        )
-    }
-    
     func testMacros() throws {
         let source = """
         NS_ASSUME_NONNULL_BEGIN
@@ -352,6 +321,28 @@ final class ObjcTranslatorTests: XCTestCase {
                 @objc
                 func f()
             }
+            """#
+        )
+    }
+    
+    func testVar_staticConst() throws {
+        let source = """
+        static CGSize const kButtonSize = {50, 50};
+        """
+        
+        let translator = try translator(
+            from: source
+        )
+
+        let result = try translator.translate()
+        
+        assertBuildResult(
+            result,
+            #"""
+            
+            
+            // WARNING: this const declaration is not accessible from ObjC; consider wrap it with a @objc class.
+            public static let kButtonSize = CGSize(50, 50)
             """#
         )
     }
@@ -723,6 +714,88 @@ final class ObjcTranslatorTests: XCTestCase {
             """
         )
     }
+    func testClassInterface_generics() throws {
+        let source = """
+        
+        @interface PluginRegistry<PlugIn> : NSObject
+
+        /// Registers a plug-in
+        - (void)register:(PlugIn)plugIn;
+
+        @end
+        
+        """
+        
+        let translator = try translator(
+            from: source
+        )
+
+        let result = try translator.translate()
+        
+        // Ignore non-initializers for classes
+        assertBuildResult(
+            result,
+            #"""
+            
+            
+            @objc
+            public class PluginRegistry<PlugIn>: NSObject {
+            }
+            """#
+        )
+    }
+
+    
+    func testClassInterface_genericsWithInheritance() throws {
+        let source = """
+        NS_ASSUME_NONNULL_BEGIN
+        
+        @interface GenericTabBarItemContainerDataSource<State, VC : UIViewController *> : GenericDeckContainerDataSource <State, VC>
+        
+        /// See GenericDeckContainerDataSource for the first 4 parameters.
+        /// @param tabBarItemContainer The TabBarItemContainer for which this object is the data source for.
+        - (instancetype)initWithBuilder:(VC (^)(State))builder
+         preserveStateBlock:(nullable State (^)(VC))preserveStateBlock
+         purgeBehavior:(GenericDeckContainerDataSourcePurgeBehavior)purgeBehavior
+         purgeDelay:(NSInteger)purgeDelay
+         tabBarItemContainer:(id<TabBarItemContainer>)tabBarItemContainer;
+        
+        @end
+        
+        NS_ASSUME_NONNULL_END
+        """
+        
+        let translator = try translator(
+            from: source
+        )
+
+        // Just make sure it can parse
+        let _ = try translator.translate()
+    }
+    
+    func testClassInterface_genericsWithCovariance() throws {
+        let source = """
+        NS_ASSUME_NONNULL_BEGIN
+        
+        @interface AccessOrderedDictionary<__covariant KeyType, __covariant ObjectType> : OrderedDictionary <NSCoding>
+
+        - (instancetype)initWithMaxSize:(NSInteger)maxSize;
+
+        - (ObjectType)objectForKey:(KeyType)key updateOrder:(BOOL)updateOrder;
+
+        @end
+        
+        NS_ASSUME_NONNULL_END
+        """
+        
+        let translator = try translator(
+            from: source
+        )
+
+        // Just make sure it can parse
+        let _ = try translator.translate()
+    }
+
     
     private func translator(
         from source: String,

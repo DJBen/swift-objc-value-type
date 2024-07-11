@@ -34,7 +34,11 @@ extension ObjcTranslator {
                             name: .identifier(classInterfaceDecl.superclassName.getText())
                         )
                     )
-                    for protocolItem in (classInterfaceDecl.protocolList()?.protocolName() ?? []) {
+                    // A classInterface may maximumly have two triangular bracketed lists.
+                    // e.g. Subclass specifying the generic type and conforming to NSCopying
+                    // @interface MySpecificClass : MyGenericClass<NSString *> <NSCopying>
+                    // @end
+                    for protocolItem in (classInterfaceDecl.protocolList().first?.protocolName() ?? []) {
                         InheritedTypeSyntax(
                             type: IdentifierTypeSyntax(
                                 name: .identifier(ObjcSwiftUtils.mappingObjcProtocolConformances(protocolName: protocolItem.getText()))

@@ -131,32 +131,6 @@ extension ObjcTranslator {
     }
     
     func swiftType(
-        typeSpecifierWithPrefixes: P.TypeSpecifierWithPrefixesContext,
-        nullability: TypeNullability,
-        context: TypeDeclarationContext
-    ) throws -> any TypeSyntaxProtocol {
-        // typeSpecifierWithPrefixes
-        //    : typePrefix* typeSpecifier
-        //    | typeName
-        //    ;
-
-        if let typeName = typeSpecifierWithPrefixes.typeName() {
-            return try swiftType(
-                typeName: typeName,
-                nullability: nullability,
-                context: context
-            )
-        } else {
-            return try swiftType(
-                typeSpecifier: typeSpecifierWithPrefixes.typeSpecifier()!,
-                blockParam: nil,
-                nullability: nullability,
-                context: context
-            )
-        }
-    }
-    
-    func swiftType(
         typeVariableDecl: P.TypeVariableDeclaratorContext,
         nullability: TypeNullability,
         context: TypeDeclarationContext
@@ -194,6 +168,37 @@ extension ObjcTranslator {
             nullability: nullability,
             context: .propertyOrMethodReturnType
         )
+    }
+    
+    func swiftType(
+        protocolList: P.ProtocolListContext,
+        nullability: TypeNullability
+    ) -> any TypeSyntaxProtocol {
+        // e.g. id or id<AAA, BBB>
+        if protocolList.protocolName().count > 1 {
+            return CompositionTypeSyntax(
+                elements: CompositionTypeElementListSyntax {
+                    for (index, protocolName) in protocolList.protocolName().enumerated() {
+                        CompositionTypeElementSyntax(
+                            type: IdentifierTypeSyntax(name: .identifier(protocolName.getText())),
+                            ampersand: index + 1 < protocolList.protocolName().count ? .binaryOperator("&") : nil
+                        )
+                    }
+                }
+            )
+            .optionalized(
+                nullability,
+                isObjcPrimitiveType: false
+            )
+        } else {
+            return IdentifierTypeSyntax(
+                name: .identifier(protocolList.protocolName().first!.getText())
+            )
+            .optionalized(
+                nullability,
+                isObjcPrimitiveType: false
+            )
+        }
     }
     
     func swiftType(
@@ -339,6 +344,18 @@ extension ObjcTranslator {
             //    : TYPEOF (LP expression RP)
             //    ;
             throw ObjcTranslatorError.unsupported("typeofExpression", parseTreeType: String(describing: type(of: typeSpecifier)))
+        } else if typeSpecifier.ID() != nil {
+            if let protocolList = typeSpecifier.protocolList() {
+                return swiftType(
+                    protocolList: protocolList,
+                    nullability: nullability
+                )
+            } else {
+               return IdentifierTypeSyntax(
+                   name: .identifier("Any")
+               )
+               .optionalized(nullability, isObjcPrimitiveType: false)
+           }
         } else if let genericTypeSpecifier = typeSpecifier.genericTypeSpecifier() {
             // genericTypeSpecifier
             //    : identifier ((LT protocolList GT) | genericsSpecifier)?
@@ -353,43 +370,41 @@ extension ObjcTranslator {
                 typeName
             )
             
-            if let protocolList = genericTypeSpecifier.protocolList() {
-                // e.g. id<AAA, BBB>
-                if protocolList.protocolName().count > 1 {
-                    return CompositionTypeSyntax(
-                        elements: CompositionTypeElementListSyntax {
-                            for (index, protocolName) in protocolList.protocolName().enumerated() {
-                                CompositionTypeElementSyntax(
-                                    type: IdentifierTypeSyntax(name: .identifier(protocolName.getText())),
-                                    ampersand: index + 1 < protocolList.protocolName().count ? .binaryOperator("&") : nil
+            if let protocolConformances = genericTypeSpecifier.protocolList()?.protocolName() {
+                return IdentifierTypeSyntax(
+                    name: .identifier(mappedTypeName),
+                    genericArgumentClause: GenericArgumentClauseSyntax {
+                        GenericArgumentListSyntax {
+                            for protocolConformance in protocolConformances {
+                                GenericArgumentSyntax(
+                                    argument: IdentifierTypeSyntax(
+                                        name: .identifier(protocolConformance.getText())
+                                    )
+                                    .optionalized(
+                                        nullability.with(isGenericType: true),
+                                        isObjcPrimitiveType: false
+                                    )
                                 )
                             }
                         }
-                    )
-                    .optionalized(
-                        nullability,
-                        isObjcPrimitiveType: false
-                    )
-                } else {
-                    return IdentifierTypeSyntax(
-                        name: .identifier(protocolList.protocolName().first!.getText())
-                    )
-                    .optionalized(
-                        nullability,
-                        isObjcPrimitiveType: false
-                    )
-                }
-            } else if let genericsSpecifier = genericTypeSpecifier.genericsSpecifier() {
+                    }
+                )
+                .optionalized(
+                    nullability,
+                    isObjcPrimitiveType: false
+                )
+            } else if let genericConformances = genericTypeSpecifier.genericConformanceList()?.genericConformance() {
                 // Has generic specifiers
                 // e.g. NSDictionary<NSString *, id<AA>> *
                 
                 // Handle special cases for NSArray, NSDictionary
                 if typeName == "NSArray" || typeName == "NSMutableArray" {
                     // Array at most only have one generic arg
-                    if let typeSpecifierWithPrefixes = genericsSpecifier.typeSpecifierWithPrefixes().first {
+                    if let genericsType = genericConformances.first?.genericsType {
                         return ArrayTypeSyntax(
                             element: try swiftType(
-                                typeSpecifierWithPrefixes: typeSpecifierWithPrefixes,
+                                typeSpecifier: genericsType.typeSpecifier()!,
+                                blockParam: nil,
                                 nullability: nullability.with(isGenericType: true), // Objc generics are considered nonnull
                                 context: context
                             )
@@ -400,16 +415,18 @@ extension ObjcTranslator {
                         )
                     }
                 } else if typeName == "NSDictionary" || typeName == "NSMutableDictionary" {
-                    let keyType = genericsSpecifier.typeSpecifierWithPrefixes()[0]
-                    let valueType = genericsSpecifier.typeSpecifierWithPrefixes()[1]
+                    let keyType = genericConformances[0].genericsType!
+                    let valueType = genericConformances[1].genericsType!
                     return DictionaryTypeSyntax(
                         key: try swiftType(
-                            typeSpecifierWithPrefixes: keyType,
+                            typeSpecifier: keyType.typeSpecifier()!,
+                            blockParam: nil,
                             nullability: nullability.with(isGenericType: true), // Objc generics are considered nonnull
                             context: context
                         ),
                         value: try swiftType(
-                            typeSpecifierWithPrefixes: valueType,
+                            typeSpecifier: valueType.typeSpecifier()!,
+                            blockParam: nil,
                             nullability: nullability.with(isGenericType: true), // Objc generics are considered nonnull
                             context: context
                         )
@@ -423,14 +440,17 @@ extension ObjcTranslator {
                         name: .identifier(mappedTypeName),
                         genericArgumentClause: try GenericArgumentClauseSyntax {
                             try GenericArgumentListSyntax {
-                                for typeSpecifierWithPrefixes in genericsSpecifier.typeSpecifierWithPrefixes() {
-                                    GenericArgumentSyntax(
-                                        argument: try swiftType(
-                                            typeSpecifierWithPrefixes: typeSpecifierWithPrefixes,
-                                            nullability: nullability.with(isGenericType: true), // Objc generics are considered nonnull
-                                            context: context
+                                for genericConformance in genericConformances {
+                                    if let genericsType = genericConformance.genericsType {
+                                        GenericArgumentSyntax(
+                                            argument: try swiftType(
+                                                typeSpecifier: genericsType.typeSpecifier()!,
+                                                blockParam: nil,
+                                                nullability: nullability.with(isGenericType: true), // Objc generics are considered nonnull
+                                                context: context
+                                            )
                                         )
-                                    )
+                                    }
                                 }
                             }
                         }
@@ -496,21 +516,30 @@ extension ObjcTranslator {
                 parseTreeType: String(describing: type(of: typeSpecifier))
             )
         } else if let identifier = typeSpecifier.identifier() {
-            // This happens to `NSNumber *` within `NSDictionary<NSNumber *, NSString *>`
-            let mappedTypeName = ObjcSwiftUtils.mappingObjcTypeToSwift(
-                identifier.getText()
-            )
-            
-            return IdentifierTypeSyntax(
-                name: .identifier(mappedTypeName)
-            )
-            .optionalized(
-                nullability,
-                isObjcPrimitiveType: ObjcSwiftUtils.isObjcPrimitive(identifier.getText())
+            return swiftType(
+                identifier: identifier,
+                nullability: nullability
             )
         }
             
         fatalError("Unknown typeSpecifier")
+    }
+    
+    func swiftType(
+        identifier: P.IdentifierContext,
+        nullability: TypeNullability
+    ) -> any TypeSyntaxProtocol {
+        let mappedTypeName = ObjcSwiftUtils.mappingObjcTypeToSwift(
+            identifier.getText()
+        )
+        
+        return IdentifierTypeSyntax(
+            name: .identifier(mappedTypeName)
+        )
+        .optionalized(
+            nullability,
+            isObjcPrimitiveType: ObjcSwiftUtils.isObjcPrimitive(identifier.getText())
+        )
     }
 }
 

@@ -76,7 +76,7 @@ extension ObjcTranslator {
             for initDecl in initDeclList.initDeclarator() {
                 let identifier = initDecl.declarator()!.identifier()!.getText()
                 if let initializer = initDecl.initializer() {
-                    VariableDeclSyntax(
+                    try VariableDeclSyntax(
                         leadingTrivia: .newlines(2) + translationUnitTrivia + declLeadingTrivia + beforeTrivia(for: varDecl) + .lineComment("// WARNING: this const declaration is not accessible from ObjC; consider wrap it with a @objc class.") + .newline,
                         modifiers: DeclModifierListSyntax {
                             if access == .public {
@@ -90,7 +90,21 @@ extension ObjcTranslator {
                                 pattern: IdentifierPatternSyntax(identifier: .identifier(identifier)),
                                 initializer: InitializerClauseSyntax(
                                     equal: .equalToken(),
-                                    value: swiftExpr(initializer.expression()!)
+                                    value: try { () -> ExprSyntax in
+                                        if let expression = initializer.expression() {
+                                            return ExprSyntax(swiftExpr(expression))
+                                        } else if let arrayInitializer = initializer.arrayInitializer(), let typeName = varDecl.declarationSpecifiers()?.typeSpecifier()?.genericTypeSpecifier()?.getText() {
+                                            let swiftTypeName = ObjcSwiftUtils.mappingObjcTypeToSwift(typeName)
+
+                                            // e.g. static CGSize const kButtonSize = {50, 50};
+                                            let str = (arrayInitializer.expressions()?.expression() ?? [])
+                                                .map({ String(describing: swiftExpr($0)) })
+                                                .joined(separator: ", ")
+                                            return ExprSyntax("\(raw: swiftTypeName)(\(raw: str))")
+                                        } else {
+                                            throw ObjcTranslatorError.unsupported("initializer", parseTreeType: "expression")
+                                        }
+                                    }()
                                 )
                             )
                         },

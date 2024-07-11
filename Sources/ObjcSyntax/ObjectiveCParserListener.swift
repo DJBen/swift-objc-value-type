@@ -103,6 +103,30 @@ public protocol ObjectiveCParserListener: ParseTreeListener {
 	 */
 	func exitGenericTypeSpecifier(_ ctx: ObjectiveCParser.GenericTypeSpecifierContext)
 	/**
+	 * Enter a parse tree produced by {@link ObjectiveCParser#genericConformanceList}.
+	 - Parameters:
+	   - ctx: the parse tree
+	 */
+	func enterGenericConformanceList(_ ctx: ObjectiveCParser.GenericConformanceListContext)
+	/**
+	 * Exit a parse tree produced by {@link ObjectiveCParser#genericConformanceList}.
+	 - Parameters:
+	   - ctx: the parse tree
+	 */
+	func exitGenericConformanceList(_ ctx: ObjectiveCParser.GenericConformanceListContext)
+	/**
+	 * Enter a parse tree produced by {@link ObjectiveCParser#genericConformance}.
+	 - Parameters:
+	   - ctx: the parse tree
+	 */
+	func enterGenericConformance(_ ctx: ObjectiveCParser.GenericConformanceContext)
+	/**
+	 * Exit a parse tree produced by {@link ObjectiveCParser#genericConformance}.
+	 - Parameters:
+	   - ctx: the parse tree
+	 */
+	func exitGenericConformance(_ ctx: ObjectiveCParser.GenericConformanceContext)
+	/**
 	 * Enter a parse tree produced by {@link ObjectiveCParser#protocolDeclaration}.
 	 - Parameters:
 	   - ctx: the parse tree
@@ -439,6 +463,18 @@ public protocol ObjectiveCParserListener: ParseTreeListener {
 	 */
 	func exitBlockType(_ ctx: ObjectiveCParser.BlockTypeContext)
 	/**
+	 * Enter a parse tree produced by {@link ObjectiveCParser#genericsSpecifierList}.
+	 - Parameters:
+	   - ctx: the parse tree
+	 */
+	func enterGenericsSpecifierList(_ ctx: ObjectiveCParser.GenericsSpecifierListContext)
+	/**
+	 * Exit a parse tree produced by {@link ObjectiveCParser#genericsSpecifierList}.
+	 - Parameters:
+	   - ctx: the parse tree
+	 */
+	func exitGenericsSpecifierList(_ ctx: ObjectiveCParser.GenericsSpecifierListContext)
+	/**
 	 * Enter a parse tree produced by {@link ObjectiveCParser#genericsSpecifier}.
 	 - Parameters:
 	   - ctx: the parse tree
@@ -450,18 +486,6 @@ public protocol ObjectiveCParserListener: ParseTreeListener {
 	   - ctx: the parse tree
 	 */
 	func exitGenericsSpecifier(_ ctx: ObjectiveCParser.GenericsSpecifierContext)
-	/**
-	 * Enter a parse tree produced by {@link ObjectiveCParser#typeSpecifierWithPrefixes}.
-	 - Parameters:
-	   - ctx: the parse tree
-	 */
-	func enterTypeSpecifierWithPrefixes(_ ctx: ObjectiveCParser.TypeSpecifierWithPrefixesContext)
-	/**
-	 * Exit a parse tree produced by {@link ObjectiveCParser#typeSpecifierWithPrefixes}.
-	 - Parameters:
-	   - ctx: the parse tree
-	 */
-	func exitTypeSpecifierWithPrefixes(_ ctx: ObjectiveCParser.TypeSpecifierWithPrefixesContext)
 	/**
 	 * Enter a parse tree produced by {@link ObjectiveCParser#dictionaryExpression}.
 	 - Parameters:

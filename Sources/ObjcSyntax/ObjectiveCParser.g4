@@ -61,7 +61,7 @@ importDeclaration
 classInterface
     : IB_DESIGNABLE? '@interface' className = genericTypeSpecifier (
         ':' superclassName = identifier
-    )? (LT protocolList GT)? instanceVariables? interfaceDeclarationList? '@end'
+    )? (LT (protocolList | genericConformanceList) GT)* instanceVariables? interfaceDeclarationList? '@end'
     ;
 
 categoryInterface
@@ -79,7 +79,15 @@ categoryImplementation
     ;
 
 genericTypeSpecifier
-    : identifier ((LT protocolList GT) | genericsSpecifier)?
+    : identifier (LT (protocolList | genericConformanceList) GT)?
+    ;
+
+genericConformanceList
+    : genericConformance (',' genericConformance)*
+    ;
+
+genericConformance
+    : genericsType = declarationSpecifiers (':' genericsParentType = declarationSpecifiers)?
     ;
 
 protocolDeclaration
@@ -230,13 +238,12 @@ blockType
         nullabilitySpecifier? RP blockParameters?
     ;
 
-genericsSpecifier
-    : LT (typeSpecifierWithPrefixes (',' typeSpecifierWithPrefixes)*)? GT
+genericsSpecifierList
+    : LT (genericsSpecifier (',' genericsSpecifier)*)? GT
     ;
-
-typeSpecifierWithPrefixes
-    : typePrefix* typeSpecifier
-    | typeName
+    
+genericsSpecifier
+    : genericsType = typeSpecifier (':' genericsConformanceType = typeSpecifier)?
     ;
 
 dictionaryExpression
@@ -511,6 +518,7 @@ typeSpecifier
     | structOrUnionSpecifier
     | enumSpecifier
     | nsEnumOrOptionSpecifier
+    | 'id' (LT protocolList GT)? (arcBehaviourSpecifier | nullabilitySpecifier | typeQualifier)*
     | genericTypeSpecifier (arcBehaviourSpecifier | nullabilitySpecifier | typeQualifier)*
     | identifier (arcBehaviourSpecifier | nullabilitySpecifier | typeQualifier)*
     | typeSpecifier '*' (arcBehaviourSpecifier | nullabilitySpecifier | typeQualifier)*

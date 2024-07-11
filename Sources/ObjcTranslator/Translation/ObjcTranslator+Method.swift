@@ -274,7 +274,7 @@ extension P.MethodDeclarationContext {
         }
         return false
     }
-        
+
     var isInitializer: Bool {
         methodType()?.typeName()?.declarationSpecifiers()?.typeSpecifier()?.genericTypeSpecifier()?.getText() == "instancetype"
     }
