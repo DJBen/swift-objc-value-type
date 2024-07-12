@@ -654,6 +654,8 @@ final class ObjcTranslatorTests: XCTestCase {
         #import <ContactPermissionInfoServices/ContactPermissionManager.h>
 
         #import <Foundation/Foundation.h>
+        // Comments to @import
+        @import CoreGraphics;
 
         NS_ASSUME_NONNULL_BEGIN
 
@@ -688,10 +690,12 @@ final class ObjcTranslatorTests: XCTestCase {
             result,
             """
             
+            /// Top level comments
             import ContactPermissionInfoServices
             import Foundation
+            // Comments to @import
+            import CoreGraphics
             
-            /// Top level comments
             /// Provides contactPermissionInfoProvider in a given user scope.
             @objc
             public class ContactPermissionInfoServices: NSObject {

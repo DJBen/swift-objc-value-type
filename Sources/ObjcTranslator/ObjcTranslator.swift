@@ -67,15 +67,29 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
         }
         self.nsAssumeNonnullRanges = nsAssumeNonnullRanges
         assignTrivia(
+            directives: directives,
             tree: translationUnit,
             commentTokens: collector.commentTokens
         )
     }
     
+    struct DedupedImportDirective: Hashable {
+        let importString: String
+        let interval: Interval
+        
+        func hash(into hasher: inout Hasher) {
+            hasher.combine(importString)
+        }
+        
+        static func == (lhs: DedupedImportDirective, rhs: DedupedImportDirective) -> Bool {
+            return lhs.importString == rhs.importString
+        }
+    }
+    
     @CodeBlockItemListBuilder
     public func translate() throws -> CodeBlockItemListSyntax {
-        let importedLibraries: OrderedSet<String> = {
-            var set = OrderedSet<String>()
+        let importedLibraries: OrderedSet<DedupedImportDirective> = {
+            var set = OrderedSet<DedupedImportDirective>()
             for directive in directives {
                 switch directive {
                 case let ctx as PP.PreprocessorImportContext:
@@ -84,7 +98,12 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
                         // Only import A from `#import <A/B.h>`
                         // and ignore `#import "C.h"`
                         if let match = importSubject.getText().firstMatch(of: /<([\w_]+)\/[\w_]+\.\w+>/) {
-                            set.append(String(match.1))
+                            set.append(
+                                DedupedImportDirective(
+                                    importString: String(match.1),
+                                    interval: directive.getSourceInterval()
+                                )
+                            )
                         }
                     }
                 default:
@@ -96,12 +115,13 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
 
         for importedLibrary in importedLibraries {
             ImportDeclSyntax(
+                leadingTrivia: .newline + beforeTrivia(for: importedLibrary.interval),
                 path: ImportPathComponentListSyntax {
                     ImportPathComponentSyntax(
-                        name: .identifier(importedLibrary)
+                        name: .identifier(importedLibrary.importString)
                     )
                 }
-            ).with(\.leadingTrivia, .newline)
+            )
         }
         
         for (index, topLevelDecl) in translationUnit.topLevelDeclaration().enumerated() {
@@ -122,6 +142,7 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
             //    : '@import' identifier ';'
             //    ;
             ImportDeclSyntax(
+                leadingTrivia: translationUnitTrivia + beforeTrivia(for: importDecl),
                 path: ImportPathComponentListSyntax {
                     if let importSubject = importDecl.identifier()?.getText() {
                         ImportPathComponentSyntax(
@@ -205,24 +226,39 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
     }
     
     private func assignTrivia<Tree: ParseTree>(
+        directives: [PP.DirectiveContext],
         tree: Tree,
         commentTokens: [Token]
     ) {
         var commentTokens = commentTokens
+        for directive in directives {
+            switch directive {
+            case let ctx as PP.PreprocessorImportContext:
+                if ctx.IMPORT() != nil {
+                    let commentsAssociatedWithImport = taking(tokens: &commentTokens, until: ctx.getSourceInterval().a)
+                    for comment in commentsAssociatedWithImport {
+                        appendToBeforeTrivia(target: ctx.getSourceInterval(), token: comment)
+                    }
+                }
+            default:
+                break
+            }
+        }
+        
         assignTrivia(
             tree: tree,
-            commentTokens: &commentTokens
+            tokens: &commentTokens
         )
     }
     
     // Algorithm adapted from http://meri-stuff.blogspot.com/2012/09/tackling-comments-in-antlr-compiler.html
     private func assignTrivia<Tree: ParseTree>(
         tree: Tree,
-        commentTokens: inout [Token]
+        tokens: inout [Token]
     ) {
         if let rule = tree as? RuleNode, rule.getChildCount() > 0 {
             let startTokenIndex = tree.getSourceInterval().a
-            let leadingTokens = taking(commentTokens: &commentTokens, until: startTokenIndex)
+            let leadingTokens = taking(tokens: &tokens, until: startTokenIndex)
             for token in leadingTokens {
                 appendToBeforeTrivia(
                     target: tree.getSourceInterval(),
@@ -236,7 +272,7 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
                 
                 assignTrivia(
                     tree: child,
-                    commentTokens: &commentTokens
+                    tokens: &tokens
                 )
                 
                 if child is RuleNode {
@@ -245,7 +281,7 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
             }
             
             let endTokenIndex = tree.getSourceInterval().b
-            let trailingTokens = taking(commentTokens: &commentTokens, until: endTokenIndex)
+            let trailingTokens = taking(tokens: &tokens, until: endTokenIndex)
             for token in trailingTokens {
                 if let prevNonTerminalChild {
                     appendToAfterTrivia(target: prevNonTerminalChild.getSourceInterval(), token: token)
@@ -256,20 +292,20 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
         }
     }
     
-    private func taking(commentTokens: inout [Token], until endTokenIndex: Int) -> [Token] {
-        if let endIndex = commentTokens.firstIndex(where: { $0.getTokenIndex() > endTokenIndex }) {
-            let result = Array(commentTokens[..<endIndex])
-            commentTokens = Array(commentTokens[endIndex...])
+    private func taking(tokens: inout [Token], until endTokenIndex: Int) -> [Token] {
+        if let endIndex = tokens.firstIndex(where: { $0.getTokenIndex() > endTokenIndex }) {
+            let result = Array(tokens[..<endIndex])
+            tokens = Array(tokens[endIndex...])
             return result
         } else {
-            let result = commentTokens
-            commentTokens = []
+            let result = tokens
+            tokens = []
             return result
         }
     }
     
-    func beforeTrivia(for tree: SyntaxTree) -> Trivia {
-        if let tokens = beforeTriviaMap[tree.getSourceInterval()] {
+    func beforeTrivia(for interval: Interval) -> Trivia {
+        if let tokens = beforeTriviaMap[interval] {
             return tokens.compactMap { token in
                 convertingToSwiftDocs(token.getText()).map {
                     Trivia(pieces: [.lineComment($0), .newlines(1)])
@@ -278,6 +314,10 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
         } else {
             return Trivia()
         }
+    }
+    
+    func beforeTrivia(for tree: SyntaxTree) -> Trivia {
+        beforeTrivia(for: tree.getSourceInterval())
     }
     
     func afterTrivia(for tree: SyntaxTree) -> Trivia {
