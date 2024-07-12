@@ -33,19 +33,25 @@ extension ObjcTranslator {
                     )
                 }
             }(),
-            inheritanceClause: protocolDecl.protocolList().map { protocolList in
-                InheritanceClauseSyntax {
+            inheritanceClause: {
+                let nonNSObjectConformances = protocolDecl.protocolList()?.protocolName().filter({ $0.getText() != "NSObject" }) ?? []
+                if nonNSObjectConformances.isEmpty {
+                    return nil
+                }
+                return InheritanceClauseSyntax {
                     InheritedTypeListSyntax {
-                        for protocolItem in protocolList.protocolName() {
-                            InheritedTypeSyntax(
-                                type: IdentifierTypeSyntax(
-                                    name: .identifier(ObjcSwiftUtils.mappingObjcProtocolConformances(protocolName: protocolItem.getText()))
+                        for protocolItem in nonNSObjectConformances {
+                            if protocolItem.getText() != "NSObject" {
+                                InheritedTypeSyntax(
+                                    type: IdentifierTypeSyntax(
+                                        name: .identifier(protocolItem.getText())
+                                    )
                                 )
-                            )
+                            }
                         }
                     }
                 }
-            },
+            }(),
             memberBlockBuilder: {
                 for section in protocolDecl.protocolDeclarationSection() {
                     try interfaceDeclList(
