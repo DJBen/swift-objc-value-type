@@ -648,29 +648,28 @@ final class ObjcTranslatorTests: XCTestCase {
     
     func testClassInterface() throws {
         let source = """
-        #import <SCBase/SCMacros.h>
-        #import <SCLazy/SCLazy.h>
-
-        #import <SCContactPermissionInfoServices/SCContactPermissionInfoProvider.h>
-        #import <SCContactPermissionInfoServices/SCContactPermissionManager.h>
+        /// Top level comments
+        
+        #import <ContactPermissionInfoServices/ContactPermissionInfoProvider.h>
+        #import <ContactPermissionInfoServices/ContactPermissionManager.h>
 
         #import <Foundation/Foundation.h>
 
         NS_ASSUME_NONNULL_BEGIN
 
         /// Provides contactPermissionInfoProvider in a given user scope.
-        @interface SCContactPermissionInfoServices : NSObject
+        @interface ContactPermissionInfoServices : NSObject
 
-        /// Provides the current cpntact permission status.
-        @property (nonatomic, readonly) SCLazy<id<SCContactPermissionInfoProvider>> *contactPermissionInfoProvider;
-        @property (nonatomic, readonly) SCLazy<id<SCContactPermissionManager>> *contactPermissionManager;
+        /// Provides the current contact permission status.
+        @property (nonatomic, readonly) Lazy<id<ContactPermissionInfoProvider>> *contactPermissionInfoProvider;
+        @property (nonatomic, readonly) Lazy<id<ContactPermissionManager>> *contactPermissionManager;
 
         -(instancetype)init __attribute__((unavailable("init is not available.")));
         +(instancetype) new __attribute__((unavailable("new is not available")));
 
         - (instancetype)
-            initWithContactPermissionInfoProvider:(SCLazy<id<SCContactPermissionInfoProvider>> *)contactPermissionInfoProvider
-                         contactPermissionManager:(SCLazy<id<SCContactPermissionManager>> *)contactPermissionManager;
+            initWithContactPermissionInfoProvider:(Lazy<id<ContactPermissionInfoProvider>> *)contactPermissionInfoProvider
+                         contactPermissionManager:(Lazy<id<ContactPermissionManager>> *)contactPermissionManager;
 
         @end
 
@@ -680,7 +679,7 @@ final class ObjcTranslatorTests: XCTestCase {
         
         let translator = try translator(
             from: source,
-            existingPrefix: "SC"
+            existingPrefix: ""
         )
 
         let result = try translator.translate()
@@ -689,23 +688,22 @@ final class ObjcTranslatorTests: XCTestCase {
             result,
             """
             
-            import SCBase
-            import SCLazy
-            import SCContactPermissionInfoServices
+            import ContactPermissionInfoServices
             import Foundation
-
+            
+            /// Top level comments
             /// Provides contactPermissionInfoProvider in a given user scope.
-            @objc(SCContactPermissionInfoServices)
+            @objc
             public class ContactPermissionInfoServices: NSObject {
 
                 @objc
-                public let contactPermissionInfoProvider: SCLazy<SCContactPermissionInfoProvider>
+                public let contactPermissionInfoProvider: Lazy<ContactPermissionInfoProvider>
 
                 @objc
-                public let contactPermissionManager: SCLazy<SCContactPermissionManager>
+                public let contactPermissionManager: Lazy<ContactPermissionManager>
 
                 @objc
-                public init(contactPermissionInfoProvider: SCLazy<SCContactPermissionInfoProvider>, contactPermissionManager: SCLazy<SCContactPermissionManager>) {
+                public init(contactPermissionInfoProvider: Lazy<ContactPermissionInfoProvider>, contactPermissionManager: Lazy<ContactPermissionManager>) {
                     self.contactPermissionInfoProvider = contactPermissionInfoProvider
                     self.contactPermissionManager = contactPermissionManager
                     super.init()
