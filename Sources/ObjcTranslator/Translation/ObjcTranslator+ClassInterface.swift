@@ -41,7 +41,7 @@ extension ObjcTranslator {
                     for protocolItem in (classInterfaceDecl.protocolList().first?.protocolName() ?? []) {
                         InheritedTypeSyntax(
                             type: IdentifierTypeSyntax(
-                                name: .identifier(protocolItem.getText())
+                                name: .identifier(ObjcSwiftUtils.mappingObjcProtocolConformances(protocolName: protocolItem.getText()))
                             )
                         )
                     }

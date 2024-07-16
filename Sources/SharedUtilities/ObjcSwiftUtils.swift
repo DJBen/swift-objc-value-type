@@ -106,4 +106,13 @@ public enum ObjcSwiftUtils {
             return objcType.contains(Self.primitiveCIntRegex) || objcType.contains(Self.primitiveCIntTRegex)
         }
     }
+
+    public static func mappingObjcProtocolConformances(
+        protocolName: String
+    ) -> String {
+        if protocolName == "NSObject" {
+            return "NSObjectProtocol"
+        }
+        return protocolName
+    }
 }

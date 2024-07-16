@@ -214,7 +214,7 @@ final class ObjcTranslatorTests: XCTestCase {
              
             
             @objc(ABFoo)
-            public protocol Foo: ABAnotherProtocol {
+            public protocol Foo: NSObjectProtocol, ABAnotherProtocol {
             
                 var handler_resultsForQuery: ((Query, (SCResult<QueryResultModel>) -> Void) -> Void)? {
                     get
@@ -259,7 +259,7 @@ final class ObjcTranslatorTests: XCTestCase {
             typealias ABCharactorCompletionBlock = (gender: ABGender?, style: ABStyle?, characterData: [AnyHashable: Any]?, versionedId: String?) -> Void
             
             @objc(ABFoo)
-            public protocol Foo: ABAnotherProtocol {
+            public protocol Foo: NSObjectProtocol, ABAnotherProtocol {
                     
                 var string: String? {
                     get
@@ -309,7 +309,7 @@ final class ObjcTranslatorTests: XCTestCase {
 
             
             @objc
-            public protocol AdsNetworking {
+            public protocol AdsNetworking: NSObjectProtocol {
 
                 @available(iOS 14.5, *)
                 @available(macOS, unavailable) 
@@ -468,7 +468,7 @@ final class ObjcTranslatorTests: XCTestCase {
             
             
             @objc
-            public protocol SaverProtocol {
+            public protocol SaverProtocol: NSObjectProtocol {
 
                 /**
              This override the existing sections with mutated results.
@@ -523,7 +523,7 @@ final class ObjcTranslatorTests: XCTestCase {
             public static let kSomeDeviceId = "SomeDeviceId"
             
             @objc
-            public protocol DataSourceProtocol {
+            public protocol DataSourceProtocol: NSObjectProtocol {
 
                 // Required methods
                 @objc
@@ -605,7 +605,7 @@ final class ObjcTranslatorTests: XCTestCase {
             
             /// Responsible for presenting the view.
             @objc(EXViewPresenting)
-            public protocol SwiftViewPresenting {
+            public protocol SwiftViewPresenting: NSObjectProtocol {
 
                 var viewTagMap: [NSNumber: String] {
                     get
