@@ -30,7 +30,14 @@ public extension String {
         return result
     }
     
-    func removingPrefix(_ prefix: String) -> String {
+    func removingPrefix(
+        _ prefix: String,
+        typeRegexesExcludedFromPrefixStripping: [any RegexComponent]
+    ) -> String {
+        if typeRegexesExcludedFromPrefixStripping.contains(where: { self.contains($0) }) {
+            return self
+        }
+
         if hasPrefix(prefix) {
             return String(dropFirst(prefix.count))
         } else {

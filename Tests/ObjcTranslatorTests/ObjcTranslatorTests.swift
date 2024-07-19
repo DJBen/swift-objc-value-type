@@ -798,12 +798,74 @@ final class ObjcTranslatorTests: XCTestCase {
         let _ = try translator.translate()
     }
 
+    func testPrefixStripping() throws {
+        let source = """
+        NS_ASSUME_NONNULL_BEGIN
+        
+        @interface PFFoo: NSObject
+
+        @end
+        
+        @protocol PFHelloProtocol <NSObject>
+        
+        // First comment
+        - (PFFoo *)handle:(nullable NSArray<PFFoo *> *)foos;
+        
+        @end
+        
+        @interface PFSomeServices: NSObject
+        
+        // First comment
+        @property (nonatomic, weak, nullable) id<PFHelloProtocol> delegate;
+        
+        @end
+        
+        NS_ASSUME_NONNULL_END
+        """
+        
+        let translator = try translator(
+            from: source,
+            existingPrefix: "PF",
+            typeRegexesExcludedFromPrefixStripping: [/Services$/]
+        )
+
+        let result = try translator.translate()
+        
+        // Ignore non-initializers for classes
+        assertBuildResult(
+            result,
+            #"""
+            
+            
+            @objc(PFFoo)
+            public class Foo: NSObject {
+            }
+            
+            @objc(PFHelloProtocol)
+            public protocol HelloProtocol: NSObjectProtocol {
+            
+                // First comment
+                @objc
+                func handle(foos: [Foo]?) -> Foo
+            }
+            
+            @objc
+            public class PFSomeServices: NSObject {
+            
+                // First comment
+                @objc
+                public weak var delegate: HelloProtocol?
+            }
+            """#
+        )
+    }
     
     private func translator(
         from source: String,
         existingPrefix: String = "",
-        access: ObjcTranslator<ObjectiveCLexer>.Access = .public
-    ) throws -> ObjcTranslator<ObjectiveCLexer> {
+        typeRegexesExcludedFromPrefixStripping: [any RegexComponent] = [],
+        access: ObjcTranslator.Access = .public
+    ) throws -> ObjcTranslator {
         let collector = CollectorTokenSource(
             source: ObjectiveCLexer(ANTLRInputStream(source))
         )
@@ -835,8 +897,10 @@ final class ObjcTranslatorTests: XCTestCase {
             collector: collector,
             directives: directives,
             translationUnit: translationUnit,
-            existingPrefix: existingPrefix,
-            access: access
+            existingPrefix: existingPrefix, 
+            typeRegexesExcludedFromPrefixStripping: typeRegexesExcludedFromPrefixStripping,
+            access: access, 
+            otherTypeMigrations: nil
         )
     }
 }

@@ -1,5 +1,6 @@
 import Foundation
 import SharedUtilities
+import OrderedCollections
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
@@ -17,13 +18,18 @@ let aliasedRemodelPrimitiveTypeRegex = /(\w+)\((\w+)\)/
 
 /// Generate Swift models (enums or structs) from Remodel models.
 public class RemodelSwiftFactory {
-    public init() {}
+    let typeMigrations: TypeMigrations
+    
+    public init(
+        typeMigrations: TypeMigrations = TypeMigrations()
+    ) {
+        self.typeMigrations = typeMigrations
+    }
 
     @CodeBlockItemListBuilder
     public func generate(
         _ model: RMModelSyntax,
-        imports: [String] = [],
-        existingPrefix: String = ""
+        imports: [String] = []
     ) throws -> CodeBlockItemListSyntax {
         try CodeBlockItemListSyntax {
             for `import` in imports {
@@ -34,9 +40,9 @@ public class RemodelSwiftFactory {
 
             switch model.type {
             case .value:
-                for decl in try generateValue(model, existingPrefix: existingPrefix) { decl }
+                for decl in try generateValue(model) { decl }
             case .adtValue:
-                for decl in try generateAdt(model, existingPrefix: existingPrefix) { decl }
+                for decl in try generateAdt(model) { decl }
             case .interface:
                 ""
             }
@@ -100,8 +106,7 @@ public class RemodelSwiftFactory {
     }
 
     func generateValue(
-        _ model: RMModelSyntax,
-        existingPrefix: String
+        _ model: RMModelSyntax
     ) throws -> [any DeclSyntaxProtocol] {
         let assumesNonnull = model.includes.contains("RMAssumeNonnull")
 
@@ -119,7 +124,7 @@ public class RemodelSwiftFactory {
                     DeclModifierSyntax(name: .identifier("public"))
                 },
                 name: .identifier(
-                    model.name.removingPrefix(existingPrefix)
+                    mappingObjcTypeToSwift(model.name)
                 ),
                 inheritanceClause: inheritanceClause(model)
             ) {
@@ -139,11 +144,10 @@ public class RemodelSwiftFactory {
                                 typeAnnotation: TypeAnnotationSyntax(
                                     type: propertyType(
                                         structValue,
-                                        assumesNonnull: assumesNonnull,
-                                        existingPrefix: existingPrefix
+                                        assumesNonnull: assumesNonnull
                                     )
                                     .mapTypeName {
-                                        $0.removingPrefix(existingPrefix)
+                                        mappingObjcTypeToSwift($0)
                                     }
                                 )
                             )
@@ -166,11 +170,10 @@ public class RemodelSwiftFactory {
                                         firstName: .identifier(structValue.name),
                                         type: propertyType(
                                             structValue,
-                                            assumesNonnull: assumesNonnull,
-                                            existingPrefix: existingPrefix
+                                            assumesNonnull: assumesNonnull
                                         )
                                         .mapTypeName {
-                                            $0.removingPrefix(existingPrefix)
+                                            mappingObjcTypeToSwift($0)
                                         },
                                         trailingComma: index == model.properties.count - 1 ? nil : .commaToken()
                                     )
@@ -198,8 +201,7 @@ public class RemodelSwiftFactory {
     }
 
     func generateAdt(
-        _ model: RMModelSyntax,
-        existingPrefix: String
+        _ model: RMModelSyntax
     ) throws -> [any DeclSyntaxProtocol] {
         let assumesNonnull = model.includes.contains("RMAssumeNonnull")
 
@@ -216,7 +218,7 @@ public class RemodelSwiftFactory {
                     DeclModifierSyntax(name: .identifier("public"))
                 },
                 name: .identifier(
-                    model.name.removingPrefix(existingPrefix)
+                    mappingObjcTypeToSwift(model.name)
                 ),
                 inheritanceClause: inheritanceClause(model)
             ) {
@@ -256,8 +258,7 @@ public class RemodelSwiftFactory {
                                                 colon: .colonToken(),
                                                 type: propertyType(
                                                     innerValue,
-                                                    assumesNonnull: assumesNonnull,
-                                                    existingPrefix: existingPrefix
+                                                    assumesNonnull: assumesNonnull
                                                 )
                                             )
                                         }
@@ -282,12 +283,13 @@ public class RemodelSwiftFactory {
 
     private func propertyType(
         _ structValue: RMPropertySyntax.StructValue,
-        assumesNonnull: Bool,
-        existingPrefix: String = ""
+        assumesNonnull: Bool
     ) -> any TypeSyntaxProtocol {
         IdentifierTypeSyntax(
             name: .identifier(
-                mappingObjcTypeToSwift(structValue.type, existingPrefix: existingPrefix)
+                mappingObjcTypeToSwift(
+                    structValue.type
+                )
             )
         )
         .optionalized({
@@ -306,13 +308,20 @@ public class RemodelSwiftFactory {
     }
 
     private func mappingObjcTypeToSwift(
-        _ remodelType: String,
-        existingPrefix: String
+        _ remodelType: String
     ) -> String {
         if let aliasedPrimitiveType = remodelType.firstMatch(of: aliasedRemodelPrimitiveTypeRegex) {
             return String(aliasedPrimitiveType.1)
         } else {
-            return ObjcSwiftUtils.mappingObjcTypeToSwift(remodelType, existingPrefix: existingPrefix)
+            return ObjcSwiftUtils.mappingObjcTypeToSwift(
+                remodelType,
+                mapSwiftType: {
+                    if let mappedType = typeMigrations.swiftTypeMigrations[$0] {
+                        return mappedType
+                    }
+                    return $0
+                }
+            )
         }
     }
 

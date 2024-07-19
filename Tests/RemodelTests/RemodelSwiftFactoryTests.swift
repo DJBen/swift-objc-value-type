@@ -1,6 +1,7 @@
 @testable import Remodel
 import XCTest
 import TestingSupport
+import SharedUtilities
 
 final class RemodelSwiftFactoryTests: XCTestCase {
     func testFactory_structValue_empty() throws {
@@ -242,8 +243,6 @@ final class RemodelSwiftFactoryTests: XCTestCase {
     }
 
     func testFactory_adtValue() throws {
-        let factory = RemodelSwiftFactory()
-
         let source = """
         # An Example Algebraic data type (akin to swift enum associated value)
         # multiline comment
@@ -268,9 +267,10 @@ final class RemodelSwiftFactoryTests: XCTestCase {
 
         let parser = RemodelValueObjectParser()
 
+        let factory = RemodelSwiftFactory()
+
         let result = try factory.generate(
-            try parser.parse(type: .adtValue, source: source)!,
-            existingPrefix: "SC"
+            try parser.parse(type: .adtValue, source: source)!
         )
 
         assertBuildResult(
@@ -367,8 +367,6 @@ final class RemodelSwiftFactoryTests: XCTestCase {
     }
 
     func testFactory_value_existingPrefix() throws {
-        let factory = RemodelSwiftFactory()
-
         let source = """
         NestedValue includes(RMCoding, RMBuilder) {
             NSArray<PYQHello *> *arr
@@ -377,10 +375,10 @@ final class RemodelSwiftFactoryTests: XCTestCase {
         """
 
         let parser = RemodelValueObjectParser()
+        let factory = RemodelSwiftFactory(typeMigrations: TypeMigrations(swiftTypeMigrations: ["PYQHello" : "Hello"]))
 
         let result = try factory.generate(
-            try parser.parse(type: .value, source: source)!,
-            existingPrefix: "PYQ"
+            try parser.parse(type: .value, source: source)!
         )
 
         assertBuildResult(
@@ -393,9 +391,9 @@ final class RemodelSwiftFactoryTests: XCTestCase {
 
                 public let arr: [Hello]?
 
-                public let dict: [Yes: Bar]?
+                public let dict: [PYQYes: PYQBar]?
 
-                public init(arr: [Hello]?, dict: [Yes: Bar]?) {
+                public init(arr: [Hello]?, dict: [PYQYes: PYQBar]?) {
                     self.arr = arr
                     self.dict = dict
                 }

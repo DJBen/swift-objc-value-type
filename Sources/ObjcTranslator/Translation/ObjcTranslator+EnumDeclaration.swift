@@ -85,7 +85,7 @@ extension ObjcTranslator {
                 }
             },
             name: .identifier(
-                name.removingPrefix(existingPrefix)
+                mapSwiftType(name)
             ),
             inheritanceClause: InheritanceClauseSyntax {
                 InheritedTypeListSyntax {
@@ -112,13 +112,19 @@ extension ObjcTranslator {
                             PatternBindingSyntax(
                                 pattern: IdentifierPatternSyntax(
                                     identifier: .identifier(
-                                        enumerator.enumeratorIdentifier()!.getText().removingPrefix(name).lowercasingFirst
+                                        enumerator.enumeratorIdentifier()!.getText().removingPrefix(
+                                            name,
+                                            typeRegexesExcludedFromPrefixStripping: typeRegexesExcludedFromPrefixStripping
+                                        ).lowercasingFirst
                                     )
                                 ),
                                 initializer: InitializerClauseSyntax(
                                     value: FunctionCallExprSyntax(
                                         calledExpression: DeclReferenceExprSyntax(
-                                            baseName: .identifier(name.removingPrefix(existingPrefix))
+                                            baseName: .identifier(name.removingPrefix(
+                                                existingPrefix,
+                                                typeRegexesExcludedFromPrefixStripping: typeRegexesExcludedFromPrefixStripping
+                                            ))
                                         ),
                                         leftParen: .leftParenToken(),
                                         arguments: LabeledExprListSyntax {
@@ -187,15 +193,20 @@ extension ObjcTranslator {
                 }
             },
             name: .identifier(
-                name.removingPrefix(existingPrefix)
+                name.removingPrefix(
+                    existingPrefix,
+                    typeRegexesExcludedFromPrefixStripping: typeRegexesExcludedFromPrefixStripping
+                )
             ),
             inheritanceClause: InheritanceClauseSyntax {
                 InheritedTypeListSyntax {
                     InheritedTypeSyntax(
                         type: IdentifierTypeSyntax(
-                            name: .identifier(ObjcSwiftUtils.mappingObjcTypeToSwift(
-                                objcTypeName, existingPrefix: existingPrefix
-                            ))
+                            name: .identifier(
+                                mappingObjcTypeToSwift(
+                                    objcTypeName
+                                )
+                            )
                         )
                     )
                 }
@@ -207,7 +218,10 @@ extension ObjcTranslator {
                         elementsBuilder:  {
                             EnumCaseElementSyntax(
                                 name: .identifier(
-                                    enumerator.enumeratorIdentifier()!.getText().removingPrefix(name).lowercasingFirst
+                                    enumerator.enumeratorIdentifier()!.getText().removingPrefix(
+                                        name,
+                                        typeRegexesExcludedFromPrefixStripping: typeRegexesExcludedFromPrefixStripping
+                                    ).lowercasingFirst
                                 ),
                                 rawValue: enumerator.expression().map { expr in
                                     InitializerClauseSyntax(

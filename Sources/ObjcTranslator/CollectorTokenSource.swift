@@ -1,8 +1,8 @@
 import Foundation
 import Antlr4
 
-public class CollectorTokenSource<UpstreamTokenSource: TokenSource>: TokenSource {
-    private let source: UpstreamTokenSource
+public class CollectorTokenSource: TokenSource {
+    private let source: any TokenSource
 
     public private(set) var commentTokens: [Token] = []
     
@@ -15,7 +15,7 @@ public class CollectorTokenSource<UpstreamTokenSource: TokenSource>: TokenSource
     private var index = 0
     
     public init(
-        source: UpstreamTokenSource
+        source: some TokenSource
     ) {
         self.source = source
     }

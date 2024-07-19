@@ -3,6 +3,7 @@ import Foundation
 import Remodel
 import SwiftParser
 import SwiftSyntax
+import SharedUtilities
 import CustomDump
 
 struct MigrateRemodelCommand: ParsableCommand, FileHandlingCommand {
@@ -30,12 +31,17 @@ struct MigrateRemodelCommand: ParsableCommand, FileHandlingCommand {
     )
     var skipLegacyInterfaceValueType: Bool = false
 
+    @Option(
+        name: [.long],
+        help: "A jsonified dictionary containing the Swift type mappings"
+    )
+    var typeMappings: String = ""
+    
     func run() throws {
         var sourceFilesIterator = makeSourceContentIterator {
             ["adtvalue", "value"].contains($0.lowercased())
         }
         let remodelParser = RemodelValueObjectParser()
-        let remodelSwiftFactory = RemodelSwiftFactory()
 
         while let sourceFile = sourceFilesIterator.next() {
             let remodelType: RemodelType
@@ -64,6 +70,22 @@ struct MigrateRemodelCommand: ParsableCommand, FileHandlingCommand {
                 }
                 return
             }
+            
+            var typeMigrations = TypeMigrations()
+            typeMigrations.swiftTypeMigrations[ast.name] = ast.name.removingPrefix(
+                remodelArguments.prefixStrippingArguments.existingPrefix,
+                typeRegexesExcludedFromPrefixStripping: []
+            )
+            if let typeMappingDict = try jsonStringToDictionary(typeMappings) {
+                typeMappingDict.forEach { (key, value) in
+                    typeMigrations.swiftTypeMigrations[key] = value
+                }
+            }
+                
+            let remodelSwiftFactory = RemodelSwiftFactory(
+                typeMigrations: typeMigrations
+            )
+
             do {
                 try withFileHandler(
                     inputPath: sourceFile.iteratedPath,
@@ -73,8 +95,7 @@ struct MigrateRemodelCommand: ParsableCommand, FileHandlingCommand {
                     try sink.stream(
                         try remodelSwiftFactory.generate(
                             ast,
-                            imports: remodelArguments.imports,
-                            existingPrefix: remodelArguments.existingPrefix
+                            imports: remodelArguments.imports
                         ).formatted()
                     )
                 }
@@ -88,6 +109,19 @@ struct MigrateRemodelCommand: ParsableCommand, FileHandlingCommand {
                     throw error
                 }
             }
+        }
+    }
+    
+    private func jsonStringToDictionary(_ jsonString: String) throws -> [String: String]? {
+        guard let jsonData = jsonString.data(using: .utf8) else {
+            return nil
+        }
+        
+        if let jsonResult = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: String] {
+            return jsonResult
+        } else {
+            print("Error: Unable to cast JSON to [String: String]")
+            return nil
         }
     }
 }
@@ -120,9 +154,6 @@ struct RemodelArguments: ParsableArguments {
     )
     var imports: [String] = []
 
-    @Option(
-        name: [.long],
-        help: "An existing prefix to remove if exists."
-    )
-    var existingPrefix: String = ""
+    @OptionGroup
+    var prefixStrippingArguments: PrefixStrippingArguments
 }

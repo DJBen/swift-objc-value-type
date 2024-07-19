@@ -3,7 +3,8 @@ load("@build_bazel_rules_swift//swift:swift.bzl", "swift_binary")
 swift_binary(
     name = "SwiftObjcValueTypeExecutable",
     srcs = [
-        "Commands/FileHandlingCommand.swift",
+        "CommandHelpers/FileHandlingCommand.swift",
+        "CommandHelpers/PrefixStrippingArguments.swift",
         "Commands/GenerateValueTypeCommand.swift",
         "Commands/MigrateObjcCommand.swift",
         "Commands/MigrateRemodelCommand.swift",
@@ -19,9 +20,11 @@ swift_binary(
         "//Sources/ObjcSyntax",
         "//Sources/ObjcTranslator",
         "//Sources/Remodel",
+        "//Sources/SharedUtilities",
         "//Sources/SwiftObjcValueType",
         "@swiftpkg_antlr4//:Antlr4Static",
         "@swiftpkg_swift_argument_parser//:ArgumentParser",
+        "@swiftpkg_swift_collections//:OrderedCollections",
         "@swiftpkg_swift_custom_dump//:CustomDump",
         "@swiftpkg_swift_syntax//:SwiftSyntaxMacroExpansion",
     ],

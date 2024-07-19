@@ -6,6 +6,8 @@ import SwiftParser
 import SwiftSyntax
 import SwiftSyntaxBuilder
 import Antlr4
+import SharedUtilities
+import OrderedCollections
 import CustomDump
 
 struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
@@ -25,12 +27,9 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
 
     @OptionGroup
     var fileArguments: FileHandlingArguments
-    
-    @Option(
-        name: [.long],
-        help: "An existing prefix to remove if exists."
-    )
-    var existingPrefix: String = ""
+
+    @OptionGroup
+    var prefixStrippingArguments: PrefixStrippingArguments
     
     @Option(
         name: [.long],
@@ -64,6 +63,12 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
     )
     var keepGoingOnError: Bool = false
 
+    @Option(
+        name: [.long],
+        help: "A jsonified dictionary containing the Swift type mappings"
+    )
+    var typeMappings: String = ""
+    
     func run() throws {
         let charStreams = try macroDefinitionPaths.map {
             try ANTLRFileStream($0)
@@ -105,9 +110,12 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
             
                 do {
                     if isSilentMode {
-                        let _ = try translate(sourcePreprocessor: sourcePreprocessor) {
+                        let _ = try makeTranslator(
+                            sourcePreprocessor: sourcePreprocessor
+                        ) {
                             try ANTLRFileStream(sourceFile.path)
                         }
+                        .translate()
                         .formatted()
                     } else {
                         try translateAndWrite(inputPath: sourceFile, sourcePreprocessor: sourcePreprocessor) {
@@ -136,18 +144,20 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
             extensionTransform: { _ in "swift" }
         ) { sink in
             try sink.stream(
-                try translate(
+                try makeTranslator(
                     sourcePreprocessor: sourcePreprocessor,
                     charStream
-                ).formatted()
+                )
+                .translate()
+                .formatted()
             )
         }
     }
     
-    private func translate(
+    private func makeTranslator(
         sourcePreprocessor: ObjcPreprocessor,
         _ charStream: () throws -> CharStream
-    ) throws -> CodeBlockItemListSyntax {
+    ) throws -> ObjcTranslator {
         let preprocessedSourceText = try sourcePreprocessor.preprocess(try charStream())
         
         let preprocessorSource = ANTLRInputStream(preprocessedSourceText)
@@ -179,15 +189,41 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
         
         let translationUnit = try parser.translationUnit()
         
-        let translator = ObjcTranslator(
+        return ObjcTranslator(
             preprocessorSource: preprocessorSource,
             collector: collector,
             directives: directives,
             translationUnit: translationUnit,
-            existingPrefix: existingPrefix,
-            access: ObjcTranslator.Access(stringLiteral: access)
+            existingPrefix: prefixStrippingArguments.existingPrefix,
+            typeRegexesExcludedFromPrefixStripping: try prefixStrippingArguments.typePatternsExcludedFromPrefixStripping.map {
+                try Regex($0)
+            },
+            access: ObjcTranslator.Access(stringLiteral: access), 
+            otherTypeMigrations: try jsonStringToDictionary(typeMappings).map { typeMappingDict in
+                TypeMigrations(
+                    objcTypeMigrations: [:],
+                    swiftTypeMigrations: {
+                        var dict = OrderedDictionary<String, String>()
+                        typeMappingDict.forEach { (key, value) in
+                            dict[key] = value
+                        }
+                        return dict
+                    }()
+                )
+            }
         )
-
-        return try translator.translate()
+    }
+    
+    private func jsonStringToDictionary(_ jsonString: String) throws -> [String: String]? {
+        guard let jsonData = jsonString.data(using: .utf8) else {
+            return nil
+        }
+        
+        if let jsonResult = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: String] {
+            return jsonResult
+        } else {
+            print("Error: Unable to cast JSON to [String: String]")
+            return nil
+        }
     }
 }

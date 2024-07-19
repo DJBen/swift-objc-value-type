@@ -10,13 +10,15 @@ extension ObjcTranslator {
     func translate(
         protocolDecl: P.ProtocolDeclarationContext
     ) throws -> CodeBlockItemListSyntax {
+        let protocolName = protocolDecl.protocolName()!.getText()
+        
         try ProtocolDeclSyntax(
             leadingTrivia: .newlines(2) + beforeTrivia(for: protocolDecl),
             attributes: AttributeListSyntax {
-                if existingPrefix.isEmpty {
+                if mapSwiftType(protocolName, macro: protocolDecl.macro()) == protocolName {
                     "@objc"
                 } else {
-                    "@objc(\(raw: protocolDecl.protocolName()!.getText()))"
+                    "@objc(\(raw: protocolName))"
                 }
             }.with(\.trailingTrivia, .newline),
             modifiers: DeclModifierListSyntax {
@@ -24,15 +26,9 @@ extension ObjcTranslator {
                     DeclModifierSyntax(name: .keyword(.public))
                 }
             },
-            name: {
-                if let macro = protocolDecl.macro(), macro.identifier().contains(where: { $0.NS_SWIFT_NAME() != nil }), let swiftName = macro.primaryExpression().first?.getText() {
-                    return .identifier(swiftName)
-                } else {
-                    return .identifier(
-                        protocolDecl.protocolName()!.getText().removingPrefix(existingPrefix)
-                    )
-                }
-            }(),
+            name: .identifier(
+                mapSwiftType(protocolName, macro: protocolDecl.macro())
+            ),
             inheritanceClause: protocolDecl.protocolList().map { protocolList in
                 InheritanceClauseSyntax {
                     InheritedTypeListSyntax {

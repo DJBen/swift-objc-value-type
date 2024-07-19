@@ -192,7 +192,9 @@ extension ObjcTranslator {
             )
         } else {
             return IdentifierTypeSyntax(
-                name: .identifier(protocolList.protocolName().first!.getText())
+                name: .identifier(
+                    mapSwiftType(protocolList.protocolName().first!.getText())
+                )
             )
             .optionalized(
                 nullability,
@@ -366,9 +368,7 @@ extension ObjcTranslator {
             //    ;
             
             let typeName = genericTypeSpecifier.identifier()!.getText()
-            let mappedTypeName = ObjcSwiftUtils.mappingObjcTypeToSwift(
-                typeName
-            )
+            let mappedTypeName = mappingObjcTypeToSwift(typeName)
             
             if let protocolConformances = genericTypeSpecifier.protocolList()?.protocolName() {
                 return IdentifierTypeSyntax(
@@ -476,9 +476,7 @@ extension ObjcTranslator {
                 } else if typeName == "BOOL" && isContainedByPointer {
                     return IdentifierTypeSyntax(name: .identifier("ObjCBool"))
                 } else {
-                    let mappedTypeName = ObjcSwiftUtils.mappingObjcTypeToSwift(
-                        typeName
-                    )
+                    let mappedTypeName = mappingObjcTypeToSwift(typeName)
                     
                     return IdentifierTypeSyntax(
                         name: .identifier(mappedTypeName)
@@ -529,9 +527,7 @@ extension ObjcTranslator {
         identifier: P.IdentifierContext,
         nullability: TypeNullability
     ) -> any TypeSyntaxProtocol {
-        let mappedTypeName = ObjcSwiftUtils.mappingObjcTypeToSwift(
-            identifier.getText()
-        )
+        let mappedTypeName = mappingObjcTypeToSwift(identifier.getText())
         
         return IdentifierTypeSyntax(
             name: .identifier(mappedTypeName)
@@ -544,8 +540,8 @@ extension ObjcTranslator {
 }
 
 private extension TypeSyntaxProtocol {
-    func optionalized<UpstreamTokenSource: TokenSource>(
-        _ nullability: ObjcTranslator<UpstreamTokenSource>.TypeNullability,
+    func optionalized(
+        _ nullability: ObjcTranslator.TypeNullability,
         isObjcPrimitiveType: Bool
     ) -> any TypeSyntaxProtocol {
         guard !isObjcPrimitiveType else {

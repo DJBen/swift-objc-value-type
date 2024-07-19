@@ -38,25 +38,25 @@ public enum ObjcSwiftUtils {
 
     public static func mappingObjcTypeToSwift(
         _ objcType: String,
-        existingPrefix: String = ""
+        mapSwiftType: (String) -> String
     ) -> String {
         if let match = objcType.firstMatch(of: /NS(?:Mutable)?Dictionary<([\w\* <>]+),\s*([\w\* <>]+)>\s*\*/) {
-            return "[\(mappingObjcTypeToSwift(String(match.1), existingPrefix: existingPrefix)): \(mappingObjcTypeToSwift(String(match.2), existingPrefix: existingPrefix))]"
+            return "[\(mappingObjcTypeToSwift(String(match.1), mapSwiftType: mapSwiftType)): \(mappingObjcTypeToSwift(String(match.2), mapSwiftType: mapSwiftType))]"
         } else if let match = objcType.firstMatch(of: /NS(?:Mutable)?(Set|Array)<([\w\* <>]+)>\s*\*/) {
             if match.1 == "Set" {
-                return "Set<\(mappingObjcTypeToSwift(String(match.2), existingPrefix: existingPrefix))>"
+                return "Set<\(mappingObjcTypeToSwift(String(match.2), mapSwiftType: mapSwiftType))>"
             } else {
-                return "[\(mappingObjcTypeToSwift(String(match.2), existingPrefix: existingPrefix))]"
+                return "[\(mappingObjcTypeToSwift(String(match.2), mapSwiftType: mapSwiftType))]"
             }
         } else if let match = objcType.firstMatch(of: /id<(.*?)>/) {
             // Convert objc `id<Type>` into `Type`
-            return mappingObjcTypeToSwift(String(match.1), existingPrefix: existingPrefix)
+            return mappingObjcTypeToSwift(String(match.1), mapSwiftType: mapSwiftType)
         } else if let match = objcType.firstMatch(of: /(\w+)<([\w\* <>]+)>\s\*/) {
-            return "\(String(match.1))<\(mappingObjcTypeToSwift(String(match.2), existingPrefix: existingPrefix))>"
+            return "\(String(match.1))<\(mappingObjcTypeToSwift(String(match.2), mapSwiftType: mapSwiftType))>"
         } else if objcType.hasSuffix("*") {
             var result = objcType
             result.removeLast()
-            return mappingObjcTypeToSwift(result.trimmingCharacters(in: .whitespacesAndNewlines), existingPrefix: existingPrefix)
+            return mappingObjcTypeToSwift(result.trimmingCharacters(in: .whitespacesAndNewlines), mapSwiftType: mapSwiftType)
         } else if objcType.lowercased() == "bool" {
             return "Bool"
         } else if objcType == "char" {
@@ -85,7 +85,7 @@ public enum ObjcSwiftUtils {
         } else if let mappedSwiftType = objcToSwiftFoundationTypeMap[objcType] {
             return mappedSwiftType
         } else {
-            return objcType.removingPrefix(existingPrefix)
+            return mapSwiftType(objcType)
         }
     }
 

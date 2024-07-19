@@ -9,6 +9,7 @@ swift_test(
     module_name = "RemodelTests",
     deps = [
         "//Sources/Remodel",
+        "//Sources/SharedUtilities",
         "//Sources/TestingSupport",
         "@swiftpkg_swift_custom_dump//:CustomDump",
     ],

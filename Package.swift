@@ -42,6 +42,7 @@ let package = Package(
       dependencies: [
         .product(name: "SwiftSyntax", package: "swift-syntax"),
         .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
+        .product(name: "OrderedCollections", package: "swift-collections"),
       ]
     ),
 
@@ -80,6 +81,7 @@ let package = Package(
         "SharedUtilities",
         .product(name: "SwiftSyntax", package: "swift-syntax"),
         .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
+        .product(name: "OrderedCollections", package: "swift-collections"),
       ]
     ),
 
@@ -113,6 +115,7 @@ let package = Package(
         dependencies: [
             "Remodel",
             "TestingSupport",
+            "SharedUtilities",
             .product(name: "CustomDump", package: "swift-custom-dump")
         ]
     ),

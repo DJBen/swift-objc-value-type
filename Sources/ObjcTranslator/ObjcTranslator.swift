@@ -2,6 +2,7 @@ import Foundation
 import ObjcSyntax
 import Antlr4
 import OrderedCollections
+import SharedUtilities
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
@@ -9,7 +10,7 @@ typealias PP = ObjectiveCPreprocessorParser
 typealias P = ObjectiveCParser
 typealias L = ObjectiveCLexer
 
-public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
+public class ObjcTranslator {
     public enum Access: ExpressibleByStringLiteral {
         public typealias StringLiteralType = String
         
@@ -29,31 +30,45 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
     }
     
     let preprocessorSource: CharStream
-    let collector: CollectorTokenSource<UpstreamTokenSource>
+    let collector: CollectorTokenSource
     let directives: [ObjectiveCPreprocessorParser.DirectiveContext]
     let translationUnit: ObjectiveCParser.TranslationUnitContext
     let existingPrefix: String
+    let typeRegexesExcludedFromPrefixStripping: [any RegexComponent]
     let access: Access
     
     var beforeTriviaMap: [Interval: [Token]] = [:]
     var afterTriviaMap: [Interval: [Token]] = [:]
     
+    private var typeMigrations: TypeMigrations
     private let nsAssumeNonnullRanges: [Interval]
-    
+
     public init(
         preprocessorSource: CharStream,
-        collector: CollectorTokenSource<UpstreamTokenSource>,
+        collector: CollectorTokenSource,
         directives: [ObjectiveCPreprocessorParser.DirectiveContext],
         translationUnit: ObjectiveCParser.TranslationUnitContext,
         existingPrefix: String = "",
-        access: Access = .public
+        typeRegexesExcludedFromPrefixStripping: [any RegexComponent],
+        access: Access = .public,
+        otherTypeMigrations: TypeMigrations?
     ) {
         self.preprocessorSource = preprocessorSource
         self.collector = collector
         self.directives = directives
         self.translationUnit = translationUnit
         self.existingPrefix = existingPrefix
+        self.typeRegexesExcludedFromPrefixStripping = typeRegexesExcludedFromPrefixStripping
         self.access = access
+        
+        self.typeMigrations = TypeMigrations(
+            translationUnit,
+            existingPrefix: existingPrefix,
+            typeRegexesExcludedFromPrefixStripping: typeRegexesExcludedFromPrefixStripping
+        )
+        if let otherTypeMigrations {
+            self.typeMigrations.merge(with: otherTypeMigrations)
+        }
 
         var nsAssumeNonnullRanges = [Interval]()
         var nsAssumeNonnullStart: Int = -1
@@ -251,7 +266,7 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
         )
     }
     
-    // Algorithm adapted from http://meri-stuff.blogspot.com/2012/09/tackling-comments-in-antlr-compiler.html
+    // Algorithm adopted from http://meri-stuff.blogspot.com/2012/09/tackling-comments-in-antlr-compiler.html
     private func assignTrivia<Tree: ParseTree>(
         tree: Tree,
         tokens: inout [Token]
@@ -334,6 +349,27 @@ public class ObjcTranslator<UpstreamTokenSource: TokenSource> {
     
     func isNSAssumeNonnull(_ tree: SyntaxTree) -> Bool {
         nsAssumeNonnullRanges.contains(where: { $0.properlyContains(tree.getSourceInterval()) })
+    }
+    
+    func mapSwiftType(
+        _ swiftType: String,
+        macro: P.MacroContext? = nil
+    ) -> String {
+        if let macro, macro.identifier().contains(where: { $0.NS_SWIFT_NAME() != nil }), let swiftName = macro.primaryExpression().first?.getText() {
+            // If NS_SWIFT_NAME is declared
+            return swiftName
+        }
+        if let mappedType = typeMigrations.swiftTypeMigrations[swiftType] {
+            return mappedType
+        }
+        return swiftType
+    }
+    
+    func mappingObjcTypeToSwift(_ objcType: String) -> String {
+        ObjcSwiftUtils.mappingObjcTypeToSwift(
+            objcType,
+            mapSwiftType: { mapSwiftType($0, macro: nil) }
+        )
     }
     
     private func convertingToSwiftDocs(_ comment: String?) -> String? {

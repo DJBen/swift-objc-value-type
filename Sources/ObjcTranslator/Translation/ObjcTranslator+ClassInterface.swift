@@ -10,13 +10,15 @@ extension ObjcTranslator {
     func translate(
         classInterfaceDecl: P.ClassInterfaceContext
     ) throws -> CodeBlockItemListSyntax {
+        let className = classInterfaceDecl.className.getText()
+        
         try ClassDeclSyntax(
             leadingTrivia: .newlines(2) + beforeTrivia(for: classInterfaceDecl),
             attributes: AttributeListSyntax {
-                if existingPrefix.isEmpty {
+                if mapSwiftType(className) == className {
                     "@objc"
                 } else {
-                    "@objc(\(raw: classInterfaceDecl.className.getText()))"
+                    "@objc(\(raw: className))"
                 }
             }.with(\.trailingTrivia, .newline),
             modifiers: DeclModifierListSyntax {
@@ -25,7 +27,7 @@ extension ObjcTranslator {
                 }
             },
             name: .identifier(
-                classInterfaceDecl.className.getText().removingPrefix(existingPrefix)
+                mapSwiftType(className)
             ),
             inheritanceClause: InheritanceClauseSyntax(
                 inheritedTypes: InheritedTypeListSyntax {

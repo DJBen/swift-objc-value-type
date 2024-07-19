@@ -33,7 +33,12 @@ extension ObjcTranslator {
                                 DeclModifierSyntax(name: .keyword(.public))
                             }
                         },
-                        name: .identifier(identifier.removingPrefix(existingPrefix)),
+                        name: .identifier(
+                            identifier.removingPrefix(
+                                existingPrefix,
+                                typeRegexesExcludedFromPrefixStripping: typeRegexesExcludedFromPrefixStripping
+                            )
+                        ),
                         inheritanceClause: InheritanceClauseSyntax {
                             InheritedTypeListSyntax {
                                 InheritedTypeSyntax(type: IdentifierTypeSyntax(name: .identifier("NSObject")))
@@ -94,7 +99,7 @@ extension ObjcTranslator {
                                         if let expression = initializer.expression() {
                                             return ExprSyntax(swiftExpr(expression))
                                         } else if let arrayInitializer = initializer.arrayInitializer(), let typeName = varDecl.declarationSpecifiers()?.typeSpecifier()?.genericTypeSpecifier()?.getText() {
-                                            let swiftTypeName = ObjcSwiftUtils.mappingObjcTypeToSwift(typeName)
+                                            let swiftTypeName = mappingObjcTypeToSwift(typeName)
 
                                             // e.g. static CGSize const kButtonSize = {50, 50};
                                             let str = (arrayInitializer.expressions()?.expression() ?? [])
