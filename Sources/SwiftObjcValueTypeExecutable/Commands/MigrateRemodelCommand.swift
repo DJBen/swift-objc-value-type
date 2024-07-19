@@ -72,15 +72,14 @@ struct MigrateRemodelCommand: ParsableCommand, FileHandlingCommand {
             }
             
             var typeMappings = TypeMappings()
-            typeMappings.swiftTypeMappings[ast.name] = ast.name.removingPrefix(
+            let resultRemodelName = ast.name.removingPrefix(
                 remodelArguments.prefixStrippingArguments.existingPrefix,
                 typeRegexesExcludedFromPrefixStripping: []
             )
-            if let typeMappingDict = try jsonStringToDictionary(self.typeMappings) {
-                typeMappingDict.forEach { (key, value) in
-                    typeMappings.swiftTypeMappings[key] = value
-                }
-            }
+            typeMappings.swiftValueTypes.append(resultRemodelName)
+            typeMappings.swiftTypeMappings[ast.name] = resultRemodelName
+            
+            typeMappings.merge(with: try JSONDecoder().decode(TypeMappings.self, from: self.typeMappings.data(using: .utf8)!))
                 
             let remodelSwiftFactory = RemodelSwiftFactory(
                 typeMappings: typeMappings
@@ -109,19 +108,6 @@ struct MigrateRemodelCommand: ParsableCommand, FileHandlingCommand {
                     throw error
                 }
             }
-        }
-    }
-    
-    private func jsonStringToDictionary(_ jsonString: String) throws -> [String: String]? {
-        guard let jsonData = jsonString.data(using: .utf8) else {
-            return nil
-        }
-        
-        if let jsonResult = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: String] {
-            return jsonResult
-        } else {
-            print("Error: Unable to cast JSON to [String: String]")
-            return nil
         }
     }
 }
