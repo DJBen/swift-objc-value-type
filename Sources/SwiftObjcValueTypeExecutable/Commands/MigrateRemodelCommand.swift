@@ -71,19 +71,19 @@ struct MigrateRemodelCommand: ParsableCommand, FileHandlingCommand {
                 return
             }
             
-            var typeMigrations = TypeMigrations()
-            typeMigrations.swiftTypeMigrations[ast.name] = ast.name.removingPrefix(
+            var typeMappings = TypeMappings()
+            typeMappings.swiftTypeMappings[ast.name] = ast.name.removingPrefix(
                 remodelArguments.prefixStrippingArguments.existingPrefix,
                 typeRegexesExcludedFromPrefixStripping: []
             )
-            if let typeMappingDict = try jsonStringToDictionary(typeMappings) {
+            if let typeMappingDict = try jsonStringToDictionary(self.typeMappings) {
                 typeMappingDict.forEach { (key, value) in
-                    typeMigrations.swiftTypeMigrations[key] = value
+                    typeMappings.swiftTypeMappings[key] = value
                 }
             }
                 
             let remodelSwiftFactory = RemodelSwiftFactory(
-                typeMigrations: typeMigrations
+                typeMappings: typeMappings
             )
 
             do {

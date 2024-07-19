@@ -18,12 +18,12 @@ let aliasedRemodelPrimitiveTypeRegex = /(\w+)\((\w+)\)/
 
 /// Generate Swift models (enums or structs) from Remodel models.
 public class RemodelSwiftFactory {
-    let typeMigrations: TypeMigrations
+    let typeMappings: TypeMappings
     
     public init(
-        typeMigrations: TypeMigrations = TypeMigrations()
+        typeMappings: TypeMappings = TypeMappings()
     ) {
-        self.typeMigrations = typeMigrations
+        self.typeMappings = typeMappings
     }
 
     @CodeBlockItemListBuilder
@@ -316,7 +316,7 @@ public class RemodelSwiftFactory {
             return ObjcSwiftUtils.mappingObjcTypeToSwift(
                 remodelType,
                 mapSwiftType: {
-                    if let mappedType = typeMigrations.swiftTypeMigrations[$0] {
+                    if let mappedType = typeMappings.swiftTypeMappings[$0] {
                         return mappedType
                     }
                     return $0

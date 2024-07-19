@@ -9,6 +9,7 @@ swift_binary(
         "Commands/MigrateObjcCommand.swift",
         "Commands/MigrateRemodelCommand.swift",
         "Commands/ParseRemodelCommand.swift",
+        "Commands/TypeMapCommand.swift",
         "SwiftObjcValueTypeExecutable.swift",
         "Utils/FileHandlerOutputStream.swift",
         "Utils/SourceFileContentIterator.swift",

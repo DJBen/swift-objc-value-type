@@ -1,14 +1,13 @@
 import SharedUtilities
-import OrderedCollections
 import ObjcSyntax
 
-extension TypeMigrations {
+public extension TypeMappings {
     init(
-        _ translationUnit: P.TranslationUnitContext,
+        _ translationUnit: ObjectiveCParser.TranslationUnitContext,
         existingPrefix: String,
         typeRegexesExcludedFromPrefixStripping: [any RegexComponent]
     ) {
-        var swiftTypeMigrations = OrderedDictionary<String, String>()
+        var swiftTypeMappings = [String: String]()
         for topLevelDecl in translationUnit.topLevelDeclaration() {
             if let classInterfaceDecl = topLevelDecl.classInterface() {
                 let className = classInterfaceDecl.className.getText()
@@ -18,7 +17,7 @@ extension TypeMigrations {
                     continue
                 }
                 
-                swiftTypeMigrations[className] = className.removingPrefix(
+                swiftTypeMappings[className] = className.removingPrefix(
                     existingPrefix,
                     typeRegexesExcludedFromPrefixStripping: typeRegexesExcludedFromPrefixStripping
                 )
@@ -34,7 +33,7 @@ extension TypeMigrations {
                     // No swift type migration takes place
                     let _ = swiftName
                 } else {
-                    swiftTypeMigrations[protocolName] = protocolName.removingPrefix(
+                    swiftTypeMappings[protocolName] = protocolName.removingPrefix(
                         existingPrefix,
                         typeRegexesExcludedFromPrefixStripping: typeRegexesExcludedFromPrefixStripping
                     )
@@ -46,17 +45,15 @@ extension TypeMigrations {
                 //    | varDeclaration
                 //    | typedefDeclaration
                 //    ;
-                if let typedefDecl = decl.typedefDeclaration() {
-                    
-                } else if let enumDecl = decl.enumDeclaration() {
+                if let enumDecl = decl.enumDeclaration() {
                     // Includes enum and optionSet decls
                     if let typedefEnumIdentifier = enumDecl.identifier()?.getText() {
-                        swiftTypeMigrations[typedefEnumIdentifier] = typedefEnumIdentifier.removingPrefix(
+                        swiftTypeMappings[typedefEnumIdentifier] = typedefEnumIdentifier.removingPrefix(
                             existingPrefix,
                             typeRegexesExcludedFromPrefixStripping: typeRegexesExcludedFromPrefixStripping
                         )
                     } else if let nsEnumOrOptionSpecifier = enumDecl.nsEnumOrOptionSpecifier(), let identifier = nsEnumOrOptionSpecifier.identifier()?.getText() {
-                        swiftTypeMigrations[identifier] = identifier.removingPrefix(
+                        swiftTypeMappings[identifier] = identifier.removingPrefix(
                             existingPrefix,
                             typeRegexesExcludedFromPrefixStripping: typeRegexesExcludedFromPrefixStripping
                         )
@@ -69,8 +66,8 @@ extension TypeMigrations {
         }
         
         self.init(
-            objcTypeMigrations: [:],
-            swiftTypeMigrations: swiftTypeMigrations
+            swiftValueTypes: [],
+            swiftTypeMappings: swiftTypeMappings
         )
     }
 }

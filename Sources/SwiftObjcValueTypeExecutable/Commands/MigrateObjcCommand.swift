@@ -7,7 +7,6 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 import Antlr4
 import SharedUtilities
-import OrderedCollections
 import CustomDump
 
 struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
@@ -62,10 +61,17 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
         help: "Keep processing even encountered error."
     )
     var keepGoingOnError: Bool = false
-
+    
     @Option(
         name: [.long],
-        help: "A jsonified dictionary containing the Swift type mappings"
+        help: """
+        A jsonified dictionary containing the Swift type mappings,
+        The dictionary is in shape of
+        {
+            "swiftTypeMappings": {"PFFoo", "Foo", "PFValue": "Value"},
+            "swiftValueTypes" : ["Value"]
+        }
+        """
     )
     var typeMappings: String = ""
     
@@ -195,35 +201,9 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
             directives: directives,
             translationUnit: translationUnit,
             existingPrefix: prefixStrippingArguments.existingPrefix,
-            typeRegexesExcludedFromPrefixStripping: try prefixStrippingArguments.typePatternsExcludedFromPrefixStripping.map {
-                try Regex($0)
-            },
-            access: ObjcTranslator.Access(stringLiteral: access), 
-            otherTypeMigrations: try jsonStringToDictionary(typeMappings).map { typeMappingDict in
-                TypeMigrations(
-                    objcTypeMigrations: [:],
-                    swiftTypeMigrations: {
-                        var dict = OrderedDictionary<String, String>()
-                        typeMappingDict.forEach { (key, value) in
-                            dict[key] = value
-                        }
-                        return dict
-                    }()
-                )
-            }
+            typeRegexesExcludedFromPrefixStripping: try prefixStrippingArguments.typePatternsExcludedFromPrefixStripping.map(Regex.init),
+            access: ObjcTranslator.Access(stringLiteral: access),
+            otherTypeMappings: try JSONDecoder().decode(TypeMappings.self, from: typeMappings.data(using: .utf8)!)
         )
-    }
-    
-    private func jsonStringToDictionary(_ jsonString: String) throws -> [String: String]? {
-        guard let jsonData = jsonString.data(using: .utf8) else {
-            return nil
-        }
-        
-        if let jsonResult = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: String] {
-            return jsonResult
-        } else {
-            print("Error: Unable to cast JSON to [String: String]")
-            return nil
-        }
     }
 }

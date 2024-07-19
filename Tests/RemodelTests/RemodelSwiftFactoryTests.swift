@@ -375,7 +375,7 @@ final class RemodelSwiftFactoryTests: XCTestCase {
         """
 
         let parser = RemodelValueObjectParser()
-        let factory = RemodelSwiftFactory(typeMigrations: TypeMigrations(swiftTypeMigrations: ["PYQHello" : "Hello"]))
+        let factory = RemodelSwiftFactory(typeMappings: TypeMappings(swiftTypeMappings: ["PYQHello" : "Hello"]))
 
         let result = try factory.generate(
             try parser.parse(type: .value, source: source)!

@@ -42,7 +42,6 @@ let package = Package(
       dependencies: [
         .product(name: "SwiftSyntax", package: "swift-syntax"),
         .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
-        .product(name: "OrderedCollections", package: "swift-collections"),
       ]
     ),
 
@@ -81,7 +80,6 @@ let package = Package(
         "SharedUtilities",
         .product(name: "SwiftSyntax", package: "swift-syntax"),
         .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
-        .product(name: "OrderedCollections", package: "swift-collections"),
       ]
     ),
 

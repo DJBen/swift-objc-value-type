@@ -11,6 +11,7 @@ swift_test(
     deps = [
         "//Sources/ObjcSyntax",
         "//Sources/ObjcTranslator",
+        "//Sources/SharedUtilities",
         "//Sources/TestingSupport",
         "@swiftpkg_antlr4//:Antlr4Static",
         "@swiftpkg_swift_custom_dump//:CustomDump",

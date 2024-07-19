@@ -1,5 +1,6 @@
 import XCTest
 import TestingSupport
+import SharedUtilities
 import ObjcSyntax
 import Antlr4
 @testable import ObjcTranslator
@@ -700,6 +701,7 @@ final class ObjcTranslatorTests: XCTestCase {
             @objc
             public class ContactPermissionInfoServices: NSObject {
 
+                /// Provides the current contact permission status.
                 @objc
                 public let contactPermissionInfoProvider: Lazy<ContactPermissionInfoProvider>
 
@@ -818,6 +820,9 @@ final class ObjcTranslatorTests: XCTestCase {
         // First comment
         @property (nonatomic, weak, nullable) id<PFHelloProtocol> delegate;
         
+        // Value object should append -Objc
+        @property (nonatomic, strong) PFValueObject *valueObject;
+        
         @end
         
         NS_ASSUME_NONNULL_END
@@ -826,7 +831,8 @@ final class ObjcTranslatorTests: XCTestCase {
         let translator = try translator(
             from: source,
             existingPrefix: "PF",
-            typeRegexesExcludedFromPrefixStripping: [/Services$/]
+            typeRegexesExcludedFromPrefixStripping: [/Services$/],
+            otherTypeMappings: TypeMappings(swiftValueTypes: ["ValueObject"], swiftTypeMappings: ["PFValueObject": "ValueObject"])
         )
 
         let result = try translator.translate()
@@ -855,6 +861,10 @@ final class ObjcTranslatorTests: XCTestCase {
                 // First comment
                 @objc
                 public weak var delegate: HelloProtocol?
+            
+                // Value object should append -Objc
+                @objc
+                public let valueObject: ValueObjectObjc
             }
             """#
         )
@@ -864,6 +874,7 @@ final class ObjcTranslatorTests: XCTestCase {
         from source: String,
         existingPrefix: String = "",
         typeRegexesExcludedFromPrefixStripping: [any RegexComponent] = [],
+        otherTypeMappings: TypeMappings? = nil,
         access: ObjcTranslator.Access = .public
     ) throws -> ObjcTranslator {
         let collector = CollectorTokenSource(
@@ -900,7 +911,7 @@ final class ObjcTranslatorTests: XCTestCase {
             existingPrefix: existingPrefix, 
             typeRegexesExcludedFromPrefixStripping: typeRegexesExcludedFromPrefixStripping,
             access: access, 
-            otherTypeMigrations: nil
+            otherTypeMappings: otherTypeMappings
         )
     }
 }

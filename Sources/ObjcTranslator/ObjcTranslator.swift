@@ -40,7 +40,7 @@ public class ObjcTranslator {
     var beforeTriviaMap: [Interval: [Token]] = [:]
     var afterTriviaMap: [Interval: [Token]] = [:]
     
-    private var typeMigrations: TypeMigrations
+    private var typeMappings: TypeMappings
     private let nsAssumeNonnullRanges: [Interval]
 
     public init(
@@ -51,7 +51,7 @@ public class ObjcTranslator {
         existingPrefix: String = "",
         typeRegexesExcludedFromPrefixStripping: [any RegexComponent],
         access: Access = .public,
-        otherTypeMigrations: TypeMigrations?
+        otherTypeMappings: TypeMappings?
     ) {
         self.preprocessorSource = preprocessorSource
         self.collector = collector
@@ -61,13 +61,13 @@ public class ObjcTranslator {
         self.typeRegexesExcludedFromPrefixStripping = typeRegexesExcludedFromPrefixStripping
         self.access = access
         
-        self.typeMigrations = TypeMigrations(
+        self.typeMappings = TypeMappings(
             translationUnit,
             existingPrefix: existingPrefix,
             typeRegexesExcludedFromPrefixStripping: typeRegexesExcludedFromPrefixStripping
         )
-        if let otherTypeMigrations {
-            self.typeMigrations.merge(with: otherTypeMigrations)
+        if let otherTypeMappings {
+            self.typeMappings.merge(with: otherTypeMappings)
         }
 
         var nsAssumeNonnullRanges = [Interval]()
@@ -359,7 +359,10 @@ public class ObjcTranslator {
             // If NS_SWIFT_NAME is declared
             return swiftName
         }
-        if let mappedType = typeMigrations.swiftTypeMigrations[swiftType] {
+        if let mappedType = typeMappings.swiftTypeMappings[swiftType] {
+            if typeMappings.swiftValueTypes.contains(mappedType) {
+                return mappedType + "Objc"
+            }
             return mappedType
         }
         return swiftType

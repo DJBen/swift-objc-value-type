@@ -53,10 +53,12 @@ extension ObjcTranslator {
                 if let interfaceDeclList = classInterfaceDecl.interfaceDeclarationList() {
                     
                     for propertyDecl in interfaceDeclList.propertyDeclaration() {
+                        let interfaceDeclListTrivia = propertyDecl === interfaceDeclList.children?.first ? beforeTrivia(for: interfaceDeclList) : Trivia()
+                        
                         let attributes = propertyDecl.propertyAttributesList()?.propertyAttribute() ?? []
                         
                         try VariableDeclSyntax(
-                            leadingTrivia: .newlines(2) + beforeTrivia(for: propertyDecl),
+                            leadingTrivia: .newlines(2) + interfaceDeclListTrivia + beforeTrivia(for: propertyDecl),
                             attributes: AttributeListSyntax {
                                 "@objc"
                             }
@@ -109,6 +111,8 @@ extension ObjcTranslator {
                     }
                     
                     for instanceMethodDecl in interfaceDeclList.instanceMethodDeclaration() {
+                        let interfaceDeclListTrivia = instanceMethodDecl === interfaceDeclList.children?.first ? beforeTrivia(for: interfaceDeclList) : Trivia()
+
                         let methodDecl = instanceMethodDecl.methodDeclaration()!
                         
                         let returnType = try methodDecl.methodType().map {
@@ -210,7 +214,7 @@ extension ObjcTranslator {
                         if !methodDecl.hasUnavailableAttribute {
                             if methodDecl.isInitializer {
                                 InitializerDeclSyntax(
-                                    leadingTrivia: .newlines(2) + beforeTrivia(for: instanceMethodDecl) + beforeTrivia(for: methodDecl),
+                                    leadingTrivia: .newlines(2) + interfaceDeclListTrivia + beforeTrivia(for: instanceMethodDecl) + beforeTrivia(for: methodDecl),
                                     attributes: AttributeListSyntax {
                                         methodDecl.availabilityAttributes
                                         "@objc"
