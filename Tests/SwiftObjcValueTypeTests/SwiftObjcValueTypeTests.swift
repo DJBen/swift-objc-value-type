@@ -122,8 +122,8 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 ValueBuilder()
             }
 
-            @objc public class func value(existingValue: ValueObjc) -> ValueObjc {
-                ValueBuilder.value().withDoubleValue(existingValue.doubleValue).withOptInt(existingValue.optInt).withStringArray(existingValue.stringArray).withMap(existingValue.map).build()
+            @objc public class func value(existingValue: ValueObjc) -> ValueBuilder {
+                ValueBuilder.value().withDoubleValue(existingValue.doubleValue).withOptInt(existingValue.optInt).withStringArray(existingValue.stringArray).withMap(existingValue.map)
             }
 
             private var doubleValue: Double?
@@ -390,8 +390,8 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                         FooBuilder()
                     }
 
-                    @objc public class func foo(existingFoo: FooObjc) -> FooObjc {
-                        FooBuilder.foo().withStr(existingFoo.str).withOptDouble(existingFoo.optDouble).withIsValid(existingFoo.isValid).build()
+                    @objc public class func foo(existingFoo: FooObjc) -> FooBuilder {
+                        FooBuilder.foo().withStr(existingFoo.str).withOptDouble(existingFoo.optDouble).withIsValid(existingFoo.isValid)
                     }
 
                     private var str: String?
@@ -601,8 +601,8 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                         ValueBuilder()
                     }
 
-                    @objc public class func value(existingValue: ValueObjc) -> ValueObjc {
-                        ValueBuilder.value().withDoubleValue(existingValue.doubleValue).withRef(existingValue.ref).withRef2(existingValue.ref2).withRef3(existingValue.ref3).withFoo(existingValue.foo).withRef4(existingValue.ref4).build()
+                    @objc public class func value(existingValue: ValueObjc) -> ValueBuilder {
+                        ValueBuilder.value().withDoubleValue(existingValue.doubleValue).withRef(existingValue.ref).withRef2(existingValue.ref2).withRef3(existingValue.ref3).withFoo(existingValue.foo).withRef4(existingValue.ref4)
                     }
 
                     private var doubleValue: Double?
@@ -981,8 +981,8 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                         ABValueBuilder()
                     }
 
-                    @objc public class func aBValue(existingABValue: ABValueObjc) -> ABValueObjc {
-                        ABValueBuilder.aBValue().withValue(existingABValue.value).build()
+                    @objc public class func aBValue(existingABValue: ABValueObjc) -> ABValueBuilder {
+                        ABValueBuilder.aBValue().withValue(existingABValue.value)
                     }
 
                     private var value: String?
@@ -1137,8 +1137,8 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                         ValueBuilder()
                     }
 
-                    @objc public class func value(existingValue: ValueObjc) -> ValueObjc {
-                        ValueBuilder.value().withDoubleValue(existingValue.doubleValue).withOptInt(existingValue.optInt).withStringArray(existingValue.stringArray).withMap(existingValue.map).build()
+                    @objc public class func value(existingValue: ValueObjc) -> ValueBuilder {
+                        ValueBuilder.value().withDoubleValue(existingValue.doubleValue).withOptInt(existingValue.optInt).withStringArray(existingValue.stringArray).withMap(existingValue.map)
                     }
 
                     private var doubleValue: Double?
@@ -1363,8 +1363,8 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                         StoriesOtherBuilder()
                     }
 
-                    @objc public class func storiesOther(existingStoriesOther: StoriesOtherObjc) -> StoriesOtherObjc {
-                        StoriesOtherBuilder.storiesOther().withProductImageSize(existingStoriesOther.productImageSize).withFrame(existingStoriesOther.frame).withRotationAngle(existingStoriesOther.rotationAngle).build()
+                    @objc public class func storiesOther(existingStoriesOther: StoriesOtherObjc) -> StoriesOtherBuilder {
+                        StoriesOtherBuilder.storiesOther().withProductImageSize(existingStoriesOther.productImageSize).withFrame(existingStoriesOther.frame).withRotationAngle(existingStoriesOther.rotationAngle)
                     }
 
                     private var productImageSize: CGSize?

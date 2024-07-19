@@ -151,8 +151,8 @@ final class SwiftObjcValueTypeMacroTests: XCTestCase {
                         ValueBuilder()
                     }
 
-                    @objc public class func value(existingValue: ValueObjc) -> ValueObjc {
-                        ValueBuilder.value().withDoubleValue(existingValue.doubleValue).withOptInt(existingValue.optInt).withStringArray(existingValue.stringArray).withMap(existingValue.map).build()
+                    @objc public class func value(existingValue: ValueObjc) -> ValueBuilder {
+                        ValueBuilder.value().withDoubleValue(existingValue.doubleValue).withOptInt(existingValue.optInt).withStringArray(existingValue.stringArray).withMap(existingValue.map)
                     }
 
                     private var doubleValue: Double?

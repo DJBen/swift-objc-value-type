@@ -64,8 +64,8 @@ extension SwiftObjcValueTypeFactory {
                     )
                 }
 
-                // @objc class func value(existingValue: ValueObjc) -> ValueObjc {
-                //     ValueBuilder.value().withDoubleValue(...).with...().build()
+                // @objc class func value(existingValue: ValueObjc) -> ValueBuilder {
+                //     ValueBuilder.value().withDoubleValue(...).with...()
                 // }
                 FunctionDeclSyntax(
                     attributes: AttributeListSyntax {
@@ -90,7 +90,7 @@ extension SwiftObjcValueTypeFactory {
                         returnClause: ReturnClauseSyntax(
                             arrow: .arrowToken(),
                             type: IdentifierTypeSyntax(
-                                name: .identifier("\(structName)Objc")
+                                name: .identifier("\(structName)Builder")
                             )
                         )
                     )
@@ -271,7 +271,7 @@ extension FunctionCallExprSyntax {
                 expr = expr.withExistingParams(variableName, structName: structName)
             }
         }
-        return expr.build()
+        return expr
     }
 
     // .withOptInt(existingValue.optInt
@@ -294,21 +294,6 @@ extension FunctionCallExprSyntax {
                     )
                 )
             },
-            rightParen: .rightParenToken()
-        )
-    }
-
-    private func build() -> FunctionCallExprSyntax {
-        FunctionCallExprSyntax(
-            calledExpression: MemberAccessExprSyntax(
-                base: self,
-                period: .periodToken(),
-                declName: DeclReferenceExprSyntax(
-                    baseName: .identifier("build")
-                )
-            ),
-            leftParen: .leftParenToken(),
-            arguments: LabeledExprListSyntax {},
             rightParen: .rightParenToken()
         )
     }
