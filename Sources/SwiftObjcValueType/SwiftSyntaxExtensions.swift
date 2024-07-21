@@ -69,7 +69,7 @@ extension TypeSyntaxProtocol {
                 return .identifier("decodeInt64")
             case "Float":
                 return .identifier("decodeFloat")
-            case "Double", "CGFloat":
+            case "Double", "CGFloat", "TimeInterval":
                 // CGFloat is supposed to be Double, but when being decoded
                 // as decodeDouble it throws http://www.openradar.me/39871638
                 // Thus it is mandatory to cast to Double before encoding and
