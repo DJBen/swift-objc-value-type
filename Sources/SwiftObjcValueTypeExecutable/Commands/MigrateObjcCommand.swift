@@ -73,7 +73,7 @@ struct MigrateObjcCommand: ParsableCommand, FileHandlingCommand {
         }
         """
     )
-    var typeMappings: String = ""
+    var typeMappings: String = #"{"swiftValueTypes":[],"swiftTypeMappings":{}}"#
     
     func run() throws {
         let charStreams = try macroDefinitionPaths.map {

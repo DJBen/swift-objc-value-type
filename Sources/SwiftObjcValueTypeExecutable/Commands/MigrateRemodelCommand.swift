@@ -35,7 +35,7 @@ struct MigrateRemodelCommand: ParsableCommand, FileHandlingCommand {
         name: [.long],
         help: "A jsonified dictionary containing the Swift type mappings"
     )
-    var typeMappings: String = ""
+    var typeMappings: String = #"{"swiftValueTypes":[],"swiftTypeMappings":{}}"#
     
     func run() throws {
         var sourceFilesIterator = makeSourceContentIterator {
