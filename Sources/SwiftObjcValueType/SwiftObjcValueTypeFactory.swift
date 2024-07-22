@@ -583,9 +583,9 @@ public struct SwiftObjcValueTypeFactory {
                         FunctionParameterSyntax(
                             firstName: index == 0 ? .wildcardToken() : caseElement.name,
                             secondName: index == 0 ? caseElement.name : nil,
-                            type: IdentifierTypeSyntax(
+                            type:IdentifierTypeSyntax(
                                 name: .identifier("\(enumName)\(caseElement.name.trimmed.text.uppercasingFirst)MatchHandler")
-                            ).optionalized
+                            )
                         )
                     }
                 }
@@ -608,10 +608,8 @@ public struct SwiftObjcValueTypeFactory {
                         )
                     ) {
                         FunctionCallExprSyntax(
-                            calledExpression: OptionalChainingExprSyntax(
-                                expression: DeclReferenceExprSyntax(
-                                    baseName: caseElement.name.trimmed
-                                )
+                            calledExpression: DeclReferenceExprSyntax(
+                                baseName: caseElement.name
                             ),
                             leftParen: .leftParenToken(),
                             rightParen: .rightParenToken()

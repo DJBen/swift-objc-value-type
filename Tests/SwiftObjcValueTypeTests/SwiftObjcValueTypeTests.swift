@@ -1578,14 +1578,14 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
 
                 @objc
-                public func matchSaveBegan(_ saveBegan: SaveUpdatesSaveBeganMatchHandler?, saveSucceeded: SaveUpdatesSaveSucceededMatchHandler?, saveFailed: SaveUpdatesSaveFailedMatchHandler?) {
+                public func matchSaveBegan(_ saveBegan: SaveUpdatesSaveBeganMatchHandler, saveSucceeded: SaveUpdatesSaveSucceededMatchHandler, saveFailed: SaveUpdatesSaveFailedMatchHandler) {
                     switch subtype {
                     case .saveBegan:
-                        saveBegan?(saveBeganSavingToAlpha!)
+                        saveBegan(saveBeganSavingToAlpha!)
                     case .saveSucceeded:
-                        saveSucceeded?(saveSucceededSavedToAlpha!, saveSucceededSavedToBeta!, saveSucceededOptFloat.map(NSNumber.init), saveSucceededDisplayName)
+                        saveSucceeded(saveSucceededSavedToAlpha!, saveSucceededSavedToBeta!, saveSucceededOptFloat.map(NSNumber.init), saveSucceededDisplayName)
                     case .saveFailed:
-                        saveFailed?(saveFailedError)
+                        saveFailed(saveFailedError)
                     }
                 }
             }
@@ -1838,12 +1838,12 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
 
                 @objc
-                func matchUnencrypted(_ unencrypted: EncryptionTypeUnencryptedMatchHandler?, encrypted: EncryptionTypeEncryptedMatchHandler?) {
+                func matchUnencrypted(_ unencrypted: EncryptionTypeUnencryptedMatchHandler, encrypted: EncryptionTypeEncryptedMatchHandler) {
                     switch subtype {
                     case .unencrypted:
-                        unencrypted?()
+                        unencrypted()
                     case .encrypted:
-                        encrypted?(encryptedParam0!, encryptedKey)
+                        encrypted(encryptedParam0!, encryptedKey)
                     }
                 }
             }
