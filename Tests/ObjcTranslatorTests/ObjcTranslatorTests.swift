@@ -549,6 +549,45 @@ final class ObjcTranslatorTests: XCTestCase {
         )
     }
     
+    func testProtocol_compoundTypes() throws {
+        let source = """
+        @protocol CompoundProtocol <NSObject>
+        
+        @property (nonatomic, strong) id<Foo, Bar> fooBar;
+
+        /** blah blah **/
+        - (void)compoundType:(id<Foo, Bar> _Nonnull)fooBar;
+        
+        @end
+        """
+        
+        let translator = try translator(
+            from: source
+        )
+
+        let result = try translator.translate()
+        
+        assertBuildResult(
+            result,
+            """
+
+            
+            @objc
+            public protocol CompoundProtocol: NSObjectProtocol {
+
+                var fooBar: (Foo & Bar)? {
+                    get
+                    set
+                }
+
+                /** blah blah **/
+                @objc
+                func compoundType(fooBar: Foo & Bar)
+            }
+            """
+        )
+    }
+    
     func testProtocol_methods() throws {
         let source = """
         
