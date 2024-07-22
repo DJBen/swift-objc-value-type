@@ -96,7 +96,7 @@ struct TypeMapCommand: ParsableCommand, FileHandlingCommand {
                 sourcePaths: Set(fileArguments.sourcePaths),
                 inputFileListPath: fileArguments.inputFileListPath,
                 filteringExtension: {
-                    ["value", "adtValue"].contains($0.lowercased())
+                    ["value", "adtvalue"].contains($0.lowercased())
                 }
             )
                       

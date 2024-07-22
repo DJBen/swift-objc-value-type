@@ -255,9 +255,9 @@ final class ObjcTranslatorTests: XCTestCase {
             """
             
             
-            typealias HelloWorld = UInt8
+            public typealias HelloWorld = UInt8
             
-            typealias ABCharactorCompletionBlock = (gender: ABGender?, style: ABStyle?, characterData: [AnyHashable: Any]?, versionedId: String?) -> Void
+            public typealias ABCharactorCompletionBlock = (gender: ABGender?, style: ABStyle?, characterData: [AnyHashable: Any]?, versionedId: String?) -> Void
             
             @objc(ABFoo)
             public protocol Foo: NSObjectProtocol, ABAnotherProtocol {

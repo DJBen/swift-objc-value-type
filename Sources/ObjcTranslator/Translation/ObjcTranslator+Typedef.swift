@@ -14,6 +14,11 @@ extension ObjcTranslator {
         if let typeDeclarator = typedefDecl.typeDeclaratorList()?.declarator().first {
             TypeAliasDeclSyntax(
                 leadingTrivia: .newlines(2) + declLeadingTrivia + beforeTrivia(for: typedefDecl),
+                modifiers: DeclModifierListSyntax {
+                    if access == .public {
+                        DeclModifierSyntax(name: .keyword(.public))
+                    }
+                },
                 name: swiftIdentifier(
                     declarator: typeDeclarator
                 ),
