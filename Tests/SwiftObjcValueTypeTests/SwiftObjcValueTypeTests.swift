@@ -46,46 +46,19 @@ final class SwiftObjcValueTypeTests: XCTestCase {
         }
 
         public override var hash: Int {
-            let hashes: [UInt] = [hashDouble(doubleValue), UInt(bitPattern: optInt?.hash ?? 0), UInt(bitPattern: (stringArray as NSArray).hash), UInt(bitPattern: (map as NSDictionary).hash)]
-            return Int(hashImpl(hashes, 4))
-        }
-
-        private func hashDouble(_ givenDouble: Double) -> UInt {
-            var value = givenDouble
-            var bits: UInt64 = 0
-            withUnsafeBytes(of: &value) { bytes in
-                bits = bytes.load(as: UInt64.self)
-            }
-            var p = UInt(bits)
-            p = (~p) &+ (p << 18)
-            p ^= (p >> 31)
-            p &*= 21
-            p ^= (p >> 11)
-            p &+= (p << 6)
-            p ^= (p >> 22)
-            return p
-        }
-
-        private func hashImpl(_ subhashes: UnsafePointer<UInt>, _ length: Int) -> UInt {
-            var result = subhashes[0]
-            for i in 1 ..< length {
-                var base = (UInt64(result) << 32) | UInt64(subhashes[i])
-                base = (~base) &+ (base << 18)
-                base ^= (base >> 31)
-                base &*= 21
-                base ^= (base >> 11)
-                base &+= (base << 6)
-                base ^= (base >> 22)
-                result = UInt(base)
-            }
-            return result
+            var hasher = Hasher()
+            hasher.combine(doubleValue)
+            hasher.combine(optInt)
+            hasher.combine((stringArray as NSArray).hash)
+            hasher.combine((map as NSDictionary).hash)
+            return hasher.finalize()
         }
 
         public override func isEqual(_ object: Any?) -> Bool {
             guard let other = object as? ValueObjc else {
                 return false
             }
-            return doubleValue == other.doubleValue && optInt?.isEqual(other.optInt) == true && stringArray == other.stringArray && map == other.map
+            return doubleValue == other.doubleValue && optInt == other.optInt && stringArray == other.stringArray && map == other.map
         }
 
         public func copy(with zone: NSZone? = nil) -> Any {
@@ -246,46 +219,18 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
 
                 public override var hash: Int {
-                    let hashes: [UInt] = [hashDouble(doubleValue), UInt(bitPattern: optInt?.hash ?? 0), UInt(bitPattern: optDouble?.hash ?? 0)]
-                    return Int(hashImpl(hashes, 3))
-                }
-
-                private func hashDouble(_ givenDouble: Double) -> UInt {
-                    var value = givenDouble
-                    var bits: UInt64 = 0
-                    withUnsafeBytes(of: &value) { bytes in
-                        bits = bytes.load(as: UInt64.self)
-                    }
-                    var p = UInt(bits)
-                    p = (~p) &+ (p << 18)
-                    p ^= (p >> 31)
-                    p &*= 21
-                    p ^= (p >> 11)
-                    p &+= (p << 6)
-                    p ^= (p >> 22)
-                    return p
-                }
-
-                private func hashImpl(_ subhashes: UnsafePointer<UInt>, _ length: Int) -> UInt {
-                    var result = subhashes[0]
-                    for i in 1 ..< length {
-                        var base = (UInt64(result) << 32) | UInt64(subhashes[i])
-                        base = (~base) &+ (base << 18)
-                        base ^= (base >> 31)
-                        base &*= 21
-                        base ^= (base >> 11)
-                        base &+= (base << 6)
-                        base ^= (base >> 22)
-                        result = UInt(base)
-                    }
-                    return result
+                    var hasher = Hasher()
+                    hasher.combine(doubleValue)
+                    hasher.combine(optInt)
+                    hasher.combine(optDouble)
+                    return hasher.finalize()
                 }
 
                 public override func isEqual(_ object: Any?) -> Bool {
                     guard let other = object as? ValueObjc else {
                         return false
                     }
-                    return doubleValue == other.doubleValue && optInt?.isEqual(other.optInt) == true && optDouble?.isEqual(other.optDouble) == true
+                    return doubleValue == other.doubleValue && optInt == other.optInt && optDouble == other.optDouble
                 }
 
                 @available(*, unavailable)
@@ -328,7 +273,6 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
                 """#
             },
-            externalHashSettings: ExternalHashSettings(hashFunc: "HashImpl", hashDoubleFunc: "HashDouble"),
             shouldSynthesizeNSCoding: false,
             shouldSynthesizeNSCopying: false,
             shouldSynthesizeObjCBuilder: true
@@ -368,15 +312,18 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
 
                 public override var hash: Int {
-                    let hashes: [UInt] = [UInt(bitPattern: (str as NSString).hash), UInt(bitPattern: optDouble?.hash ?? 0), (isValid ? 1 : 0)]
-                    return Int(HashImpl(hashes, 3))
+                    var hasher = Hasher()
+                    hasher.combine((str as NSString).hash)
+                    hasher.combine(optDouble)
+                    hasher.combine(isValid)
+                    return hasher.finalize()
                 }
 
                 public override func isEqual(_ object: Any?) -> Bool {
                     guard let other = object as? FooObjc else {
                         return false
                     }
-                    return str == other.str && optDouble?.isEqual(other.optDouble) == true && isValid == other.isValid
+                    return str == other.str && optDouble == other.optDouble && isValid == other.isValid
                 }
 
                 @available(*, unavailable)
@@ -731,13 +678,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
 
                 """#
-            },
-            externalHashSettings: ExternalHashSettings(
-                hashFunc: "HashImpl",
-                hashFloatFunc: "HashFloat",
-                hashDoubleFunc: "HashDouble",
-                isUnsafePointer: true
-            )
+            }
         )
 
         assertBuildResult(
@@ -772,10 +713,10 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
 
                 public override var hash: Int {
-                    var hashes: [UInt] = [HashDouble(doubleValue), UInt(bitPattern: enumType.rawValue)]
-                    return Int(hashes.withUnsafeMutableBufferPointer { p in
-                        HashImpl(p.baseAddress, 2)
-                        })
+                    var hasher = Hasher()
+                    hasher.combine(doubleValue)
+                    hasher.combine(enumType.rawValue)
+                    return hasher.finalize()
                 }
 
                 public override func isEqual(_ object: Any?) -> Bool {
@@ -912,7 +853,6 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 """#
             },
             prefix: "AB",
-            externalHashSettings: ExternalHashSettings(hashFunc: "HashImpl", hashFloatFunc: "HashFloat", hashDoubleFunc: "HashDouble"),
             shouldSynthesizeNSCoding: true,
             shouldSynthesizeNSCopying: true,
             shouldSynthesizeObjCBuilder: true
@@ -944,8 +884,9 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
 
                 public override var hash: Int {
-                    let hashes: [UInt] = [UInt(bitPattern: (value as NSString).hash)]
-                    return Int(HashImpl(hashes, 1))
+                    var hasher = Hasher()
+                    hasher.combine((value as NSString).hash)
+                    return hasher.finalize()
                 }
 
                 public override func isEqual(_ object: Any?) -> Bool {
@@ -1042,7 +983,6 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 """#
             },
             prefix: "XY",
-            externalHashSettings: ExternalHashSettings(hashFunc: "HashImpl", hashFloatFunc: "HashFloat", hashDoubleFunc: "HashDouble"),
             shouldSynthesizeNSCoding: true,
             shouldSynthesizeNSCopying: true,
             shouldSynthesizeObjCBuilder: true
@@ -1092,15 +1032,19 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
 
                 public override var hash: Int {
-                    let hashes: [UInt] = [HashDouble(doubleValue), UInt(bitPattern: optInt?.hash ?? 0), UInt(bitPattern: (stringArray as NSArray).hash), UInt(bitPattern: (map as NSDictionary).hash)]
-                    return Int(HashImpl(hashes, 4))
+                    var hasher = Hasher()
+                    hasher.combine(doubleValue)
+                    hasher.combine(optInt)
+                    hasher.combine((stringArray as NSArray).hash)
+                    hasher.combine((map as NSDictionary).hash)
+                    return hasher.finalize()
                 }
 
                 public override func isEqual(_ object: Any?) -> Bool {
                     guard let other = object as? ValueObjc else {
                         return false
                     }
-                    return doubleValue == other.doubleValue && optInt?.isEqual(other.optInt) == true && stringArray == other.stringArray && map == other.map
+                    return doubleValue == other.doubleValue && optInt == other.optInt && stringArray == other.stringArray && map == other.map
                 }
 
                 public func copy(with zone: NSZone? = nil) -> Any {
@@ -1275,7 +1219,6 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 """#
             },
             prefix: "SC",
-            externalHashSettings: ExternalHashSettings(libary: "HashUtils", hashFunc: "ObjcHash", hashFloatFunc: "ObjcHashFloat", hashDoubleFunc: "ObjcHashDouble"),
             shouldSynthesizeNSCoding: true,
             shouldSynthesizeNSCopying: true,
             shouldSynthesizeObjCBuilder: true
@@ -1286,7 +1229,6 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             #"""
             import Foundation
             import UIKit
-            import HashUtils
 
             @objc(SCStoriesOther)
             public class StoriesOtherObjc: NSObject, NSCopying, NSCoding {
@@ -1324,8 +1266,15 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
 
                 public override var hash: Int {
-                    let hashes: [UInt] = [ObjcHashDouble(productImageSize.width), ObjcHashDouble(productImageSize.height), ObjcHashDouble(frame.origin.x), ObjcHashDouble(frame.origin.y), ObjcHashDouble(frame.size.width), ObjcHashDouble(frame.size.height), ObjcHashDouble(rotationAngle)]
-                    return Int(ObjcHash(hashes, 7))
+                    var hasher = Hasher()
+                    hasher.combine(productImageSize.width)
+                    hasher.combine(productImageSize.height)
+                    hasher.combine(frame.origin.x)
+                    hasher.combine(frame.origin.y)
+                    hasher.combine(frame.size.width)
+                    hasher.combine(frame.size.height)
+                    hasher.combine(rotationAngle)
+                    return hasher.finalize()
                 }
 
                 public override func isEqual(_ object: Any?) -> Bool {
@@ -1617,7 +1566,6 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
                 """
             },
-            externalHashSettings: ExternalHashSettings(hashFunc: "HashImpl", hashDoubleFunc: "HashDouble"),
             shouldSynthesizeNSCoding: false,
             shouldSynthesizeNSCopying: false
         )
@@ -1650,7 +1598,6 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
                 """
             },
-            externalHashSettings: ExternalHashSettings(hashFunc: "HashImpl", hashDoubleFunc: "HashDouble"),
             shouldSynthesizeNSCoding: false,
             shouldSynthesizeNSCopying: false
         )
@@ -1683,8 +1630,10 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
 
                 public override var hash: Int {
-                    let hashes: [UInt] = [UInt(bitPattern: (featureName as NSString).hash), UInt(bitPattern: jiraProject.hash)]
-                    return Int(HashImpl(hashes, 2))
+                    var hasher = Hasher()
+                    hasher.combine((featureName as NSString).hash)
+                    hasher.combine(jiraProject.hash)
+                    return hasher.finalize()
                 }
 
                 public override func isEqual(_ object: Any?) -> Bool {
@@ -1730,8 +1679,10 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
 
                 public override var hash: Int {
-                    let hashes: [UInt] = [UInt(bitPattern: (projectName as NSString).hash), UInt(bitPattern: (label as NSString).hash)]
-                    return Int(HashImpl(hashes, 2))
+                    var hasher = Hasher()
+                    hasher.combine((projectName as NSString).hash)
+                    hasher.combine((label as NSString).hash)
+                    return hasher.finalize()
                 }
 
                 public override func isEqual(_ object: Any?) -> Bool {
@@ -1767,7 +1718,6 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
                 """
             },
-            externalHashSettings: ExternalHashSettings(hashFunc: "HashImpl", hashDoubleFunc: "HashDouble"),
             shouldSynthesizeNSCoding: false,
             shouldSynthesizeNSCopying: false
         )
@@ -1816,8 +1766,11 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                 }
 
                 override var hash: Int {
-                    let hashes: [UInt] = [UInt(bitPattern: subtype.rawValue), UInt(bitPattern: (encryptedParam0 as? NSString)?.hash ?? 0), UInt(bitPattern: (encryptedKey as? NSString)?.hash ?? 0)]
-                    return Int(HashImpl(hashes, 3))
+                    var hasher = Hasher()
+                    hasher.combine(subtype)
+                    hasher.combine((encryptedParam0 as? NSString)?.hash ?? 0)
+                    hasher.combine((encryptedKey as? NSString)?.hash ?? 0)
+                    return hasher.finalize()
                 }
 
                 override func isEqual(_ object: Any?) -> Bool {

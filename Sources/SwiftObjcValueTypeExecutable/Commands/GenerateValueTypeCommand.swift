@@ -61,15 +61,6 @@ struct GenerateValueTypeCommand: ParsableCommand, FileHandlingCommand {
                 referencedSwiftTypes: preprocessor.referencedSwiftTypes, 
                 prefix: genArguments.prefix,
                 imports: genArguments.imports,
-                externalHashSettings: genArguments.externalHashFunc.map { externalHashFunc in
-                    ExternalHashSettings(
-                        libary: genArguments.externalHashLibrary,
-                        hashFunc: externalHashFunc,
-                        hashFloatFunc: genArguments.externalHashFloatFunc,
-                        hashDoubleFunc: genArguments.externalHashDoubleFunc,
-                        isUnsafePointer: genArguments.exernalHashFuncIsUnsafePointer
-                   )
-                },
                 shouldSynthesizeNSCopying: genArguments.shouldSynthesizeNSCopying,
                 shouldSynthesizeObjCBuilder: genArguments.shouldSynthesizeObjCBuilder
             )

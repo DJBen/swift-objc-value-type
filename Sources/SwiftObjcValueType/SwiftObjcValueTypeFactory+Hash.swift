@@ -3,110 +3,6 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 
 extension SwiftObjcValueTypeFactory {
-    /// The hash of each instance `x` is as follows:
-    /// - If NSObject: x.hash()
-    /// - If Bool: x ? 1 : 0
-    /// - If signed integer: UInt(abs(x))
-    /// - If unsigned integer: UInt(x)
-    /// - If optional: UInt(recursively expand x ?? 0)
-    @ArrayElementListBuilder
-    private func arrayElement(
-        identifier: TokenSyntax,
-        type: some TypeSyntaxProtocol,
-        externalHashSettings: ExternalHashSettings?,
-        needsUnwrap: Bool = false,
-        needsAppendRawValue: Bool = false
-    ) -> ArrayElementListSyntax {
-        if let optionalType = type.as(OptionalTypeSyntax.self) {
-            if optionalType.wrappedType.isNSNumberBridged {
-                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: \(identifier)?.hash ?? 0)"))
-            } else {
-                arrayElement(
-                    identifier: identifier,
-                    type: optionalType.wrappedType,
-                    externalHashSettings: externalHashSettings,
-                    needsUnwrap: true
-                )
-            }
-        } else if type.isBool {
-            if needsUnwrap {
-                ArrayElementSyntax(expression: ExprSyntax("(\(identifier) ? 1 : 0) ?? 0"))
-            } else {
-                ArrayElementSyntax(expression: ExprSyntax("(\(identifier) ? 1 : 0)"))
-            }
-        } else if type.isArray {
-            if needsUnwrap {
-                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: (\(identifier) as? NSArray)?.hash ?? 0)"))
-            } else {
-                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: (\(identifier) as NSArray).hash)"))
-            }
-        } else if type.isDict {
-            if needsUnwrap {
-                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: (\(identifier) as? NSDictionary)?.hash ?? 0)"))
-            } else {
-                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: (\(identifier) as NSDictionary).hash)"))
-            }
-        } else if type.isSignedInt {
-            if needsAppendRawValue {
-                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: abs(Int(\(identifier).rawValue)))"))
-            } else {
-                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: abs(Int(\(identifier))))"))
-            }
-        } else if type.isFloat {
-            let floatHashFunc = externalHashSettings?.hashFloatFunc ?? "hashFloat"
-            ArrayElementSyntax(expression: ExprSyntax("\(raw: floatHashFunc)(\(identifier))"))
-        } else if type.isDouble {
-            let doubleHashFunc = externalHashSettings?.hashDoubleFunc ?? "hashDouble"
-            ArrayElementSyntax(expression: ExprSyntax("\(raw: doubleHashFunc)(\(identifier))"))
-        } else if type.isIdentifierTypeEqual("CGSize") {
-            let doubleHashFunc = externalHashSettings?.hashDoubleFunc ?? "hashDouble"
-            ArrayElementSyntax(expression: ExprSyntax("\(raw: doubleHashFunc)(\(identifier).width)"))
-            ArrayElementSyntax(expression: ExprSyntax("\(raw: doubleHashFunc)(\(identifier).height)"))
-        } else if type.isIdentifierTypeEqual("CGRect") {
-            let doubleHashFunc = externalHashSettings?.hashDoubleFunc ?? "hashDouble"
-            ArrayElementSyntax(expression: ExprSyntax("\(raw: doubleHashFunc)(\(identifier).origin.x)"))
-            ArrayElementSyntax(expression: ExprSyntax("\(raw: doubleHashFunc)(\(identifier).origin.y)"))
-            ArrayElementSyntax(expression: ExprSyntax("\(raw: doubleHashFunc)(\(identifier).size.width)"))
-            ArrayElementSyntax(expression: ExprSyntax("\(raw: doubleHashFunc)(\(identifier).size.height)"))
-        } else if type.isIdentifierTypeEqual("CGPoint") {
-            let doubleHashFunc = externalHashSettings?.hashDoubleFunc ?? "hashDouble"
-            ArrayElementSyntax(expression: ExprSyntax("\(raw: doubleHashFunc)(\(identifier).x)"))
-            ArrayElementSyntax(expression: ExprSyntax("\(raw: doubleHashFunc)(\(identifier).y)"))
-        } else if type.isIdentifierTypeEqual("CGVector") {
-            let doubleHashFunc = externalHashSettings?.hashDoubleFunc ?? "hashDouble"
-            ArrayElementSyntax(expression: ExprSyntax("\(raw: doubleHashFunc)(\(identifier).dx)"))
-            ArrayElementSyntax(expression: ExprSyntax("\(raw: doubleHashFunc)(\(identifier).dy)"))
-        } else if type.isIdentifierTypeEqual("CGAffineTransform") {
-            let doubleHashFunc = externalHashSettings?.hashDoubleFunc ?? "hashDouble"
-            ArrayElementSyntax(expression: ExprSyntax("\(raw: doubleHashFunc)(\(identifier).a)"))
-            ArrayElementSyntax(expression: ExprSyntax("\(raw: doubleHashFunc)(\(identifier).b)"))
-            ArrayElementSyntax(expression: ExprSyntax("\(raw: doubleHashFunc)(\(identifier).c)"))
-            ArrayElementSyntax(expression: ExprSyntax("\(raw: doubleHashFunc)(\(identifier).d)"))
-            ArrayElementSyntax(expression: ExprSyntax("\(raw: doubleHashFunc)(\(identifier).tx)"))
-            ArrayElementSyntax(expression: ExprSyntax("\(raw: doubleHashFunc)(\(identifier).ty)"))
-        } else if let idType = type.as(IdentifierTypeSyntax.self), let objcType = ObjcSwiftUtils.swiftToObjcFoundationTypeMap[idType.name.trimmed.text] {
-            if needsUnwrap {
-                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: (\(identifier) as? \(raw: objcType))?.hash ?? 0)"))
-            } else {
-                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: (\(identifier) as \(raw: objcType)).hash)"))
-            }
-        } else if type.isObjcPrimitive { // only unsigned int satisfy this criteria
-            if needsAppendRawValue {
-                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: \(identifier).rawValue)"))
-            } else {
-                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: \(identifier))"))
-            }
-        } else {
-            if needsUnwrap {
-                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: \(identifier)?.hash ?? 0)"))
-            } else if needsAppendRawValue {
-                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: \(identifier).rawValue.hash)"))
-            } else {
-                ArrayElementSyntax(expression: ExprSyntax("UInt(bitPattern: \(identifier).hash)"))
-            }
-        }
-    }
-    
     @CodeBlockItemListBuilder
     private func combineFunc(
         identifier: TokenSyntax,
@@ -161,10 +57,19 @@ extension SwiftObjcValueTypeFactory {
                 } else {
                     "hasher.combine((\(identifier) as NSDictionary).hash)"
                 }
-            } else if needsUnwrap {
-                "hasher.combine(\(identifier)?.hashValue)"
+            } else if let idType = type.as(IdentifierTypeSyntax.self), let objcType = ObjcSwiftUtils.swiftToObjcFoundationTypeMap[idType.name.trimmed.text] {
+                if needsUnwrap {
+                    "hasher.combine((\(identifier) as? \(raw: objcType))?.hash ?? 0)"
+                } else {
+                    "hasher.combine((\(identifier) as \(raw: objcType)).hash)"
+                }
             } else {
-                "hasher.combine(\(identifier).hashValue)"
+                // Other NSObject
+                if needsUnwrap {
+                    "hasher.combine(\(identifier)?.hash)"
+                } else {
+                    "hasher.combine(\(identifier).hash)"
+                }
             }
         }
     }
@@ -172,8 +77,7 @@ extension SwiftObjcValueTypeFactory {
     @CodeBlockItemListBuilder
     private func combineFuncs<StructOrEnum: DeclSyntaxProtocol>(
         container: StructOrEnum,
-        valueObjectConfig: ValueObjectConfig,
-        externalHashSettings: ExternalHashSettings?
+        valueObjectConfig: ValueObjectConfig
     ) -> CodeBlockItemListSyntax {
         if let structDecl = container.as(StructDeclSyntax.self) {
             structDecl.forEachBinding { binding in
@@ -206,15 +110,13 @@ extension SwiftObjcValueTypeFactory {
     @CodeBlockItemListBuilder
     private func hashInvocation<StructOrEnum: DeclSyntaxProtocol>(
         container: StructOrEnum,
-        valueObjectConfig: ValueObjectConfig,
-        externalHashSettings: ExternalHashSettings?
+        valueObjectConfig: ValueObjectConfig
     ) -> CodeBlockItemListSyntax {
         "var hasher = Hasher()"
         
         combineFuncs(
             container: container,
-            valueObjectConfig: valueObjectConfig,
-            externalHashSettings: externalHashSettings
+            valueObjectConfig: valueObjectConfig
         )
 
         "return hasher.finalize()"
@@ -224,8 +126,7 @@ extension SwiftObjcValueTypeFactory {
     private func hashFunc<StructOrEnum: DeclSyntaxProtocol>(
         container: StructOrEnum,
         valueObjectConfig: ValueObjectConfig,
-        modifiers: DeclModifierListSyntax,
-        externalHashSettings: ExternalHashSettings?
+        modifiers: DeclModifierListSyntax
     ) -> MemberBlockItemListSyntax {
         VariableDeclSyntax(
             modifiers: DeclModifierListSyntax {
@@ -248,107 +149,33 @@ extension SwiftObjcValueTypeFactory {
                     accessors: .getter(
                         hashInvocation(
                             container: container,
-                            valueObjectConfig: valueObjectConfig,
-                            externalHashSettings: externalHashSettings
+                            valueObjectConfig: valueObjectConfig
                         )
                     )
                 )
             )
         }
-
-        if container.propertyNeedsHashFloat && externalHashSettings?.hashFloatFunc == nil {
-            DeclSyntax(
-            #"""
-            private func hashFloat(_ givenFloat: Float) -> UInt {
-                var value = givenFloat
-                var bits: UInt32 = 0
-                withUnsafeBytes(of: &value) { bytes in
-                    bits = bytes.load(as: UInt32.self)
-                }
-                var h = UInt(bits)
-                h &+= ~h &+ (h << 21)
-                h ^= (h >> 24)
-                h = (h &+ (h << 3)) &+ (h << 8)
-                h ^= (h >> 14)
-                h = (h &+ (h << 2)) &+ (h << 4)
-                h ^= (h >> 28)
-                h &+= (h << 31)
-                return h
-            }
-            """#
-            )
-            .with(\.leadingTrivia, .newlines(2))
-        }
-
-        if container.propertyNeedsHashDouble && externalHashSettings?.hashDoubleFunc == nil {
-            DeclSyntax(
-            #"""
-            private func hashDouble(_ givenDouble: Double) -> UInt {
-                var value = givenDouble
-                var bits: UInt64 = 0
-                withUnsafeBytes(of: &value) { bytes in
-                    bits = bytes.load(as: UInt64.self)
-                }
-                var p = UInt(bits)
-                p = (~p) &+ (p << 18)
-                p ^= (p >> 31)
-                p &*= 21
-                p ^= (p >> 11)
-                p &+= (p << 6)
-                p ^= (p >> 22)
-                return p
-            }
-            """#
-            )
-            .with(\.leadingTrivia, .newlines(2))
-        }
-
-        if externalHashSettings?.hashFunc == nil {
-            DeclSyntax(
-            #"""
-            private func hashImpl(_ subhashes: UnsafePointer<UInt>, _ length: Int) -> UInt {
-                var result = subhashes[0]
-                for i in 1..<length {
-                    var base = (UInt64(result) << 32) | UInt64(subhashes[i])
-                    base = (~base) &+ (base << 18)
-                    base ^= (base >> 31)
-                    base &*= 21
-                    base ^= (base >> 11)
-                    base &+= (base << 6)
-                    base ^= (base >> 22)
-                    result = UInt(base)
-                }
-                return result
-            }
-            """#
-            )
-            .with(\.leadingTrivia, .newlines(2))
-        }
     }
 
     @MemberBlockItemListBuilder
     func objcHashFunc(
-        structDecl: StructDeclSyntax,
-        externalHashSettings: ExternalHashSettings?
+        structDecl: StructDeclSyntax
     ) -> MemberBlockItemListSyntax {
         hashFunc(
             container: structDecl,
             valueObjectConfig: structDecl.valueObjectConfig,
-            modifiers: structDecl.modifiers,
-            externalHashSettings: externalHashSettings
+            modifiers: structDecl.modifiers
         )
     }
 
     @MemberBlockItemListBuilder
     func objcHashFunc(
-        enumDecl: EnumDeclSyntax,
-        externalHashSettings: ExternalHashSettings?
+        enumDecl: EnumDeclSyntax
     ) -> MemberBlockItemListSyntax {
         hashFunc(
             container: enumDecl,
             valueObjectConfig: enumDecl.valueObjectConfig,
-            modifiers: enumDecl.modifiers,
-            externalHashSettings: externalHashSettings
+            modifiers: enumDecl.modifiers
         )
     }
 }
