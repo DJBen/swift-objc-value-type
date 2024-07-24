@@ -37,3 +37,19 @@ extension ObjcTranslator {
         }
     }
 }
+
+extension P.TranslationUnitContext {
+    /// Get a list of names of the blocks defined by typedef.
+    /// - Returns: A list of names of blocks defined via typedef
+    var typedefBlockNames: Set<String> {
+        var blockNames = Set<String>()
+        for topLevelDecl in topLevelDeclaration() {
+            if let decl = topLevelDecl.declaration(), let typedefDecl = decl.typedefDeclaration(), let declarator = typedefDecl.typeDeclaratorList()?.declarator().first {
+                if let blockName = declarator.identifier()?.getText(), declarator.blockParameters() != nil {
+                    blockNames.insert(blockName)
+                }
+            }
+        }
+        return blockNames
+    }
+}

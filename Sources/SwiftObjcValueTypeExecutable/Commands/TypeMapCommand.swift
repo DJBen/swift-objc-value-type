@@ -25,7 +25,8 @@ struct TypeMapCommand: ParsableCommand, FileHandlingCommand {
         The dictionary is in shape of
         {
             "swiftTypeMappings": {"PFFoo", "Foo", "PFValue": "Value"},
-            "swiftValueTypes" : ["Value"]
+            "swiftValueTypes" : ["Value"],
+            "typedefBlockNames" : ["Block1, Block2"]
         }
         The result can be supplied to migrate-objc and migrate-remodel to provide adequate type replacement instructions.
         """

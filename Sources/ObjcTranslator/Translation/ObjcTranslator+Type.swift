@@ -120,6 +120,15 @@ extension ObjcTranslator {
                 context: context,
                 isEscaping: blockType.NS_NOESCAPE().isEmpty
             )
+        } else if let identifier = typeName.declarationSpecifiers()?.typeSpecifier()?.genericTypeSpecifier()?.identifier()?.getText(), typeMappings.typedefBlockNames.contains(identifier) {
+            // If the type is a known typedef block
+            return try swiftType(
+                typeSpecifier: typeName.declarationSpecifiers()!.typeSpecifier()!,
+                blockParam: nil,
+                nullability: nullability,
+                context: context,
+                isEscaping: typeName.declarationSpecifiers()?.NS_NOESCAPE().isEmpty ?? true
+            )
         } else {
             return try swiftType(
                 typeSpecifier: typeName.declarationSpecifiers()!.typeSpecifier()!,
@@ -221,12 +230,20 @@ extension ObjcTranslator {
                     for typeVariableDeclOrName in blockParam.typeVariableDeclaratorOrName() {
                         if let typeVariableDecl = typeVariableDeclOrName.typeVariableDeclarator() {
                             let identifier = typeVariableDecl.declarator()!.identifier()
+                            let firstName: TokenSyntax? = isTypedef ? .wildcardToken() : identifier.map {
+                                .identifier(
+                                    $0.getText()
+                                )
+                            }
+                            let secondName: TokenSyntax? = isTypedef ? identifier.map {
+                                .identifier(
+                                    $0.getText()
+                                )
+                            } : nil
+                            
                             TupleTypeElementSyntax(
-                                firstName: identifier.map {
-                                    .identifier(
-                                        $0.getText()
-                                    )
-                                },
+                                firstName: firstName,
+                                secondName: secondName,
                                 colon: identifier != nil ? .colonToken() : nil,
                                 type: try swiftType(
                                     typeVariableDecl: typeVariableDecl,
@@ -258,11 +275,11 @@ extension ObjcTranslator {
                     )
                 )
             )
-            .escaping(isEscaping)
             .optionalized(
                 isTypedef ? TypeNullability(propertyNullability: .nonnull, isNSAssumeNonnull: false, isGenericType: false) : nullability,
                 isObjcPrimitiveType: false
             )
+            .escaping(isEscaping)
         }
         
         if typeSpecifier.MUL() != nil /* pointer */, let subTypeSpecifier = typeSpecifier.typeSpecifier() {
@@ -485,6 +502,7 @@ extension ObjcTranslator {
                         nullability,
                         isObjcPrimitiveType: ObjcSwiftUtils.isObjcPrimitive(typeName)
                     )
+                    .escaping(isEscaping)
                 }
             }
         } else if let structOrUnion = typeSpecifier.structOrUnionSpecifier() {
@@ -551,9 +569,14 @@ private extension TypeSyntaxProtocol {
     }
 }
 
-extension FunctionTypeSyntax {
+extension TypeSyntaxProtocol {
     func escaping(_ shouldEscape: Bool) -> any TypeSyntaxProtocol {
         guard shouldEscape else {
+            return self
+        }
+        
+        if self.is(OptionalTypeSyntax.self) {
+            // Optional closure is always escaping
             return self
         }
         

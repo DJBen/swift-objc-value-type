@@ -257,7 +257,7 @@ final class ObjcTranslatorTests: XCTestCase {
             
             public typealias HelloWorld = UInt8
             
-            public typealias ABCharactorCompletionBlock = (gender: ABGender?, style: ABStyle?, characterData: [AnyHashable: Any]?, versionedId: String?) -> Void
+            public typealias ABCharactorCompletionBlock = (_ gender: ABGender?, _ style: ABStyle?, _ characterData: [AnyHashable: Any]?, _ versionedId: String?) -> Void
             
             @objc(ABFoo)
             public protocol Foo: NSObjectProtocol, ABAnotherProtocol {
@@ -434,6 +434,56 @@ final class ObjcTranslatorTests: XCTestCase {
 
                 @objc
                 public static let browserType = "browser_type"
+            }
+            """#
+        )
+    }
+    
+    func testProtocol_escapingBlock_typedef() throws {
+        let source = """
+        typedef void (^CompletionBlock)(NSString *_Nonnull param);
+        
+        NS_ASSUME_NONNULL_BEGIN
+        
+        @protocol SomeProtocol <NSObject>
+
+        /**
+         This override the existing sections with mutated results.
+         */
+        - (void)performBlock:(CompletionBlock)block;
+        
+        - (void)noEscapeBlock:(NS_NOESCAPE CompletionBlock)block;
+        
+        @end
+        
+        NS_ASSUME_NONNULL_END
+        """
+        
+        
+        let translator = try translator(
+            from: source
+        )
+
+        let result = try translator.translate()
+        
+        assertBuildResult(
+            result,
+            #"""
+             
+            
+            public typealias CompletionBlock = (_ param: String) -> Void
+            
+            @objc
+            public protocol SomeProtocol: NSObjectProtocol {
+            
+                /**
+             This override the existing sections with mutated results.
+             */
+                @objc
+                func performBlock(_ block: @escaping CompletionBlock)
+            
+                @objc
+                func noEscapeBlock(_ block: CompletionBlock)
             }
             """#
         )

@@ -40,7 +40,7 @@ public class ObjcTranslator {
     var beforeTriviaMap: [Interval: [Token]] = [:]
     var afterTriviaMap: [Interval: [Token]] = [:]
     
-    private var typeMappings: TypeMappings
+    let typeMappings: TypeMappings
     private let nsAssumeNonnullRanges: [Interval]
 
     public init(
@@ -61,14 +61,17 @@ public class ObjcTranslator {
         self.typeRegexesExcludedFromPrefixStripping = typeRegexesExcludedFromPrefixStripping
         self.access = access
         
-        self.typeMappings = TypeMappings(
-            translationUnit,
-            existingPrefix: existingPrefix,
-            typeRegexesExcludedFromPrefixStripping: typeRegexesExcludedFromPrefixStripping
-        )
-        if let otherTypeMappings {
-            self.typeMappings.merge(with: otherTypeMappings)
-        }
+        self.typeMappings = {
+            var mappings = TypeMappings(
+                translationUnit,
+                existingPrefix: existingPrefix,
+                typeRegexesExcludedFromPrefixStripping: typeRegexesExcludedFromPrefixStripping
+            )
+            if let otherTypeMappings {
+                mappings.merge(with: otherTypeMappings)
+            }
+            return mappings
+        }()
 
         var nsAssumeNonnullRanges = [Interval]()
         var nsAssumeNonnullStart: Int = -1
@@ -81,6 +84,7 @@ public class ObjcTranslator {
             }
         }
         self.nsAssumeNonnullRanges = nsAssumeNonnullRanges
+
         assignTrivia(
             directives: directives,
             tree: translationUnit,

@@ -67,7 +67,8 @@ public extension TypeMappings {
         
         self.init(
             swiftValueTypes: [],
-            swiftTypeMappings: swiftTypeMappings
+            swiftTypeMappings: swiftTypeMappings,
+            typedefBlockNames: translationUnit.typedefBlockNames
         )
     }
 }
