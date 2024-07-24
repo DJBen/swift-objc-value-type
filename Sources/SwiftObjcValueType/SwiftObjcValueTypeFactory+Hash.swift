@@ -106,38 +106,96 @@ extension SwiftObjcValueTypeFactory {
             }
         }
     }
+    
+    @CodeBlockItemListBuilder
+    private func combineFunc(
+        identifier: TokenSyntax,
+        type: some TypeSyntaxProtocol,
+        needsAppendRawValue: Bool,
+        needsUnwrap: Bool = false
+    ) -> CodeBlockItemListSyntax {
+        if let optionalType = type.as(OptionalTypeSyntax.self) {
+            combineFunc(
+                identifier: identifier,
+                type: optionalType.wrappedType,
+                needsAppendRawValue: needsAppendRawValue,
+                needsUnwrap: true
+            )
+        } else if needsAppendRawValue {
+            "hasher.combine(\(identifier).rawValue)"
+        } else if type.isObjcPrimitive {
+            if type.isIdentifierTypeEqual("CGSize") {
+                "hasher.combine(\(identifier).width)"
+                "hasher.combine(\(identifier).height)"
+            } else if type.isIdentifierTypeEqual("CGRect") {
+                "hasher.combine(\(identifier).origin.x)"
+                "hasher.combine(\(identifier).origin.y)"
+                "hasher.combine(\(identifier).size.width)"
+                "hasher.combine(\(identifier).size.height)"
+            } else if type.isIdentifierTypeEqual("CGPoint") {
+                "hasher.combine(\(identifier).x)"
+                "hasher.combine(\(identifier).y)"
+            } else if type.isIdentifierTypeEqual("CGVector") {
+                "hasher.combine(\(identifier).dx)"
+                "hasher.combine(\(identifier).dy)"
+            } else if type.isIdentifierTypeEqual("CGAffineTransform") {
+                "hasher.combine(\(identifier).a)"
+                "hasher.combine(\(identifier).b)"
+                "hasher.combine(\(identifier).c)"
+                "hasher.combine(\(identifier).d)"
+                "hasher.combine(\(identifier).tx)"
+                "hasher.combine(\(identifier).ty)"
+            } else {
+                "hasher.combine(\(identifier))"
+            }
+        } else {
+            if type.isArray {
+                if needsUnwrap {
+                    "hasher.combine((\(identifier) as? NSArray)?.hash ?? 0)"
+                } else {
+                    "hasher.combine((\(identifier) as NSArray).hash)"
+                }
+            } else if type.isDict {
+                if needsUnwrap {
+                    "hasher.combine((\(identifier) as? NSDictionary)?.hash ?? 0)"
+                } else {
+                    "hasher.combine((\(identifier) as NSDictionary).hash)"
+                }
+            } else if needsUnwrap {
+                "hasher.combine(\(identifier)?.hashValue)"
+            } else {
+                "hasher.combine(\(identifier).hashValue)"
+            }
+        }
+    }
 
-    @ArrayElementListBuilder
-    private func arrayElements<StructOrEnum: DeclSyntaxProtocol>(
+    @CodeBlockItemListBuilder
+    private func combineFuncs<StructOrEnum: DeclSyntaxProtocol>(
         container: StructOrEnum,
         valueObjectConfig: ValueObjectConfig,
         externalHashSettings: ExternalHashSettings?
-    ) -> ArrayElementListSyntax {
+    ) -> CodeBlockItemListSyntax {
         if let structDecl = container.as(StructDeclSyntax.self) {
             structDecl.forEachBinding { binding in
                 if let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self), let type = binding.typeAnnotation?.type {
                     let (newType, needsAppendRawValue) = type.asEnumTypeIfKnown(nsEnumTypes: valueObjectConfig.nsEnumTypes)
-                    arrayElement(
+                    combineFunc(
                         identifier: identifierPattern.identifier,
                         type: newType,
-                        externalHashSettings: externalHashSettings,
                         needsAppendRawValue: needsAppendRawValue
                     )
                 }
             }
         } else if let enumDecl = container.as(EnumDeclSyntax.self) {
-            ArrayElementSyntax(
-                expression: ExprSyntax("UInt(bitPattern: subtype.rawValue)")
-            )
+            "hasher.combine(subtype)"
 
             enumDecl.forEachCaseElement { caseElement in
                 let caseName = caseElement.name.trimmed.text.uppercasingFirst
                 for (index, caseParam) in (caseElement.parameterClause?.parameters ?? []).enumerated() {
                     let (newType, needsAppendRawValue) = caseParam.type.asEnumTypeIfKnown(nsEnumTypes: valueObjectConfig.nsEnumTypes)
-                    arrayElement(
+                    combineFunc(
                         identifier: .identifier(caseName.lowercasingFirst + caseParam.properName(index: index).trimmed.text.uppercasingFirst),
                         type: newType.optionalized,
-                        externalHashSettings: externalHashSettings,
                         needsAppendRawValue: needsAppendRawValue
                     )
                 }
@@ -151,40 +209,15 @@ extension SwiftObjcValueTypeFactory {
         valueObjectConfig: ValueObjectConfig,
         externalHashSettings: ExternalHashSettings?
     ) -> CodeBlockItemListSyntax {
-        let arrayElements = arrayElements(
+        "var hasher = Hasher()"
+        
+        combineFuncs(
             container: container,
             valueObjectConfig: valueObjectConfig,
             externalHashSettings: externalHashSettings
         )
 
-        VariableDeclSyntax(
-            bindingSpecifier: (externalHashSettings?.isUnsafePointer ?? false) ? .keyword(.var) : .keyword(.let),
-            bindings: PatternBindingListSyntax {
-                PatternBindingSyntax(
-                    pattern: IdentifierPatternSyntax(identifier: .identifier("hashes")),
-                    typeAnnotation: TypeAnnotationSyntax(
-                        type: ArrayTypeSyntax(element: IdentifierTypeSyntax(name: .identifier("UInt")))
-                    ),
-                    initializer: InitializerClauseSyntax(
-                        value: ArrayExprSyntax {
-                            arrayElements
-                        }
-                    )
-                )
-            }
-        )
-
-        let hashFunc = externalHashSettings?.hashFunc ?? "hashImpl"
-
-        if externalHashSettings?.isUnsafePointer ?? false {
-            #"""
-            return Int(hashes.withUnsafeMutableBufferPointer { p in
-                \#(raw: hashFunc)(p.baseAddress, \#(raw: arrayElements.count))
-            })
-            """#
-        } else {
-            "return Int(\(raw: hashFunc)(hashes, \(raw: arrayElements.count)))"
-        }
+        "return hasher.finalize()"
     }
 
     @MemberBlockItemListBuilder

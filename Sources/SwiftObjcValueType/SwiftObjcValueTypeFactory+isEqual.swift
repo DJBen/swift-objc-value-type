@@ -269,7 +269,7 @@ private extension TypeSyntaxProtocol {
             return true
         }
 
-        if let optional = self.as(OptionalTypeSyntax.self), !optional.wrappedType.isNSNumberBridged {
+        if let optional = self.as(OptionalTypeSyntax.self) {
             return optional.wrappedType.shouldUseEqualSignForEqualityCheck
         }
 
