@@ -116,7 +116,7 @@ public class ObjcTranslator {
                         
                         // Only import A from `#import <A/B.h>`
                         // and ignore `#import "C.h"`
-                        if let match = importSubject.getText().firstMatch(of: /<([\w_]+)\/[\w_]+\.\w+>/) {
+                        if let match = importSubject.getText().firstMatch(of: /<([\w_]+)\/[\w_.]+\.\w+>/) {
                             set.append(
                                 DedupedImportDirective(
                                     importString: String(match.1),

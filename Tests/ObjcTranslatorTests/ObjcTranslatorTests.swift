@@ -643,6 +643,7 @@ final class ObjcTranslatorTests: XCTestCase {
         
         #import <UIKit/UIKit.h>
         #import <Foundation/Foundation.h>
+        #import <Foo/Foo.bar.h>
 
         NS_ASSUME_NONNULL_BEGIN
 
@@ -692,6 +693,7 @@ final class ObjcTranslatorTests: XCTestCase {
             
             import UIKit
             import Foundation
+            import Foo
             
             /// Responsible for presenting the view.
             @objc(EXViewPresenting)
