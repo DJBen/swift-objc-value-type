@@ -353,6 +353,7 @@ final class ObjcTranslatorTests: XCTestCase {
         /// AccessibilityIdentifiers for UI tests
         const struct UITestAccessibilityIdType UITestAccessibilityId =
         {
+             // Main page
              .mainPage = @"main_page",
              .signOut = @"sign_out",
              .displayButton = @"display_content",
@@ -390,7 +391,8 @@ final class ObjcTranslatorTests: XCTestCase {
             /// AccessibilityIdentifiers for UI tests
             @objc
             public class UITestAccessibilityId: NSObject {
-                         
+                
+                // Main page
                 @objc
                 public static let mainPage = "main_page"
 
@@ -486,6 +488,69 @@ final class ObjcTranslatorTests: XCTestCase {
                 func noEscapeBlock(_ block: CompletionBlock)
             }
             """#
+        )
+    }
+    
+    func testProtocol_methods_names() throws {
+        let source = """
+        NS_ASSUME_NONNULL_BEGIN
+        
+        @protocol SomeProtocol <NSObject>
+
+        - (int)valueForConfigKeySync:(NSString *)configKey
+                        defaultValue:(int)defaultValue
+                                 foo:(Foo *_Nullable)foo;
+        
+        - (void)valueForNancyForSam:(int)sam;
+        
+        - (void)forReal:(NSString *)real;
+
+        - (void)sForReal:(NSString *)real;
+        
+        - (instancetype)initWithSam:(int)sam;
+
+        - (instancetype)initWithSamFoo:(int)sam;
+        
+        @end
+        
+        NS_ASSUME_NONNULL_END
+        
+        """
+                
+        let translator = try translator(
+            from: source,
+            existingPrefix: ""
+        )
+
+        let result = try translator.translate()
+        
+        assertBuildResult(
+            result,
+            """
+            
+            
+            @objc
+            public protocol SomeProtocol: NSObjectProtocol {
+            
+                @objc
+                func value(forConfigKeySync configKey: String, defaultValue: Int32, foo: Foo?) -> Int32
+
+                @objc
+                func valueForNancy(forSam sam: Int32)
+            
+                @objc
+                func forReal(_ real: String)
+                
+                @objc
+                func s(forReal real: String)
+            
+                @objc
+                init(sam: Int32)
+
+                @objc
+                init(samFoo sam: Int32)
+            }
+            """
         )
     }
     

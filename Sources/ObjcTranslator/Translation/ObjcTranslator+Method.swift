@@ -66,55 +66,28 @@ extension ObjcTranslator {
         //    | keywordDeclarator+ (',' '...')?
         //    ;
 
-        let rawFunctionName: String = {
-            if let selector = methodDecl.methodSelector()!.selector() {
-                // Method without args
-                return selector.getText()
-            } else {
-                // Method with at least one args
-                let keywordDecls = methodDecl.methodSelector()!.keywordDeclarator()
-                return keywordDecls.first!.selector()!.getText()
-            }
-        }()
-
-        let (functionName, firstParam): (String, String?) = {
-            // Objective-C with `With` in method signature produces different Swift functions
-            // `-initWithValue:(SomeType *)value` becomes `func init(value: SomeType)`
-            // `-methodWithArg:(Arg *)diffArgName` becomes `func method(arg diffArgName: Arg)`
-            let fragments = rawFunctionName.split(separator: "With")
-            if fragments.count == 1 {
-                return (String(fragments[0]), nil)
-            } else {
-                return (String(fragments[0]), String(fragments[1...].joined()).lowercasingFirst)
-            }
-        }()
+        let (functionName, firstArgFirstName, firstArgSecondName) = methodDecl.funcNameAndFirstParam
         
         let funcSignature = FunctionSignatureSyntax(
             parameterClause: FunctionParameterClauseSyntax(
                 parameters: try FunctionParameterListSyntax {
                     for (funcParamIndex, keywordDecl) in methodDecl.methodSelector()!.keywordDeclarator().enumerated() {
-                        let firstName: String? = {
-                            if funcParamIndex == 0, let firstParam {
-                                return firstParam
-                            } else if functionName.lowercased().hasSuffix(keywordDecl.identifier()!.getText().lowercased()) {
-                                return nil
+                        let firstName: TokenSyntax = {
+                            if funcParamIndex == 0 {
+                                return firstArgFirstName
                             } else {
-                                return keywordDecl.identifier()!.getText()
+                                return .identifier(keywordDecl.identifier()!.getText())
                             }
                         }()
-                        let secondName: String? = {
+                        let secondName: TokenSyntax? = {
                             if funcParamIndex == 0 {
-                                if let firstParam, firstParam.lowercased() != keywordDecl.identifier()!.getText().lowercased() {
-                                    return keywordDecl.identifier()!.getText()
-                                } else if firstName == nil {
-                                    return keywordDecl.identifier()!.getText()
-                                }
+                                return firstArgSecondName
                             }
                             return nil
                         }()
                         FunctionParameterSyntax(
-                            firstName: firstName.map { .identifier($0) } ?? .wildcardToken(),
-                            secondName: secondName.map { .identifier($0) },
+                            firstName: firstName,
+                            secondName: secondName,
                             type: try swiftType(
                                 typeName: keywordDecl.methodType().first?.typeName(),
                                 nullability: TypeNullability(
@@ -277,6 +250,91 @@ extension P.MethodDeclarationContext {
 
     var isInitializer: Bool {
         methodType()?.typeName()?.declarationSpecifiers()?.typeSpecifier()?.genericTypeSpecifier()?.getText() == "instancetype"
+    }
+    
+    var funcNameAndFirstParam: (functionName: String, firstName: TokenSyntax, secondName: TokenSyntax?) {
+        if let selector = self.methodSelector()!.selector() {
+            // Method without args
+            return (selector.getText(), .wildcardToken(), nil)
+        } else {
+            // Method with at least one args
+            let keywordDecls = self.methodSelector()!.keywordDeclarator()
+            let rawFunctionName = keywordDecls.first!.selector()!.getText()
+            let objcFirstArgName = keywordDecls.first!.identifier()!.getText()
+
+            let matches = rawFunctionName.matches(of: /(?!^)(With|For|In)(?=[A-Z])/)
+            guard let lastComponent = matches.last else {
+                if rawFunctionName.lowercased().hasSuffix(objcFirstArgName.lowercased()) {
+                    return (rawFunctionName, .wildcardToken(), .identifier(objcFirstArgName))
+                } else {
+                    return (rawFunctionName, .identifier(objcFirstArgName), nil)
+                }
+            }
+            let remainder = String(rawFunctionName[lastComponent.1.endIndex...])
+            
+            /*
+            // Objective-C
+            - (void)valueForNancyForSam:(int)sam;
+            // Swift
+            func valueForNancy(forSam sam: Int32)
+
+            // Objective-C
+            - (void)valueForNancyWithSam:(int)sam;
+            // Swift
+            func valueForNancy(withSam sam: Int32)
+
+            // Objective-C
+            - (void)valueWithSam:(int)sam;
+            // Swift
+            func value(withSam sam: Int32)
+
+            // Objective-C
+            - (instancetype)initWithSam:(int)sam;
+            // Swift
+            init(sam: Int32)
+
+            // Objective-C
+            - (instancetype)initWithSamFoo:(int)sam;
+            // Swift
+            init(samFoo sam: Int32)
+
+            // Objective-C
+            - (void)forReal:(NSString *)real;
+            // Swift
+            func forReal(_ real: String)
+
+            // Objective-C
+            - (void)sForReal:(NSString *)real;
+            // Swift
+            func s(forReal real: String)
+             */
+            
+            let separatorWithRemainder = String(lastComponent.1).lowercasingFirst + remainder.uppercasingFirst
+
+            let firstArgName: TokenSyntax = {
+                if rawFunctionName.starts(with: "init") && String(lastComponent.1).lowercased() == "with" {
+                    return .identifier(remainder.lowercasingFirst)
+                } else {
+                    return .identifier(separatorWithRemainder)
+                }
+            }()
+            
+            let functionNamePrecedingSeparator = String(rawFunctionName[rawFunctionName.startIndex..<lastComponent.1.startIndex])
+            
+            if functionNamePrecedingSeparator.starts(with: "init") {
+                if remainder.lowercased() == objcFirstArgName.lowercased() {
+                    return (functionNamePrecedingSeparator, firstArgName, nil)
+                } else {
+                    return (functionNamePrecedingSeparator, firstArgName, .identifier(objcFirstArgName))
+                }
+            } else {
+                if separatorWithRemainder.lowercased() == objcFirstArgName.lowercased() {
+                    return (functionNamePrecedingSeparator, .wildcardToken(), .identifier(objcFirstArgName))
+                } else {
+                    return (functionNamePrecedingSeparator, firstArgName, .identifier(objcFirstArgName))
+                }
+            }
+        }
     }
 }
 

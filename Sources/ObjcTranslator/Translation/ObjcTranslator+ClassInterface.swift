@@ -133,55 +133,28 @@ extension ObjcTranslator {
                         //    | keywordDeclarator+ (',' '...')?
                         //    ;
 
-                        let rawFunctionName: String = {
-                            if let selector = methodDecl.methodSelector()!.selector() {
-                                // Method without args
-                                return selector.getText()
-                            } else {
-                                // Method with at least one args
-                                let keywordDecls = methodDecl.methodSelector()!.keywordDeclarator()
-                                return keywordDecls.first!.selector()!.getText()
-                            }
-                        }()
-
-                        let (functionName, firstParam): (String, String?) = {
-                            // Objective-C with `With` in method signature produces different Swift functions
-                            // `-initWithValue:(SomeType *)value` becomes `func init(value: SomeType)`
-                            // `-methodWithArg:(Arg *)diffArgName` becomes `func method(arg diffArgName: Arg)`
-                            let fragments = rawFunctionName.split(separator: "With")
-                            if fragments.count == 1 {
-                                return (String(fragments[0]), nil)
-                            } else {
-                                return (String(fragments[0]), String(fragments[1...].joined()).lowercasingFirst)
-                            }
-                        }()
+                        let (_, firstArgFirstName, firstArgSecondName) = methodDecl.funcNameAndFirstParam
                         
                         let funcSignature = FunctionSignatureSyntax(
                             parameterClause: FunctionParameterClauseSyntax(
                                 parameters: try FunctionParameterListSyntax {
                                     for (funcParamIndex, keywordDecl) in methodDecl.methodSelector()!.keywordDeclarator().enumerated() {
-                                        let firstName: String? = {
-                                            if funcParamIndex == 0, let firstParam {
-                                                return firstParam
-                                            } else if functionName.lowercased().hasSuffix(keywordDecl.identifier()!.getText().lowercased()) {
-                                                return nil
+                                        let firstName: TokenSyntax = {
+                                            if funcParamIndex == 0 {
+                                                return firstArgFirstName
                                             } else {
-                                                return keywordDecl.identifier()!.getText()
+                                                return .identifier(keywordDecl.identifier()!.getText())
                                             }
                                         }()
-                                        let secondName: String? = {
+                                        let secondName: TokenSyntax? = {
                                             if funcParamIndex == 0 {
-                                                if let firstParam, firstParam.lowercased() != keywordDecl.identifier()!.getText().lowercased() {
-                                                    return keywordDecl.identifier()!.getText()
-                                                } else if firstName == nil {
-                                                    return keywordDecl.identifier()!.getText()
-                                                }
+                                                return firstArgSecondName
                                             }
                                             return nil
                                         }()
                                         FunctionParameterSyntax(
-                                            firstName: firstName.map { .identifier($0) } ?? .wildcardToken(),
-                                            secondName: secondName.map { .identifier($0) },
+                                            firstName: firstName,
+                                            secondName: secondName,
                                             type: try swiftType(
                                                 typeName: keywordDecl.methodType().first?.typeName(),
                                                 nullability: TypeNullability(
