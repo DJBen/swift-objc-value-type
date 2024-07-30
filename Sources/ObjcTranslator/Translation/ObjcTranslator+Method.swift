@@ -262,7 +262,7 @@ extension P.MethodDeclarationContext {
             let rawFunctionName = keywordDecls.first!.selector()!.getText()
             let objcFirstArgName = keywordDecls.first!.identifier()!.getText()
 
-            let matches = rawFunctionName.matches(of: /(?!^)(With|For|In)(?=[A-Z])/)
+            let matches = rawFunctionName.matches(of: /(?!^)(With|For|In|At)(?=[A-Z])/)
             guard let lastComponent = matches.last else {
                 if rawFunctionName.lowercased().hasSuffix(objcFirstArgName.lowercased()) {
                     return (rawFunctionName, .wildcardToken(), .identifier(objcFirstArgName))
@@ -307,12 +307,19 @@ extension P.MethodDeclarationContext {
             - (void)sForReal:(NSString *)real;
             // Swift
             func s(forReal real: String)
-             */
+             
+            // Objective-C
+            - (id)itemAtIndex:(NSInteger)index;
+            // Swift
+            func item(at index: Int) -> Any
+            */
             
             let separatorWithRemainder = String(lastComponent.1).lowercasingFirst + remainder.uppercasingFirst
 
             let firstArgName: TokenSyntax = {
-                if rawFunctionName.starts(with: "init") && String(lastComponent.1).lowercased() == "with" {
+                if objcFirstArgName == "index" || objcFirstArgName == "indexPath" {
+                    return .identifier(String(lastComponent.1).lowercasingFirst)
+                } else if String(lastComponent.1).lowercased() == "with" {
                     return .identifier(remainder.lowercasingFirst)
                 } else {
                     return .identifier(separatorWithRemainder)
@@ -321,14 +328,14 @@ extension P.MethodDeclarationContext {
             
             let functionNamePrecedingSeparator = String(rawFunctionName[rawFunctionName.startIndex..<lastComponent.1.startIndex])
             
-            if functionNamePrecedingSeparator.starts(with: "init") {
-                if remainder.lowercased() == objcFirstArgName.lowercased() {
+            if functionNamePrecedingSeparator.starts(with: "init") || String(lastComponent.1).lowercased() == "with" {
+                if firstArgName.text.lowercased() == objcFirstArgName.lowercased() {
                     return (functionNamePrecedingSeparator, firstArgName, nil)
                 } else {
                     return (functionNamePrecedingSeparator, firstArgName, .identifier(objcFirstArgName))
                 }
             } else {
-                if separatorWithRemainder.lowercased() == objcFirstArgName.lowercased() {
+                if firstArgName.text.lowercased() == objcFirstArgName.lowercased() {
                     return (functionNamePrecedingSeparator, .wildcardToken(), .identifier(objcFirstArgName))
                 } else {
                     return (functionNamePrecedingSeparator, firstArgName, .identifier(objcFirstArgName))

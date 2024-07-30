@@ -503,6 +503,10 @@ final class ObjcTranslatorTests: XCTestCase {
         
         - (void)valueForNancyForSam:(int)sam;
         
+        - (void)valueForNancyWithSam:(int)sam;
+
+        - (void)valueWithSam:(int)sam;
+
         - (void)forReal:(NSString *)real;
 
         - (void)sForReal:(NSString *)real;
@@ -537,6 +541,12 @@ final class ObjcTranslatorTests: XCTestCase {
 
                 @objc
                 func valueForNancy(forSam sam: Int32)
+            
+                @objc
+                func valueForNancy(withSam sam: Int32)
+
+                @objc
+                func value(withSam sam: Int32)
             
                 @objc
                 func forReal(_ real: String)
@@ -646,7 +656,7 @@ final class ObjcTranslatorTests: XCTestCase {
                 func numberOfItems() -> Int
 
                 @objc
-                func itemAtIndex(_ index: Int) -> Any
+                func item(at index: Int) -> Any
 
                 // Optional methods
                 optional var string: String? {
@@ -655,10 +665,10 @@ final class ObjcTranslatorTests: XCTestCase {
                 }
                 
                 @objc
-                optional func titleForItemAtIndex(_ index: Int) -> String
+                optional func titleForItem(at index: Int) -> String
 
                 @objc
-                optional func didSelectItemAtIndex(_ index: Int)
+                optional func didSelectItem(at index: Int)
             }
             """#
         )
