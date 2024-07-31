@@ -72,18 +72,24 @@ extension ObjcTranslator {
             parameterClause: FunctionParameterClauseSyntax(
                 parameters: try FunctionParameterListSyntax {
                     for (funcParamIndex, keywordDecl) in methodDecl.methodSelector()!.keywordDeclarator().enumerated() {
+                        let varName = keywordDecl.identifier()!.getText()
                         let firstName: TokenSyntax = {
                             if funcParamIndex == 0 {
                                 return firstArgFirstName
+                            } else if let selectorName = keywordDecl.selector()?.getText(), selectorName.lowercased() != varName.lowercased() {
+                                return .identifier(selectorName)
                             } else {
-                                return .identifier(keywordDecl.identifier()!.getText())
+                                return .identifier(varName)
                             }
                         }()
                         let secondName: TokenSyntax? = {
                             if funcParamIndex == 0 {
                                 return firstArgSecondName
+                            } else if let selectorName = keywordDecl.selector()?.getText(), selectorName.lowercased() != varName.lowercased() {
+                                return .identifier(keywordDecl.identifier()!.getText())
+                            } else {
+                                return nil
                             }
-                            return nil
                         }()
                         FunctionParameterSyntax(
                             firstName: firstName,
@@ -253,21 +259,30 @@ extension P.MethodDeclarationContext {
     }
     
     var funcNameAndFirstParam: (functionName: String, firstName: TokenSyntax, secondName: TokenSyntax?) {
+        let swiftAliasedFunctionName: String? = {
+            if let swiftAlias = self.macro().first(where: { $0.NS_SWIFT_NAME() != nil }), let swiftSelectorImpl = swiftAlias.swiftSelectorExpression() {
+                // TODO: aliasing other parameter is currently not implemented
+                return swiftSelectorImpl.identifier()?.getText()
+            }
+            return nil
+        }()
+        
         if let selector = self.methodSelector()!.selector() {
             // Method without args
-            return (selector.getText(), .wildcardToken(), nil)
+            return (swiftAliasedFunctionName ?? selector.getText(), .wildcardToken(), nil)
         } else {
             // Method with at least one args
             let keywordDecls = self.methodSelector()!.keywordDeclarator()
             let rawFunctionName = keywordDecls.first!.selector()!.getText()
             let objcFirstArgName = keywordDecls.first!.identifier()!.getText()
+            let firstArgIsBlock = keywordDecls.first!.methodType().first?.typeName()?.blockType() != nil
 
-            let matches = rawFunctionName.matches(of: /(?!^)(With|For|In|At)(?=[A-Z])/)
+            let matches = rawFunctionName.matches(of: /(?!^)(With(?!No)|For|In|At|To)(?=[A-Z])/)
             guard let lastComponent = matches.last else {
                 if rawFunctionName.lowercased().hasSuffix(objcFirstArgName.lowercased()) {
-                    return (rawFunctionName, .wildcardToken(), .identifier(objcFirstArgName))
+                    return (swiftAliasedFunctionName ?? rawFunctionName, .wildcardToken(), .identifier(objcFirstArgName))
                 } else {
-                    return (rawFunctionName, .identifier(objcFirstArgName), nil)
+                    return (swiftAliasedFunctionName ?? rawFunctionName, .identifier(objcFirstArgName), nil)
                 }
             }
             let remainder = String(rawFunctionName[lastComponent.1.endIndex...])
@@ -319,7 +334,7 @@ extension P.MethodDeclarationContext {
             let firstArgName: TokenSyntax = {
                 if objcFirstArgName == "index" || objcFirstArgName == "indexPath" {
                     return .identifier(String(lastComponent.1).lowercasingFirst)
-                } else if String(lastComponent.1).lowercased() == "with" {
+                } else if (rawFunctionName.starts(with: "init") && String(lastComponent.1).lowercased() == "with") || firstArgIsBlock {
                     return .identifier(remainder.lowercasingFirst)
                 } else {
                     return .identifier(separatorWithRemainder)
@@ -330,15 +345,15 @@ extension P.MethodDeclarationContext {
             
             if functionNamePrecedingSeparator.starts(with: "init") || String(lastComponent.1).lowercased() == "with" {
                 if firstArgName.text.lowercased() == objcFirstArgName.lowercased() {
-                    return (functionNamePrecedingSeparator, firstArgName, nil)
+                    return (swiftAliasedFunctionName ?? functionNamePrecedingSeparator, firstArgName, nil)
                 } else {
-                    return (functionNamePrecedingSeparator, firstArgName, .identifier(objcFirstArgName))
+                    return (swiftAliasedFunctionName ?? functionNamePrecedingSeparator, firstArgName, .identifier(objcFirstArgName))
                 }
             } else {
                 if firstArgName.text.lowercased() == objcFirstArgName.lowercased() {
-                    return (functionNamePrecedingSeparator, .wildcardToken(), .identifier(objcFirstArgName))
+                    return (swiftAliasedFunctionName ?? functionNamePrecedingSeparator, .wildcardToken(), .identifier(objcFirstArgName))
                 } else {
-                    return (functionNamePrecedingSeparator, firstArgName, .identifier(objcFirstArgName))
+                    return (swiftAliasedFunctionName ?? functionNamePrecedingSeparator, firstArgName, .identifier(objcFirstArgName))
                 }
             }
         }

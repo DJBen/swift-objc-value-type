@@ -287,7 +287,7 @@ final class ObjcTranslatorTests: XCTestCase {
 
         - (void)startImpression:(AdImpression *)impression
               completionHandler:(nullable void (^)(NSError *_Nullable error))completion
-            NS_SWIFT_NAME(startImpression(_:completionHandler:))API_AVAILABLE(ios(14.5))
+            NS_SWIFT_NAME(startImpressionMeow(_:completionHandler:))API_AVAILABLE(ios(14.5))
                 API_UNAVAILABLE(macos, watchos)__TVOS_PROHIBITED;
 
         -(instancetype)init __attribute__((unavailable("init is not available.")));
@@ -316,7 +316,7 @@ final class ObjcTranslatorTests: XCTestCase {
                 @available(macOS, unavailable) 
                 @available(watchOS, unavailable)
                 @objc
-                func startImpression(_ impression: AdImpression, completion: ((error: Error?) -> Void)?)
+                func startImpressionMeow(_ impression: AdImpression, completionHandler completion: ((error: Error?) -> Void)?)
             
                 @available(macosx, introduced: 10.4, deprecated: 10.6, message: "hello world")
                 @objc
@@ -786,7 +786,7 @@ final class ObjcTranslatorTests: XCTestCase {
             
                 // Some class method
                 @objc
-                class func archiveEntry(fileName: String) -> Bool
+                class func archiveEntry(withFileName fileName: String) -> Bool
 
                 @objc
                 init(dataBlock: ((error: UnsafeMutablePointer<Error>) -> Data?)?)
@@ -795,7 +795,7 @@ final class ObjcTranslatorTests: XCTestCase {
                 /// - Parameter navigationController: Navigation controller to set chat screen to.
                 /// - Parameter tagIndex: the index in the tab bar tabBarController
                 @objc
-                func presentAttachedToNavigationController(_ navigationController: UINavigationController, tagIndex: Int)
+                func presentAttached(toNavigationController navigationController: UINavigationController, withTabBarTagIndex tagIndex: Int)
 
                 /// Handle logout.
                 @objc
@@ -803,11 +803,11 @@ final class ObjcTranslatorTests: XCTestCase {
             
                 /// - Returns a number
                 @objc
-                func someType(optionalStr: String?, str2: String?) -> NSNumber?
+                func someType(withOptionalStr optionalStr: String?, optionalStr2 str2: String?) -> NSNumber?
             
                 /// Method with no type specified
                 @objc
-                func method(noTypeSpecified idArg: Any)
+                func methodWithNoTypeSpecified(idArg: Any)
             }
             """
         )

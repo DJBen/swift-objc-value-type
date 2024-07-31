@@ -139,18 +139,24 @@ extension ObjcTranslator {
                             parameterClause: FunctionParameterClauseSyntax(
                                 parameters: try FunctionParameterListSyntax {
                                     for (funcParamIndex, keywordDecl) in methodDecl.methodSelector()!.keywordDeclarator().enumerated() {
+                                        let varName = keywordDecl.identifier()!.getText()
                                         let firstName: TokenSyntax = {
                                             if funcParamIndex == 0 {
                                                 return firstArgFirstName
+                                            } else if let selectorName = keywordDecl.selector()?.getText(), selectorName.lowercased() != varName.lowercased() {
+                                                return .identifier(selectorName)
                                             } else {
-                                                return .identifier(keywordDecl.identifier()!.getText())
+                                                return .identifier(varName)
                                             }
                                         }()
                                         let secondName: TokenSyntax? = {
                                             if funcParamIndex == 0 {
                                                 return firstArgSecondName
+                                            } else if let selectorName = keywordDecl.selector()?.getText(), selectorName.lowercased() != varName.lowercased() {
+                                                return .identifier(keywordDecl.identifier()!.getText())
+                                            } else {
+                                                return nil
                                             }
-                                            return nil
                                         }()
                                         FunctionParameterSyntax(
                                             firstName: firstName,
