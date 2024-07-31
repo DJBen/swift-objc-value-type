@@ -77,7 +77,7 @@ extension SwiftObjcValueTypeFactory {
     ) throws -> MemberBlockItemListSyntax {
         try InitializerDeclSyntax(
             modifiers: DeclModifierListSyntax {
-                enumDecl.modifiers.trimmed
+                enumDecl.modifiersExcludingIndirect.trimmed
 
                 DeclModifierSyntax(name: .keyword(.convenience))
             },
@@ -240,7 +240,7 @@ extension SwiftObjcValueTypeFactory {
     ) throws -> MemberBlockItemListSyntax {
         InitializerDeclSyntax(
             modifiers: DeclModifierListSyntax {
-                enumDecl.modifiers.trimmed
+                enumDecl.modifiersExcludingIndirect.trimmed
             },
             signature: FunctionSignatureSyntax(
                 parameterClause: FunctionParameterClauseSyntax(

@@ -60,7 +60,7 @@ extension SwiftObjcValueTypeFactory {
         FunctionDeclSyntax(
             modifiers: DeclModifierListSyntax {
                 // Inherit visibility modifiers
-                enumDecl.modifiers.trimmed
+                enumDecl.modifiersExcludingIndirect.trimmed
             },
             name: .identifier("copy"),
             signature: FunctionSignatureSyntax(

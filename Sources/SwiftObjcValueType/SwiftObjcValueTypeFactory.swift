@@ -355,7 +355,7 @@ public struct SwiftObjcValueTypeFactory {
                 TypeAliasDeclSyntax(
                     modifiers: DeclModifierListSyntax {
                         // Inherit visibility modifiers
-                        enumDecl.modifiers.trimmed
+                        enumDecl.modifiersExcludingIndirect.trimmed
                     },
                     name: .identifier("\(enumName)\(caseElement.name.trimmed.text.uppercasingFirst)MatchHandler"),
                     initializer: TypeInitializerClauseSyntax(
@@ -386,7 +386,7 @@ public struct SwiftObjcValueTypeFactory {
                 attributes: AttributeListSyntax {
                     .attribute("@objc(\(raw: prefix + enumName))")
                 }.with(\.trailingTrivia, .newline),
-                modifiers: enumDecl.modifiers.trimmed,
+                modifiers: enumDecl.modifiersExcludingIndirect.trimmed,
                 name: "\(raw: enumName)Objc",
                 inheritanceClause: InheritanceClauseSyntax {
                     InheritedTypeListSyntax {
@@ -424,7 +424,7 @@ public struct SwiftObjcValueTypeFactory {
                     .with(\.leadingTrivia, .newlines(2))
 
                     try unavailableInit(
-                        parentContainerModifiers: enumDecl.modifiers
+                        parentContainerModifiers: enumDecl.modifiersExcludingIndirect.trimmed
                     )
                     .with(\.leadingTrivia, .newlines(2))
 
@@ -463,7 +463,7 @@ public struct SwiftObjcValueTypeFactory {
                             .with(\.trailingTrivia, .newline),
                             modifiers: DeclModifierListSyntax {
                                 // Inherit visibility modifiers
-                                enumDecl.modifiers.trimmed
+                                enumDecl.modifiersExcludingIndirect.trimmed
 
                                 DeclModifierSyntax(name: .keyword(.class))
                             },
@@ -546,7 +546,7 @@ public struct SwiftObjcValueTypeFactory {
             .with(\.trailingTrivia, .newline),
             modifiers: DeclModifierListSyntax {
                 // Inherit visibility modifiers
-                enumDecl.modifiers.trimmed
+                enumDecl.modifiersExcludingIndirect.trimmed
             },
             name: enumDecl.firstCaseElement.flatMap { caseElement -> TokenSyntax? in
                 let caseName = caseElement.name.trimmed.text.uppercasingFirst

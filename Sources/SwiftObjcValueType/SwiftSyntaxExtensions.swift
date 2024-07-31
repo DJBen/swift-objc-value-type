@@ -634,6 +634,12 @@ extension ExprSyntaxProtocol {
 }
 
 extension EnumDeclSyntax {
+    var modifiersExcludingIndirect: DeclModifierListSyntax {
+        modifiers.filter {
+            $0.name.keyword != .indirect
+        }
+    }
+    
     var inheritedTypes: [String] {
         inheritanceClause?.inheritedTypes.compactMap {
             if let identifierType = $0.type.as(IdentifierTypeSyntax.self) {
@@ -805,7 +811,7 @@ extension StructDeclSyntax {
         } ?? []
     }
 
-    var visibilityModifiers: [DeclModifierSyntax] {
+    var visibilityModifiers: DeclModifierListSyntax {
         modifiers.filter {
             $0.name.keyword == .public ||
             $0.name.keyword == .private ||
