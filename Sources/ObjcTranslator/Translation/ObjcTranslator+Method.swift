@@ -288,45 +288,197 @@ extension P.MethodDeclarationContext {
             let remainder = String(rawFunctionName[lastComponent.1.endIndex...])
             
             /*
-            // Objective-C
-            - (void)valueForNancyForSam:(int)sam;
-            // Swift
-            func valueForNancy(forSam sam: Int32)
+             + (BOOL)archiveEntryWithFileName:(NSString *)fileName;
 
-            // Objective-C
-            - (void)valueForNancyWithSam:(int)sam;
-            // Swift
-            func valueForNancy(withSam sam: Int32)
+             - (void)presentAttachedToNavigationController:(UINavigationController *)navigationController
+                                        withTabBarTagIndex:(NSInteger)tagIndex;
 
-            // Objective-C
-            - (void)valueWithSam:(int)sam;
-            // Swift
-            func value(withSam sam: Int32)
+             - (void)startImpression:(AdImpression *)impression
+                   completionHandler:(nullable void (^)(NSError *_Nullable error))completion NS_SWIFT_NAME(startImpressionMeow(_:completionHandler:));
 
-            // Objective-C
-            - (instancetype)initWithSam:(int)sam;
-            // Swift
-            init(sam: Int32)
+             - (void)valueForNancyForSam:(int)sam;
 
-            // Objective-C
-            - (instancetype)initWithSamFoo:(int)sam;
-            // Swift
-            init(samFoo sam: Int32)
+             - (void)valueForNancyWithSam:(int)sam;
 
-            // Objective-C
-            - (void)forReal:(NSString *)real;
-            // Swift
-            func forReal(_ real: String)
+             - (nullable NSNumber *)someTypeWithOptionalStr:(nullable NSString *)optionalStr optionalStr2:(NSString *_Nullable)str2;
 
-            // Objective-C
-            - (void)sForReal:(NSString *)real;
-            // Swift
-            func s(forReal real: String)
+             - (void)methodWithNoTypeSpecified:idArg;
+
+             - (void)crapWithNoTypeSpecified:idArg;
+
+             - (void)methodWithTypeSpecified:idArg;
+
+             - (void)methodWithSpecified:idArg;
+
+             - (void)methodWithType:idArg;
+
+             - (void)valueWithSam:(int)sam;
+
+             - (void)valueWithSamAltman:(int)samAltman;
+
+             - (void)valueWithSamBlock:(int)samBlock;
+
+             - (void)valueWithSam2Block:(void (^)())sam2Block;
+
+             - (void)valueWithPreSam2Block:(void (^)())sam2Block;
+
+             - (void)valueWithSam2Blah:(void (^)())sam2Block;
+
+             - (instancetype)initWithSam:(int)sam;
+
+             - (instancetype)initWithSamFoo:(int)sam;
+
+             - (void)forBadReal:(NSString *)real;
+
+             - (void)sForReal:(NSString *)real;
+
+             - (void)performFoo:(CompletionBlock)foo;
+
+             - (void)makeBlock:(int)block;
+
+             - (void)performBlock:(CompletionBlock)block;
+
+             - (void)noEscapeBlock:(NS_NOESCAPE CompletionBlock)block;
+
+             - (void)saveSectionsInMutationBlock:(nonnull NSArray<NSString *> *_Nonnull (^)(
+                                                       id _Nonnull dataAccessor))mutationBlock
+                                   completionQueue:(nonnull dispatch_queue_t)completionQueue
+                                        completion:(nonnull dispatch_block_t)completion;
+
+             - (void)saveSectionsWithMutationBlock:(nonnull NSArray<NSString *> *_Nonnull (^)(
+                                                       id _Nonnull dataAccessor))mutationBlock
+                                   completionQueue:(nonnull dispatch_queue_t)completionQueue
+                                        completion:(nonnull dispatch_block_t)completion;
+
+             - (id)itemAtIndex:(NSInteger)index;
+             - (id)itemForIndex:(NSInteger)index;
+             - (id)itemInIndex:(NSInteger)index;
+             - (id)itemWithIndex:(NSInteger)index;
+
+             - (id)itemAtIndexPath:(NSIndexPath *)indexPath;
+             - (id)itemForIndexPath:(NSIndexPath *)indexPath;
+             - (id)itemInIndexPath:(NSIndexPath *)indexPath;
+             - (id)itemWithIndexPath:(NSIndexPath *)indexPath;
+
+             - (id)itemAtIndexFoo:(id)indexFoo;
+             - (id)itemForIndexFoo:(id)indexFoo;
+             - (id)itemInIndexFoo:(id)indexFoo;
+             - (id)itemWithIndexFoo:(id)indexFoo;
+
+             - (id)itemAtNum:(NSInteger)num;
+             - (id)itemForNum:(NSInteger)num;
+             - (id)itemInNum:(NSInteger)num;
+             - (id)itemWithNum:(NSInteger)num;
+
+             - (NSString *)titleForItemAtIndex:(NSInteger)index;
              
-            // Objective-C
-            - (id)itemAtIndex:(NSInteger)index;
-            // Swift
-            func item(at index: Int) -> Any
+             ------
+             
+             static func archiveEntry(withFileName fileName: String) -> Bool
+
+             
+             func presentAttached(toNavigationController navigationController: Any!, withTabBarTagIndex tagIndex: Int)
+
+             
+             func startImpressionMeow(_ impression: Any!, completionHandler completion: ((Error?) -> Void)? = nil)
+
+             func startImpressionMeow(_ impression: Any!) async throws
+
+             
+             func valueForNancy(forSam sam: Int32)
+
+             
+             func valueForNancy(withSam sam: Int32)
+
+             
+             func someType(withOptionalStr optionalStr: String?, optionalStr2 str2: String?) -> NSNumber?
+             
+             func methodWithNoTypeSpecified(_ idArg: Any!)
+             
+             func crapWithNoTypeSpecified(_ idArg: Any!)
+             
+             func method(withTypeSpecified idArg: Any!)
+             
+             func method(withSpecified idArg: Any!)
+             
+             func method(withType idArg: Any!)
+             
+             func value(withSam sam: Int32)
+             
+             func value(withSamAltman samAltman: Int32)
+             
+             func value(withSamBlock samBlock: Int32)
+             
+             func value(sam2Block: @escaping () -> Void)
+             
+             func value(preSam2Block sam2Block: @escaping () -> Void)
+             
+             func value(sam2Blah sam2Block: @escaping () -> Void)
+             
+             init(sam: Int32)
+             
+             init(samFoo sam: Int32)
+             
+             func forBadReal(_ real: String)
+
+             func s(forReal real: String)
+             
+             func performFoo(_ foo: @escaping CompletionBlock)
+
+             func makeBlock(_ block: Int32)
+
+             func perform(_ block: @escaping CompletionBlock)
+
+             func noEscape(_ block: (String) -> Void)
+
+             func saveSections(inMutationBlock mutationBlock: @escaping (Any) -> [String], completionQueue: dispatch_queue_t, completion: @escaping () -> Void)
+
+             func saveSections(inMutationBlock mutationBlock: @escaping (Any) -> [String], completionQueue: dispatch_queue_t) async
+
+             
+             func saveSections(mutationBlock: @escaping (Any) -> [String], completionQueue: dispatch_queue_t, completion: @escaping () -> Void)
+
+             func saveSections(mutationBlock: @escaping (Any) -> [String], completionQueue: dispatch_queue_t) async
+
+             func item(at index: Int) -> Any
+
+             func item(for index: Int) -> Any
+
+             func item(in index: Int) -> Any
+
+             func item(with index: Int) -> Any
+
+             @available(macOS 10.10, *)
+             func item(at indexPath: IndexPath) -> Any
+
+             @available(macOS 10.10, *)
+             func item(for indexPath: IndexPath) -> Any
+
+             @available(macOS 10.10, *)
+             func item(in indexPath: IndexPath) -> Any
+
+             @available(macOS 10.10, *)
+             func item(with indexPath: IndexPath) -> Any
+             
+             func item(atIndexFoo indexFoo: Any) -> Any
+
+             func item(forIndexFoo indexFoo: Any) -> Any
+
+             func item(inIndexFoo indexFoo: Any) -> Any
+
+             func item(withIndexFoo indexFoo: Any) -> Any
+
+             
+             func item(atNum num: Int) -> Any
+
+             func item(forNum num: Int) -> Any
+
+             func item(inNum num: Int) -> Any
+
+             func item(withNum num: Int) -> Any
+
+             func titleForItem(at index: Int) -> String
+             
             */
             
             let separatorWithRemainder = String(lastComponent.1).lowercasingFirst + remainder.uppercasingFirst
