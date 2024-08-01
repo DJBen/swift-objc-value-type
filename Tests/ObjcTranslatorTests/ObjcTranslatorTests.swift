@@ -271,7 +271,7 @@ final class ObjcTranslatorTests: XCTestCase {
                     set
                 }
             
-                var enumerateProviders: (provider: ABProviderProtocol?, stop: UnsafeMutablePointer<ObjCBool>) -> Bool {
+                var enumerateProviders: (_ provider: ABProviderProtocol?, _ stop: UnsafeMutablePointer<ObjCBool>) -> Bool {
                     get
                     set
                 }
@@ -316,7 +316,7 @@ final class ObjcTranslatorTests: XCTestCase {
                 @available(macOS, unavailable) 
                 @available(watchOS, unavailable)
                 @objc
-                func startImpressionMeow(_ impression: AdImpression, completionHandler completion: ((error: Error?) -> Void)?)
+                func startImpressionMeow(_ impression: AdImpression, completionHandler completion: ((_ error: Error?) -> Void)?)
             
                 @available(macosx, introduced: 10.4, deprecated: 10.6, message: "hello world")
                 @objc
@@ -456,6 +456,8 @@ final class ObjcTranslatorTests: XCTestCase {
         
         - (void)noEscapeBlock:(NS_NOESCAPE CompletionBlock)block;
         
+        - (void)dispatchWithBlock:(dispatch_block_t)block;
+        
         @end
         
         NS_ASSUME_NONNULL_END
@@ -486,6 +488,9 @@ final class ObjcTranslatorTests: XCTestCase {
             
                 @objc
                 func noEscapeBlock(_ block: CompletionBlock)
+            
+                @objc
+                func dispatch(withBlock block: @escaping () -> Void)
             }
             """#
         )
@@ -514,6 +519,8 @@ final class ObjcTranslatorTests: XCTestCase {
         - (instancetype)initWithSam:(int)sam;
 
         - (instancetype)initWithSamFoo:(int)sam;
+        
+        - (id<Token>)startSection:(Reason)reason;
         
         @end
         
@@ -559,6 +566,9 @@ final class ObjcTranslatorTests: XCTestCase {
 
                 @objc
                 init(samFoo sam: Int32)
+            
+                @objc
+                func startSection(_ reason: Reason) -> Token
             }
             """
         )
@@ -577,6 +587,8 @@ final class ObjcTranslatorTests: XCTestCase {
                                    completion:(nonnull dispatch_block_t)completion;
         
         - (void)noEscapeBlock:(NS_NOESCAPE Section* (^_Nonnull)())block;
+        
+        - (void)namedCompletion:(void (^)(id<Result> result))completion;
         
         @end
         """
@@ -600,10 +612,13 @@ final class ObjcTranslatorTests: XCTestCase {
              This override the existing sections with mutated results.
              */
                 @objc
-                func saveSections(mutationBlock: @escaping (dataAccessor: DataAccessing) -> [Section], completionQueue: dispatch_queue_t, completion: dispatch_block_t)
+                func saveSections(mutationBlock: @escaping (_ dataAccessor: DataAccessing) -> [Section], completionQueue: dispatch_queue_t, completion: @escaping () -> Void)
             
                 @objc
                 func noEscapeBlock(_ block: () -> Section)
+            
+                @objc
+                func namedCompletion(_ completion: ((_ result: Result?) -> Void)?)
             }
             """#
         )
@@ -707,7 +722,7 @@ final class ObjcTranslatorTests: XCTestCase {
 
                 /** blah blah **/
                 @objc
-                func compoundType(fooBar: Foo & Bar)
+                func compoundType(_ fooBar: Foo & Bar)
             }
             """
         )
@@ -789,7 +804,7 @@ final class ObjcTranslatorTests: XCTestCase {
                 class func archiveEntry(withFileName fileName: String) -> Bool
 
                 @objc
-                init(dataBlock: ((error: UnsafeMutablePointer<Error>) -> Data?)?)
+                init(dataBlock: ((_ error: UnsafeMutablePointer<Error>) -> Data?)?)
 
                 /// Presents the feature blah blah.
                 /// - Parameter navigationController: Navigation controller to set chat screen to.
@@ -807,7 +822,7 @@ final class ObjcTranslatorTests: XCTestCase {
             
                 /// Method with no type specified
                 @objc
-                func methodWithNoTypeSpecified(idArg: Any)
+                func methodWithNoTypeSpecified(_ idArg: Any)
             }
             """
         )
@@ -1018,7 +1033,7 @@ final class ObjcTranslatorTests: XCTestCase {
             
                 // First comment
                 @objc
-                func handle(foos: [Foo]?) -> Foo
+                func handle(_ foos: [Foo]?) -> Foo
             }
             
             @objc

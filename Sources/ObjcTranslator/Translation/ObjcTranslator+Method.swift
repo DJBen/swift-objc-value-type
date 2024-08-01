@@ -282,7 +282,7 @@ extension P.MethodDeclarationContext {
                 if rawFunctionName.lowercased().hasSuffix(objcFirstArgName.lowercased()) {
                     return (swiftAliasedFunctionName ?? rawFunctionName, .wildcardToken(), .identifier(objcFirstArgName))
                 } else {
-                    return (swiftAliasedFunctionName ?? rawFunctionName, .identifier(objcFirstArgName), nil)
+                    return (swiftAliasedFunctionName ?? rawFunctionName, .wildcardToken(), .identifier(objcFirstArgName))
                 }
             }
             let remainder = String(rawFunctionName[lastComponent.1.endIndex...])
@@ -371,6 +371,8 @@ extension P.MethodDeclarationContext {
              - (id)itemWithNum:(NSInteger)num;
 
              - (NSString *)titleForItemAtIndex:(NSInteger)index;
+             
+             - (id<Token>)startSection:(Reason)reason;
              
              ------
              
@@ -478,6 +480,8 @@ extension P.MethodDeclarationContext {
              func item(withNum num: Int) -> Any
 
              func titleForItem(at index: Int) -> String
+             
+             func startSection(_ reason: Reason) -> Token
              
             */
             

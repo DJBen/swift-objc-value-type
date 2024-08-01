@@ -230,16 +230,12 @@ extension ObjcTranslator {
                     for typeVariableDeclOrName in blockParam.typeVariableDeclaratorOrName() {
                         if let typeVariableDecl = typeVariableDeclOrName.typeVariableDeclarator() {
                             let identifier = typeVariableDecl.declarator()!.identifier()
-                            let firstName: TokenSyntax? = isTypedef ? .wildcardToken() : identifier.map {
+                            let firstName: TokenSyntax? = identifier != nil  ? .wildcardToken() : nil
+                            let secondName: TokenSyntax? = identifier.map {
                                 .identifier(
                                     $0.getText()
                                 )
                             }
-                            let secondName: TokenSyntax? = isTypedef ? identifier.map {
-                                .identifier(
-                                    $0.getText()
-                                )
-                            } : nil
                             
                             TupleTypeElementSyntax(
                                 firstName: firstName,
@@ -492,6 +488,8 @@ extension ObjcTranslator {
                     .optionalized(nullability, isObjcPrimitiveType: false)
                 } else if typeName == "BOOL" && isContainedByPointer {
                     return IdentifierTypeSyntax(name: .identifier("ObjCBool"))
+                } else if typeName == "dispatch_block_t" {
+                    return TypeSyntax("() -> Void").escaping(true)
                 } else {
                     let mappedTypeName = mappingObjcTypeToSwift(typeName)
                     
