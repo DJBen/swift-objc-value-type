@@ -1416,7 +1416,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
             public typealias SaveUpdatesSaveFailedMatchHandler = (_ error: Error?) -> Void
 
             @objc(SaveUpdates)
-            public class SaveUpdatesObjc: NSObject, NSCopying {
+            public class SaveUpdatesObjc: NSObject, NSCopying, NSCoding {
             
                 private static let kCodedSubtypeKey = "CODED_SUBTYPE"
                 

@@ -395,6 +395,10 @@ public struct SwiftObjcValueTypeFactory {
                         if shouldSynthesizeNSCopying {
                             InheritedTypeSyntax(type: IdentifierTypeSyntax(name: "NSCopying"))
                         }
+
+                        if shouldSynthesizeNSCoding {
+                            InheritedTypeSyntax(type: IdentifierTypeSyntax(name: "NSCoding"))
+                        }
                     }
                 },
                 memberBlockBuilder: {
