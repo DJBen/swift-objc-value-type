@@ -229,14 +229,6 @@ private extension TypeSyntaxProtocol {
             return true
         }
 
-        if self.isIdentifierTypeEqual("UUID") {
-            return true
-        }
-
-        if self.isIdentifierTypeEqual("URL") {
-            return true
-        }
-
         return false
     }
 }
