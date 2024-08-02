@@ -1640,7 +1640,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     guard let other = object as? AttributedFeatureObjc else {
                         return false
                     }
-                    return featureName == other.featureName && jiraProject.isEqual(other.jiraProject)
+                    return featureName == other.featureName && jiraProject == other.jiraProject
                 }
 
                 @available(*, unavailable)
