@@ -1777,7 +1777,15 @@ final class SwiftObjcValueTypeTests: XCTestCase {
                     guard let other = object as? EncryptionTypeObjc else {
                         return false
                     }
-                    return subtype == other.subtype && encryptedParam0 == other.encryptedParam0 && encryptedKey == other.encryptedKey
+                    guard subtype == other.subtype else {
+                        return false
+                    }
+                    switch subtype {
+                    case .unencrypted:
+                        return true
+                    case .encrypted:
+                        return encryptedParam0 == other.encryptedParam0 && encryptedKey == other.encryptedKey
+                    }
                 }
 
                 @objc
