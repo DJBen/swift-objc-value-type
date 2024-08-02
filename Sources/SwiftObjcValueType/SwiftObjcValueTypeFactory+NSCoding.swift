@@ -150,7 +150,7 @@ extension SwiftObjcValueTypeFactory {
                     nsEnumTypes: nsEnumTypes
                 )
 
-                if let optionalType = type.as(OptionalTypeSyntax.self), optionalType.wrappedType.isNSNumberBridged {
+                if type.as(OptionalTypeSyntax.self)?.wrappedType.isNSNumberBridged ?? false || type.isUInt || (type.as(IdentifierTypeSyntax.self).flatMap { nsEnumTypes[$0.name.trimmed.text] }) == "UInt" {
                     UnresolvedAsExprSyntax(
                         questionOrExclamationMark: .postfixQuestionMarkToken()
                     )
@@ -170,6 +170,10 @@ extension SwiftObjcValueTypeFactory {
                     )
                 }
             }
+            .unwrapDecodedUInt(
+                type: type,
+                nsEnumTypes: nsEnumTypes
+            )
         )
     }
 
@@ -194,6 +198,14 @@ extension SwiftObjcValueTypeFactory {
                         type: type,
                         to: "Double",
                         ifEqual: "CGFloat"
+                    )
+                    // There doesn't exist a method encode(_: UInt), thus it will be incorrectly encoded to Object type.
+                    // To solve this, we need to wrap with NSNumber
+                    .casted(
+                        type: type,
+                        to: "NSNumber",
+                        label: "value",
+                        ifEqual: "UInt"
                     )
                     .appendingRawValueIfNSEnumType(
                         nsEnumTypes: valueObjectConfig.nsEnumTypes,
@@ -245,11 +257,11 @@ extension SwiftObjcValueTypeFactory {
         let constantEnumPrefix = constantEnumPrefix?.uppercasingFirst ?? ""
         let constantName = "k\(constantEnumPrefix)\(identifierPattern.identifier.trimmed.text.uppercasingFirst)Key"
 
-        // If type is one of below, use special treatment
+        // If type is one of below, directly assign, otherwise unwrap with guard stmt
         // - type is optional
-        // - type is primitive objective-C types
+        // - type is primitive objective-C types, excluding NSUInteger (NSCoding does not have non-precision-losing way of encoding unsigned ints, thus needs to encode as NSNumber)
         // - type is known to be an NS_ENUM type
-        if type.is(OptionalTypeSyntax.self) || type.isObjcPrimitive {
+        if type.is(OptionalTypeSyntax.self) || (type.isObjcPrimitive && !type.isUInt) {
             VariableDeclSyntax(
                 bindingSpecifier: .keyword(SwiftSyntax.Keyword.let),
                 bindings: PatternBindingListSyntax {
@@ -591,10 +603,34 @@ extension SwiftObjcValueTypeFactory {
 }
 
 private extension ExprSyntaxProtocol {
+    func unwrapDecodedUInt(
+        type: some TypeSyntaxProtocol,
+        nsEnumTypes: [String: String]
+    ) -> ExprSyntax {
+        if let identifierType = type.as(IdentifierTypeSyntax.self), identifierType.name.trimmed.text == "UInt" || nsEnumTypes[identifierType.name.trimmed.text] == "UInt" {
+            return ExprSyntax(
+                MemberAccessExprSyntax(
+                    base: OptionalChainingExprSyntax(
+                        expression: TupleExprSyntax {
+                            LabeledExprListSyntax {
+                                LabeledExprSyntax(expression: self)
+                            }
+                        }
+                    ),
+                    declName: DeclReferenceExprSyntax(
+                        baseName: .identifier("uintValue")
+                    )
+                )
+            )
+        }
+        return ExprSyntax(self)
+    }
+    
     func casted(
         type: some TypeSyntaxProtocol,
-        to castedType: String = "CGFloat",
-        ifEqual equalToType: String = "CGFloat"
+        to castedType: String,
+        label: String? = nil,
+        ifEqual equalToType: String
     ) -> any ExprSyntaxProtocol {
         if let identifierType = type.as(IdentifierTypeSyntax.self), identifierType.name.trimmed.text == equalToType {
             return FunctionCallExprSyntax(
@@ -604,6 +640,7 @@ private extension ExprSyntaxProtocol {
                 leftParen: .leftParenToken(),
                 arguments: LabeledExprListSyntax {
                     LabeledExprSyntax(
+                        label: label,
                         expression: self
                     )
                 },

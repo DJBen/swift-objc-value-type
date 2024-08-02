@@ -77,7 +77,7 @@ extension TypeSyntaxProtocol {
                 return .identifier("decodeDouble")
             case "Bool":
                 return .identifier("decodeBool")
-            case "Int", "UInt":
+            case "Int": // "UInt" is wrapped with NSNumber
                 return .identifier("decodeInteger")
             case "CGAffineTransform":
                 return .identifier("decodeCGAffineTransform")
@@ -132,6 +132,18 @@ extension TypeSyntaxProtocol {
         } else {
             return false
         }
+    }
+    
+    var isUInt: Bool {
+        if let identifierType = self.as(IdentifierTypeSyntax.self) {
+            switch identifierType.name.trimmed.text {
+            case "UInt":
+                return true
+            default:
+                return false
+            }
+        }
+        return false
     }
 
     func isIdentifierTypeEqual(_ name: String) -> Bool {

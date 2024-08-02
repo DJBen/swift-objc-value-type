@@ -733,7 +733,7 @@ final class SwiftObjcValueTypeTests: XCTestCase {
 
                 public required convenience init?(coder: NSCoder) {
                     let doubleValue = coder.decodeDouble(forKey: Self.kDoubleValueKey)
-                    guard let enumType = EnumType(rawValue: coder.decodeInteger(forKey: Self.kEnumTypeKey)) else {
+                    guard let enumType = (EnumType(rawValue: coder.decodeObject(forKey: Self.kEnumTypeKey)) as? NSNumber)?.uintValue else {
                         return nil
                     }
                     self.init(doubleValue: doubleValue, enumType: enumType)
