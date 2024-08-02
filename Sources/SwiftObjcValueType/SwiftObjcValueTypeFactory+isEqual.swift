@@ -8,9 +8,9 @@ extension SwiftObjcValueTypeFactory {
     private func isEqualFunc(
         containerName: String,
         modifiers: DeclModifierListSyntax,
-        @CodeBlockItemListBuilder builder: () -> CodeBlockItemListSyntax
+        @CodeBlockItemListBuilder builder: () throws -> CodeBlockItemListSyntax
     ) throws -> MemberBlockItemListSyntax {
-        FunctionDeclSyntax(
+        try FunctionDeclSyntax(
             modifiers: DeclModifierListSyntax {
                 // Inherit visibility modifiers
                 modifiers.trimmed
@@ -44,7 +44,7 @@ extension SwiftObjcValueTypeFactory {
             """
             )
 
-            builder()
+            try builder()
         }
     }
 
@@ -54,17 +54,18 @@ extension SwiftObjcValueTypeFactory {
         type: some TypeSyntaxProtocol,
         valueObjectConfig: ValueObjectConfig
     ) -> ExprListSyntax {
-        // Use `a == other.a` if primitive type or is optional
-        // Otherwise use `a.isEqual(other.a)`
+        // Use `a == other.a` if primitive type or Foundation type that has been known to conform to Equatable
+        // Otherwise use `a.isEqual(other.a)` if not optional
+        // Use `(a == nil && other.a == nil) || (a != nil && other.a != nil && a!.isEqual(other.a!))` if optional
         if type.asEnumTypeIfKnown(
             nsEnumTypes: valueObjectConfig.nsEnumTypes
         ).0.shouldUseEqualSignForEqualityCheck {
             DeclReferenceExprSyntax(
                 baseName: identifier
             )
-
+            
             BinaryOperatorExprSyntax(operator: .binaryOperator("=="))
-
+            
             MemberAccessExprSyntax(
                 base: DeclReferenceExprSyntax(
                     baseName: .identifier("other")
@@ -74,6 +75,10 @@ extension SwiftObjcValueTypeFactory {
                     baseName: identifier
                 )
             )
+        } else if type.is(OptionalTypeSyntax.self) {
+            ExprSyntax("""
+            ((\(identifier) == nil && other.\(identifier) == nil) || (\(identifier) != nil && other.\(identifier) != nil && \(identifier)!.isEqual(other.\(identifier)!)))
+            """)
         } else {
             FunctionCallExprSyntax(
                 calledExpression: MemberAccessExprSyntax(
@@ -140,33 +145,59 @@ extension SwiftObjcValueTypeFactory {
     func objcIsEqualFunc(
         enumDecl: EnumDeclSyntax
     ) throws -> MemberBlockItemListSyntax {
-        let totalEnumAssociatedValueCount: Int = {
-            var count = 0
-            enumDecl.enumerateCaseElement { index, caseElement in
-                count += (caseElement.parameterClause?.parameters ?? []).count
-            }
-            return count
-        }()
-        
-        
         try isEqualFunc(
             containerName: enumDecl.name.trimmed.text,
             modifiers: enumDecl.modifiers
         ) {
-            ReturnStmtSyntax(
-                expression: SequenceExprSyntax {
-                    ExprSyntax("subtype == other.subtype")
-
-                    if totalEnumAssociatedValueCount > 0 {
-                        BinaryOperatorExprSyntax(operator: .binaryOperator("&&"))
+            "guard subtype == other.subtype else { return false }"
+            
+            if enumDecl.caseCount > 0 {
+                try SwitchExprSyntax("switch subtype") {
+                    enumDecl.forEachCaseElement { caseElement in
+                        SwitchCaseSyntax(
+                            label: .case(
+                                SwitchCaseLabelSyntax {
+                                    SwitchCaseItemSyntax(
+                                        pattern: ExpressionPatternSyntax(
+                                            expression: MemberAccessExprSyntax(
+                                                period: .periodToken(),
+                                                declName: DeclReferenceExprSyntax(baseName: caseElement.name)
+                                            )
+                                        )
+                                    )
+                                }
+                            )
+                        ) {
+                            let params = caseElement.parameterClause?.parameters ?? []
+                            let lCaseName = caseElement.name.trimmed.text
+                            
+                            if params.isEmpty {
+                                "return true"
+                            } else {
+                                ReturnStmtSyntax(
+                                    expression: SequenceExprSyntax {
+                                        for (index, caseParam) in params.enumerated() {
+                                            if index > 0 {
+                                                BinaryOperatorExprSyntax(operator: .binaryOperator("&&"))
+                                            }
+                                            
+                                            let propertyName = "\(lCaseName)\(caseParam.properName(index: index).trimmed.text.uppercasingFirst)"
+                                            
+                                            propertyIsEqualExprs(
+                                                identifier: .identifier(propertyName),
+                                                type: caseParam.type.optionalized,
+                                                valueObjectConfig: enumDecl.valueObjectConfig
+                                            )
+                                        }
+                                    }
+                                )
+                            }
+                        }
                     }
-                    
-                    enumIsEqualExprList(
-                        enumDecl: enumDecl,
-                        totalEnumAssociatedValueCount: totalEnumAssociatedValueCount
-                    )
                 }
-            )
+            } else {
+                "return true"
+            }
         }
     }
     
@@ -212,10 +243,6 @@ private extension TypeSyntaxProtocol {
         if isObjcPrimitive {
             return true
         }
-        
-        if self.is(OptionalTypeSyntax.self) {
-            return true
-        }
 
         if self.is(ArrayTypeSyntax.self) {
             return true
@@ -227,6 +254,10 @@ private extension TypeSyntaxProtocol {
         
         if let idType = self.as(IdentifierTypeSyntax.self), ObjcSwiftUtils.swiftToObjcFoundationTypeMap[idType.name.trimmed.text] != nil {
             return true
+        }
+        
+        if let optional = self.as(OptionalTypeSyntax.self) {
+            return optional.wrappedType.shouldUseEqualSignForEqualityCheck
         }
 
         return false
