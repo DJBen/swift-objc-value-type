@@ -1,2 +1,0 @@
-build --apple_platform_type=ios
-build --cpu=ios_sim_arm64
