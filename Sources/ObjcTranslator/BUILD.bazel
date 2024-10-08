@@ -26,6 +26,7 @@ swift_library(
     module_name = "ObjcTranslator",
     visibility = ["//visibility:public"],
     deps = [
+        "//Sources/AntlrUtilities",
         "//Sources/ObjcSyntax",
         "//Sources/SharedUtilities",
         "@swiftpkg_antlr4//:Antlr4Static",
