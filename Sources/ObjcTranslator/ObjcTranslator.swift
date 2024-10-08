@@ -2,6 +2,7 @@ import Foundation
 import ObjcSyntax
 import Antlr4
 import OrderedCollections
+import AntlrUtilities
 import SharedUtilities
 import SwiftSyntax
 import SwiftSyntaxBuilder
@@ -222,28 +223,6 @@ public class ObjcTranslator {
         }
     }
     
-    private func appendToBeforeTrivia(
-        target: Interval,
-        token: Token
-    ) {
-        if beforeTriviaMap[target] == nil {
-            beforeTriviaMap[target] = []
-        }
-        
-        beforeTriviaMap[target]!.append(token)
-    }
-    
-    private func appendToAfterTrivia(
-        target: Interval,
-        token: Token
-    ) {
-        if afterTriviaMap[target] == nil {
-            afterTriviaMap[target] = []
-        }
-        
-        afterTriviaMap[target]!.append(token)
-    }
-    
     private func assignTrivia<Tree: ParseTree>(
         directives: [PP.DirectiveContext],
         tree: Tree,
@@ -254,9 +233,13 @@ public class ObjcTranslator {
             switch directive {
             case let ctx as PP.PreprocessorImportContext:
                 if ctx.IMPORT() != nil {
-                    let commentsAssociatedWithImport = taking(tokens: &commentTokens, until: ctx.getSourceInterval().a)
+                    let commentsAssociatedWithImport = tree.taking(tokens: &commentTokens, until: ctx.getSourceInterval().a)
                     for comment in commentsAssociatedWithImport {
-                        appendToBeforeTrivia(target: ctx.getSourceInterval(), token: comment)
+                        tree.appendToBeforeTrivia(
+                            target: ctx.getSourceInterval(),
+                            token: comment,
+                            beforeTriviaMap: &beforeTriviaMap
+                        )
                     }
                 }
             default:
@@ -264,63 +247,11 @@ public class ObjcTranslator {
             }
         }
         
-        assignTrivia(
-            tree: tree,
-            tokens: &commentTokens
+        tree.assignTrivia(
+            tokens: &commentTokens,
+            beforeTriviaMap: &beforeTriviaMap,
+            afterTriviaMap: &afterTriviaMap
         )
-    }
-    
-    // Algorithm adopted from http://meri-stuff.blogspot.com/2012/09/tackling-comments-in-antlr-compiler.html
-    private func assignTrivia<Tree: ParseTree>(
-        tree: Tree,
-        tokens: inout [Token]
-    ) {
-        if let rule = tree as? RuleNode, rule.getChildCount() > 0 {
-            let startTokenIndex = tree.getSourceInterval().a
-            let leadingTokens = taking(tokens: &tokens, until: startTokenIndex)
-            for token in leadingTokens {
-                appendToBeforeTrivia(
-                    target: tree.getSourceInterval(),
-                    token: token
-                )
-            }
-            
-            var prevNonTerminalChild: ParseTree?
-            for i in 0..<rule.getChildCount() {
-                let child = rule[i]
-                
-                assignTrivia(
-                    tree: child,
-                    tokens: &tokens
-                )
-                
-                if child is RuleNode {
-                    prevNonTerminalChild = child
-                }
-            }
-            
-            let endTokenIndex = tree.getSourceInterval().b
-            let trailingTokens = taking(tokens: &tokens, until: endTokenIndex)
-            for token in trailingTokens {
-                if let prevNonTerminalChild {
-                    appendToAfterTrivia(target: prevNonTerminalChild.getSourceInterval(), token: token)
-                } else {
-                    // Orphan
-                }
-            }
-        }
-    }
-    
-    private func taking(tokens: inout [Token], until endTokenIndex: Int) -> [Token] {
-        if let endIndex = tokens.firstIndex(where: { $0.getTokenIndex() > endTokenIndex }) {
-            let result = Array(tokens[..<endIndex])
-            tokens = Array(tokens[endIndex...])
-            return result
-        } else {
-            let result = tokens
-            tokens = []
-            return result
-        }
     }
     
     func beforeTrivia(for interval: Interval) -> Trivia {

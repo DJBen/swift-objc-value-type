@@ -46,6 +46,14 @@ let package = Package(
     ),
 
     .target(
+      name: "AntlrUtilities",
+      dependencies: [
+        .product(name: "Antlr4", package: "antlr4"),
+        .product(name: "OrderedCollections", package: "swift-collections"),
+      ]
+    ),
+
+    .target(
       name: "SwiftObjcValueType",
       dependencies: [
         "SharedUtilities",
@@ -59,6 +67,7 @@ let package = Package(
       name: "ObjcTranslator",
       dependencies: [
         "SharedUtilities",
+        "AntlrUtilities",
         "ObjcSyntax",
         .product(name: "Antlr4", package: "antlr4"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
